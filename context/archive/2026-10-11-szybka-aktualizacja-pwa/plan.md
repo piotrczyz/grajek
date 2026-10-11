@@ -78,7 +78,7 @@ fallback bar is fast in the common case and safe in the rare one.
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Guarded fast PWA updates | 1-2 | — | yes | in-progress | — |
+| 1 | Guarded fast PWA updates | 1-2 | — | yes | done | — |
 
 ## Critical Implementation Details
 - The gate must be the only reload path: pass `onNeedReload` so the plugin's
