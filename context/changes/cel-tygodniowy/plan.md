@@ -47,7 +47,7 @@ Alternatives rejected: storing the goal as a field of the Profile record (would 
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Weekly goal with progress, reached marker and gentle raise offer | 1-3 | — | yes | pending | — |
+| 1 | Weekly goal with progress, reached marker and gentle raise offer | 1-3 | — | yes | in-progress | — |
 
 ## Critical Implementation Details
 ### Rules (single source: `weeklyGoal.ts`)
