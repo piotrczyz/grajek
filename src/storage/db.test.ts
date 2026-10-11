@@ -11,10 +11,12 @@ describe('openDb', () => {
     expect(DB_NAME).toBe('grajek');
   });
 
-  it('opens a fresh database at version 2 with the shipped migrations', async () => {
+  it('opens a fresh database at migrations.length with the shipped migrations', async () => {
     const db = await openDb({ name: uniqueName() });
-    expect(db.version).toBe(2);
-    expect(Array.from(db.objectStoreNames).sort()).toEqual(['instruments', 'profile']);
+    expect(db.version).toBe(migrations.length);
+    expect(Array.from(db.objectStoreNames)).toEqual(
+      expect.arrayContaining(['instruments', 'profile', 'practiceTime']),
+    );
     db.close();
   });
 
@@ -59,9 +61,8 @@ describe('openDb', () => {
 });
 
 describe('shipped migrations', () => {
-  it('has two migrations: an empty v1 and v2 creating the profile stores', async () => {
-    expect(migrations).toHaveLength(2);
-    const db = await openDb({ name: uniqueName(), migrations });
+  it('starts with an empty v1 and v2 creating the profile stores', async () => {
+    const db = await openDb({ name: uniqueName(), migrations: migrations.slice(0, 2) });
     expect(db.version).toBe(2);
     expect(Array.from(db.objectStoreNames).sort()).toEqual(['instruments', 'profile']);
     const tx = db.transaction(['profile', 'instruments']);
@@ -78,9 +79,58 @@ describe('shipped migrations', () => {
     expect(v1.objectStoreNames.length).toBe(0);
     v1.close();
 
-    const v2 = await openDb({ name });
+    const v2 = await openDb({ name, migrations: migrations.slice(0, 2) });
     expect(v2.version).toBe(2);
     expect(Array.from(v2.objectStoreNames).sort()).toEqual(['instruments', 'profile']);
     v2.close();
+  });
+
+  it('v3 adds the practiceTime store with out-of-line keys', async () => {
+    const db = await openDb({ name: uniqueName() });
+    expect(db.objectStoreNames.contains('practiceTime')).toBe(true);
+    const tx = db.transaction('practiceTime');
+    expect(tx.objectStore('practiceTime').keyPath).toBeNull();
+    await tx.done;
+    db.close();
+  });
+
+  it('upgrades a populated version-2 database to the latest version keeping its profile rows', async () => {
+    const name = uniqueName();
+    const v2 = await openDb({ name, migrations: migrations.slice(0, 2) });
+    await v2.put('profile', { name: 'Ola', createdAt: '2026-10-11T10:00:00.000Z' }, 'current');
+    await v2.put('instruments', { id: 'i1', name: 'Gitara', createdAt: '2026-10-11T10:00:00.000Z' });
+    v2.close();
+
+    const latest = await openDb({ name });
+    expect(latest.version).toBe(migrations.length);
+    expect(latest.objectStoreNames.contains('practiceTime')).toBe(true);
+    expect(await latest.get('profile', 'current')).toEqual({
+      name: 'Ola',
+      createdAt: '2026-10-11T10:00:00.000Z',
+    });
+    expect(await latest.getAll('instruments')).toHaveLength(1);
+    latest.close();
+  });
+});
+
+describe('connection lifecycle', () => {
+  it('closes itself and fires onClose when another connection opens a higher version', async () => {
+    const name = uniqueName();
+    const onClose = vi.fn();
+    const first = await openDb({ name, migrations: migrations.slice(0, 2), onClose });
+
+    // Would stall on `blocked` if the first connection stayed open.
+    const second = await openDb({ name, migrations });
+    expect(second.version).toBe(migrations.length);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(() => first.transaction('profile')).toThrow();
+    second.close();
+  });
+
+  it('does not fire onClose when the owner closes the connection itself', async () => {
+    const onClose = vi.fn();
+    const db = await openDb({ name: uniqueName(), onClose });
+    db.close();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

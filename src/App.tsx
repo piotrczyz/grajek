@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { RETRY_MESSAGE } from './profile/copy.ts';
 import { CreateProfileScreen } from './profile/CreateProfileScreen.tsx';
 import { ProfileScreen } from './profile/ProfileScreen.tsx';
+import { PracticeTimeCard } from './practice-time/index.ts';
 import { createIndexedDbProfileStore, type Profile, type ProfileStore } from './profile/index.ts';
 
 export { GREETING } from './profile/copy.ts';
@@ -54,7 +55,12 @@ export function App({ store: injected }: AppProps = {}) {
               onCreated={(profile) => setState({ kind: 'profile', profile })}
             />
           )}
-          {state.kind === 'profile' && <ProfileScreen profile={state.profile} />}
+          {state.kind === 'profile' && (
+            <>
+              <ProfileScreen profile={state.profile} />
+              <PracticeTimeCard />
+            </>
+          )}
           {state.kind === 'load-failed' && (
             <>
               <p role="alert" className="max-w-xs text-2xl leading-snug font-semibold">
