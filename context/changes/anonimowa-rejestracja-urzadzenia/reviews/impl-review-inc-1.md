@@ -41,7 +41,7 @@ Out-of-plan files (soft guard, all justified support files): `functions/tsconfig
 - **Location**: functions/src/index.ts:46 (with functions/src/devices/handler.ts:106,139)
 - **Detail**: `onError: (error) => logger.error('devices api error', error)` logs the raw error. For a `WebPushError` (thrown by `push-sender.ts:39` on any non-404/410 status) Node's inspect prints its own properties: `endpoint` (the per-device push URL), the push service `headers` and `body`. The plan and ADR 0001 keep device data to the `devices/{id}` doc, which `DELETE` removes; a copy in logs outlives "turn off" and is a second store outside the planned whitelist. The log sender already logs only the host (`push-sender.ts:62`), which is the right pattern.
 - **Fix**: In `onError`, log only `name`, `message` without the endpoint, `statusCode` and the endpoint host (never the full error object), and add a unit test that the logged value contains no endpoint path.
-- **Decision**: FIX — one unambiguous fix; data-minimisation is a stated client constraint (ADR 0001).
+- **Decision**: FIXED (e0c32fc) — one unambiguous fix; data-minimisation is a stated client constraint (ADR 0001). Evidence: `reviews/fix-r1.md`.
 
 ### F2 — Criterion 4.1 (emulator suite) checked without ever running
 - **Severity**: WARNING
