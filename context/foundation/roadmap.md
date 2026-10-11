@@ -25,7 +25,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 
 | ID | Change ID | Outcome | Prerequisites | PRD refs | Status |
 |---|---|---|---|---|---|
-| F-01 | szkielet-aplikacji-offline | Uczeń może zainstalować pustą aplikację na telefonie i otworzyć ją bez internetu | — | NFR Offline, NFR Urządzenia | ready |
+| F-01 | szkielet-aplikacji-offline | Uczeń może zainstalować pustą aplikację na telefonie i otworzyć ją bez internetu | — | NFR Offline, NFR Urządzenia | done |
 | F-02 | anonimowa-rejestracja-urzadzenia | Urządzenie może zarejestrować się anonimowo do powiadomień | — | FR-004, NFR Prywatność, ADR 0001 | ready |
 | S-01 | profil-i-instrument | Uczeń może utworzyć Profil i dodać instrument | F-01 | FR-001 | proposed |
 | S-02 | zapis-cwiczenia | Uczeń może zapisać Ćwiczenie w ok. 10 s i zobaczyć je w bieżącym tygodniu | S-01 | FR-005, FR-006, US-01 | proposed |
@@ -65,7 +65,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** różnice w instalowaniu i działaniu offline między Androidem a iOS.
-- **Status:** ready
+- **Status:** done
 - **Unlocks:** S-01 (i pośrednio cały stream A i B); minimalny kontrakt lokalnego przechowywania danych i publikacji — bez żadnej funkcji produktu.
 
 ### F-02: Anonimowa rejestracja urządzenia do powiadomień
@@ -218,3 +218,5 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - Analityka użycia — wykluczona przez NFR Prywatność; ewentualna ocena skuteczności przez rozmowy z rodzicami/dziećmi.
 
 ## Done
+
+- F-01 szkielet-aplikacji-offline — archived at context/archive/2026-10-11-szkielet-aplikacji-offline/ (review r2 APPROVED; manual install/offline checks pending on device).
