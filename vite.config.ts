@@ -49,6 +49,11 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
+        // A new version takes over at once instead of waiting for every tab to close.
+        // The plugin sets these only with injectRegister 'auto'; we register manually
+        // (src/pwa/updates.ts), which also decides when the page reloads onto it.
+        skipWaiting: true,
+        clientsClaim: true,
         // Push and notificationclick handlers (F-02), plain JS from public/.
         importScripts: ['push-sw.js'],
         // No runtimeCaching: the app makes no requests to external origins. Its

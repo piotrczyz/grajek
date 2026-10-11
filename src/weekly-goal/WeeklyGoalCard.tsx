@@ -33,6 +33,7 @@ import {
   type WeeklyGoal,
 } from './weeklyGoal.ts';
 import { createIndexedDbWeeklyGoalStore, type WeeklyGoalStore } from './weeklyGoalStore.ts';
+import { useUnsavedWork } from '../pwa/index.ts';
 
 type CardState =
   | { kind: 'loading' }
@@ -204,6 +205,9 @@ function GoalChooser({ store, current, onSaved, onCancel }: GoalChooserProps) {
   const [selected, setSelected] = useState(current?.daysPerWeek ?? DEFAULT_GOAL);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Opened via "Zmień" (an existing goal) it is a panel; shown first with no goal yet,
+  // it holds a reload onto a new version only once the student changes the choice.
+  useUnsavedWork(saving || current !== null || selected !== DEFAULT_GOAL);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

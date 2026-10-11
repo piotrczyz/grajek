@@ -19,6 +19,7 @@ import {
 } from './practiceStore.ts';
 import { instrumentIcon } from '../profile/instruments.ts';
 import type { Instrument } from '../profile/profileStore.ts';
+import { useUnsavedWork } from '../pwa/index.ts';
 
 interface LogPracticeProps {
   store: PracticeStore;
@@ -63,6 +64,8 @@ export function LogPractice({
   const [emoji, setEmoji] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  // The panel is open while mounted: a reload onto a new version waits until it closes.
+  useUnsavedWork(true);
 
   async function save() {
     if (saving) return;

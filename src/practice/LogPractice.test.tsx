@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { useState } from 'react';
 import { LogPractice } from './LogPractice.tsx';
 import type { NewPractice, Practice, PracticeStore } from './practiceStore.ts';
 import type { Instrument } from '../profile/index.ts';
+import { hasUnsavedWork } from '../pwa/index.ts';
 
 const guitar: Instrument = { id: 'i1', name: 'Gitara', createdAt: '2026-10-01T10:00:00.000Z' };
 const piano: Instrument = { id: 'i2', name: 'Pianino', createdAt: '2026-10-02T10:00:00.000Z' };
@@ -140,5 +142,30 @@ describe('LogPractice', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
     expect(store.add).toHaveBeenCalledWith({ instrumentId: 'i1', durationMinutes: 20 });
+  });
+
+  it('holds a reload onto a new version while the panel is open, until the practice is saved', async () => {
+    // The parent closes the panel on save, as ProfileScreen does.
+    function Parent() {
+      const [open, setOpen] = useState(true);
+      return open ? (
+        <LogPractice
+          store={fakeStore()}
+          instruments={[guitar]}
+          initialInstrumentId="i1"
+          initialDuration={20}
+          onSaved={() => setOpen(false)}
+          onCancel={() => setOpen(false)}
+        />
+      ) : null;
+    }
+    render(<Parent />);
+    expect(hasUnsavedWork()).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dodaj więcej' }));
+    fireEvent.change(screen.getByLabelText('Nad czym pracowałem?'), { target: { value: 'Gamy' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Zapisz' })).not.toBeInTheDocument());
+    expect(hasUnsavedWork()).toBe(false);
   });
 });

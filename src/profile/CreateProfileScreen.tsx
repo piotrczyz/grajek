@@ -2,6 +2,7 @@ import { useId, useState, type FormEvent } from 'react';
 import { GREETING, RETRY_MESSAGE } from './copy.ts';
 import { INSTRUMENT_PRESETS, OTHER_INSTRUMENT_ICON } from './instruments.ts';
 import { NAME_MAX_LENGTH, validateProfileInput, type Profile, type ProfileStore } from './profileStore.ts';
+import { useUnsavedWork } from '../pwa/index.ts';
 
 const OTHER = 'Inny';
 
@@ -30,6 +31,8 @@ export function CreateProfileScreen({ store, onCreated }: CreateProfileScreenPro
 
   const instrumentName = choice === OTHER ? other : (choice ?? '');
   const valid = validateProfileInput({ name, instrumentName }).ok;
+  // A reload onto a new version waits while the student has started filling the form.
+  useUnsavedWork(saving || name !== '' || choice !== null || other !== '');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { hasUnsavedWork } from '../pwa/index.ts';
 import { openDb } from '../storage/index.ts';
 import { RETRY_MESSAGE } from './copy.ts';
 import { PracticeTimeCard } from './PracticeTimeCard.tsx';
@@ -59,6 +60,17 @@ describe('PracticeTimeCard', () => {
     expect(await screen.findByText('Dziś: 16:30 · U babci')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Zmień' })).toBeInTheDocument();
     expect(await store.load()).toMatchObject({ default: { time: '16:30', place: 'U babci' }, overrides: {} });
+  });
+
+  it('holds a reload onto a new version while the editor is open, until the time is saved', async () => {
+    render(<PracticeTimeCard store={storeOn(uniqueName())} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Ustal porę ćwiczeń' }));
+    fireEvent.change(placeInput(), { target: { value: 'U babci' } });
+    expect(hasUnsavedWork()).toBe(true);
+
+    fireEvent.click(saveButton());
+    expect(await screen.findByText('Dziś: 17:00 · U babci')).toBeInTheDocument();
+    expect(hasUnsavedWork()).toBe(false);
   });
 
   it('shows the override for today\'s weekday instead of the default', async () => {

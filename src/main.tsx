@@ -1,8 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { registerSW } from 'virtual:pwa-register';
 import { App } from './App.tsx';
 import './index.css';
+import { registerAppUpdates } from './pwa/index.ts';
 import { requestPersistentStorage } from './storage/index.ts';
 import { createIndexedDbPracticeStore } from './practice/index.ts';
 import { startReminderSync, withReminderSync } from './reminder/index.ts';
@@ -14,9 +14,11 @@ void requestPersistentStorage();
 startReminderSync();
 
 // The service worker precaches the app shell so it opens offline. It exists only
-// in the production build; autoUpdate swaps in a new version on the next load.
+// in the production build. registerAppUpdates also asks for a new version on every
+// return to the foreground and every 15 minutes, and reloads onto it unless a form
+// holds unsaved input (then a "Jest nowa wersja" bar offers the reload).
 if (import.meta.env.PROD) {
-  registerSW({ immediate: true });
+  registerAppUpdates();
 }
 
 const root = document.getElementById('root');

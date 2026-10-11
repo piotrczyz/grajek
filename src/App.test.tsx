@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App, GREETING } from './App.tsx';
 import { createIndexedDbPracticeStore } from './practice/index.ts';
 import { createIndexedDbProfileStore, type ProfileStore } from './profile/index.ts';
+import { hasUnsavedWork } from './pwa/index.ts';
 import { openDb } from './storage/index.ts';
 
 let counter = 0;
@@ -57,6 +58,19 @@ describe('first launch', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Gitara')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Gotowe' })).not.toBeInTheDocument();
+  });
+
+  it('holds a reload onto a new version while the form is being filled, until the profile is saved', async () => {
+    await renderFirstLaunch();
+    expect(hasUnsavedWork()).toBe(false);
+
+    fireEvent.change(nameInput(), { target: { value: 'Ola' } });
+    expect(hasUnsavedWork()).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: 'Gitara' }));
+    fireEvent.click(doneButton());
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' })).toBeInTheDocument();
+    await waitFor(() => expect(hasUnsavedWork()).toBe(false));
   });
 
   it('saves the typed label when "Inny" is chosen', async () => {
