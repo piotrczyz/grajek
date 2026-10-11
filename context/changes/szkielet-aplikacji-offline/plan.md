@@ -328,10 +328,10 @@ Make the publication method explicit and keep it checked on every push.
 
 ### Phase 1: Project scaffold and welcome screen
 #### Automated
-- [ ] 1.1 `pnpm install --frozen-lockfile` succeeds on a clean checkout
-- [ ] 1.2 `pnpm lint` and `pnpm typecheck` pass
-- [ ] 1.3 `pnpm test` passes, including the welcome screen test
-- [ ] 1.4 `pnpm build` produces `dist/index.html` containing `lang="pl"`
+- [x] 1.1 `pnpm install --frozen-lockfile` succeeds on a clean checkout
+- [x] 1.2 `pnpm lint` and `pnpm typecheck` pass
+- [x] 1.3 `pnpm test` passes, including the welcome screen test
+- [x] 1.4 `pnpm build` produces `dist/index.html` containing `lang="pl"`
 #### Manual
 - [ ] 1.5 Welcome screen in a 390x844 mobile viewport is centred, readable for a child and has no scrolling
 
