@@ -1,9 +1,22 @@
-import type { Firestore } from 'firebase-admin/firestore';
+import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 import type { HttpRequest, HttpResponse } from '../src/devices/handler.js';
 import type { PushSender, SendResult } from '../src/devices/push-sender.js';
 import type { PushPayload, PushSubscriptionRecord } from '../src/devices/types.js';
 
 type Data = Record<string, unknown>;
+
+/** Applies an update like Firestore does: `FieldValue.delete()` removes the field. */
+function applyUpdate(current: Data, fields: Data): Data {
+  const next = { ...current };
+  for (const [field, value] of Object.entries(fields)) {
+    if (value instanceof FieldValue && value.isEqual(FieldValue.delete())) {
+      delete next[field];
+    } else {
+      next[field] = value;
+    }
+  }
+  return next;
+}
 
 /**
  * In-memory stand-in for the slice of the Admin Firestore API the repository
@@ -33,7 +46,7 @@ export function createFakeFirestore() {
         if (!current) {
           throw new Error(`NOT_FOUND: ${path}`);
         }
-        docs.set(path, { ...current, ...fields });
+        docs.set(path, applyUpdate(current, fields));
       },
     };
   };

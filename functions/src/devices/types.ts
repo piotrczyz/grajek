@@ -14,12 +14,37 @@ export interface PushSubscriptionRecord {
   };
 }
 
-/** `devices/{deviceId}` in Firestore. No other field is ever written. */
+/** ISO weekday as a map key: `'1'` = Monday .. `'7'` = Sunday. */
+export type WeekdayKey = '1' | '2' | '3' | '4' | '5' | '6' | '7';
+
+/** Local reminder time (`HH:MM`) per ISO weekday; a missing day has no reminder. */
+export type ReminderTimes = Partial<Record<WeekdayKey, string>>;
+
+/** The reminder state a device sends (`PUT /devices/{id}/reminder`). */
+export interface ReminderState {
+  /** IANA time zone of the device, e.g. `Europe/Warsaw`. */
+  timezone: string;
+  times: ReminderTimes;
+  /** Local `YYYY-MM-DD` of today when a practice was logged today, else `null`. */
+  practicedOn: string | null;
+}
+
+/**
+ * `devices/{deviceId}` in Firestore. These are the only fields ever written:
+ * `subscription`, `createdAt`, `updatedAt`, `lastTestAt`, and for the daily
+ * reminder `reminder` (`{ timezone, times }`), `practicedOn`, `nextReminderAt`,
+ * `reminderUpdatedAt` and `lastReminderDay` (written by the scheduler only).
+ */
 export interface DeviceRecord {
   subscription: PushSubscriptionRecord;
   createdAt: Date;
   updatedAt: Date;
   lastTestAt?: Date;
+  reminder?: { timezone: string; times: ReminderTimes };
+  practicedOn?: string | null;
+  nextReminderAt?: Date;
+  reminderUpdatedAt?: Date;
+  lastReminderDay?: string;
 }
 
 /** The notification payload the service worker in the PWA understands. */

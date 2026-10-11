@@ -3,7 +3,8 @@ import { createIndexedDbPracticeStore, type PracticeStore } from './practice/ind
 import { RETRY_MESSAGE } from './profile/copy.ts';
 import { CreateProfileScreen } from './profile/CreateProfileScreen.tsx';
 import { ProfileScreen } from './profile/ProfileScreen.tsx';
-import { PracticeTimeCard } from './practice-time/index.ts';
+import { createIndexedDbPracticeTimeStore, PracticeTimeCard } from './practice-time/index.ts';
+import { withReminderSync } from './reminder/index.ts';
 import { MonthCard } from './month/index.ts';
 import { InstrumentsCard } from './instruments/index.ts';
 import { createIndexedDbProfileStore, type Profile, type ProfileStore } from './profile/index.ts';
@@ -25,6 +26,7 @@ interface AppProps {
 export function App({ store: injected, practiceStore: injectedPractice }: AppProps = {}) {
   const [store] = useState(() => injected ?? createIndexedDbProfileStore());
   const [practiceStore] = useState(() => injectedPractice ?? createIndexedDbPracticeStore());
+  const [practiceTimeStore] = useState(() => withReminderSync(createIndexedDbPracticeTimeStore()));
   const [state, setState] = useState<ScreenState>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
 
@@ -64,7 +66,7 @@ export function App({ store: injected, practiceStore: injectedPractice }: AppPro
           {state.kind === 'profile' && (
             <>
               <ProfileScreen profile={state.profile} practiceStore={practiceStore} />
-              <PracticeTimeCard />
+              <PracticeTimeCard store={practiceTimeStore} />
               <MonthCard />
               <InstrumentsCard
                 instruments={state.profile.instruments}
