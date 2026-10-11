@@ -1,7 +1,7 @@
 ---
 change_id: profil-i-instrument
 title: Student profile with name and instrument
-status: implemented
+status: impl_reviewed
 created: 2026-10-11
 updated: 2026-10-11
 archived_at: null
