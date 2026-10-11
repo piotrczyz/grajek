@@ -153,16 +153,16 @@ None. The change only reads the existing `practices` store and `byDay` index (mi
 
 ### Phase 1: Month data
 #### Automated
-- [x] 1.1 `pnpm test src/month` passes, covering month grid (31/30/28/29-day months, a month starting on Monday and on Sunday), duration and plural formatting, month range and lifetime queries
-- [x] 1.2 `pnpm typecheck` and `pnpm lint` pass
-- [x] 1.3 `git diff --stat e4e6ed3..HEAD -- src/storage` shows no change to the storage module (no migration)
+- [x] 1.1 `pnpm test src/month` passes, covering month grid (31/30/28/29-day months, a month starting on Monday and on Sunday), duration and plural formatting, month range and lifetime queries — db2eacb
+- [x] 1.2 `pnpm typecheck` and `pnpm lint` pass — db2eacb
+- [x] 1.3 `git diff --stat e4e6ed3..HEAD -- src/storage` shows no change to the storage module (no migration) — db2eacb
 #### Manual
 
 ### Phase 2: Month card on the home screen
 #### Automated
-- [ ] 2.1 `pnpm test` passes (including `src/month/MonthCard.test.tsx` and the unchanged `src/App.test.tsx`)
-- [ ] 2.2 `pnpm typecheck`, `pnpm lint` and `pnpm build` pass
-- [ ] 2.3 `pnpm test:e2e e2e/month.spec.ts` passes
-- [ ] 2.4 `git diff e4e6ed3..HEAD -- src/App.tsx` adds only the `MonthCard` import and one `<MonthCard />` element
+- [x] 2.1 `pnpm test` passes (including `src/month/MonthCard.test.tsx` and the unchanged `src/App.test.tsx`)
+- [x] 2.2 `pnpm typecheck`, `pnpm lint` and `pnpm build` pass
+- [x] 2.3 `pnpm test:e2e e2e/month.spec.ts` passes
+- [x] 2.4 `git diff e4e6ed3..HEAD -- src/App.tsx` adds only the `MonthCard` import and one `<MonthCard />` element
 #### Manual
 - [ ] 2.5 On a phone-sized viewport the closed card adds only one button to the home screen, and the opened month is readable without horizontal scrolling, with no red or "missed" styling on empty days

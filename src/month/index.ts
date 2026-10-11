@@ -8,3 +8,4 @@ export {
   musicDaysLabel,
 } from './month.ts';
 export { createIndexedDbMonthStore, type LifetimeTotal, type MonthStore } from './monthStore.ts';
+export { MonthCard } from './MonthCard.tsx';
