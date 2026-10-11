@@ -8,6 +8,11 @@
  * A connection closes itself when another connection needs to upgrade the
  * database, so an open tab never blocks a newer build's upgrade; `onClose`
  * tells the owner to drop it and reopen on demand.
+ *
+ * When the device database is newer than this build's migration list
+ * (`VersionError`, e.g. after a rollback), it is opened once more at its
+ * current version without upgrading; that is safe only while every migration
+ * stays additive (see `./migrations.ts`).
  */
 import { openDB, type IDBPDatabase } from 'idb';
 import { migrations as defaultMigrations, type Migration } from './migrations.ts';
@@ -27,6 +32,10 @@ export interface OpenDbOptions {
   onClose?: () => void;
 }
 
+function isVersionError(error: unknown): boolean {
+  return (error as { name?: unknown } | null)?.name === 'VersionError';
+}
+
 export function openDb(options: OpenDbOptions = {}): Promise<IDBPDatabase<unknown>> {
   const name = options.name ?? DB_NAME;
   const list = options.migrations ?? defaultMigrations;
@@ -42,13 +51,7 @@ export function openDb(options: OpenDbOptions = {}): Promise<IDBPDatabase<unknow
     options.onClose?.();
   };
 
-  return openDB<unknown>(name, list.length, {
-    upgrade(db, oldVersion, newVersion, tx) {
-      const target = newVersion ?? list.length;
-      for (let version = oldVersion; version < target; version += 1) {
-        list[version](db, tx);
-      }
-    },
+  const lifecycle = {
     blocking() {
       // Release this connection so the other connection's upgrade can run.
       connection?.close();
@@ -57,8 +60,24 @@ export function openDb(options: OpenDbOptions = {}): Promise<IDBPDatabase<unknow
     terminated() {
       notifyClosed();
     },
-  }).then((db) => {
-    connection = db;
-    return db;
-  });
+  };
+
+  return openDB<unknown>(name, list.length, {
+    ...lifecycle,
+    upgrade(db, oldVersion, newVersion, tx) {
+      const target = newVersion ?? list.length;
+      for (let version = oldVersion; version < target; version += 1) {
+        list[version](db, tx);
+      }
+    },
+  })
+    .catch((error: unknown) => {
+      if (!isVersionError(error)) throw error;
+      // The device is at a newer version than this build knows: open it as is.
+      return openDB<unknown>(name, undefined, lifecycle);
+    })
+    .then((db) => {
+      connection = db;
+      return db;
+    });
 }

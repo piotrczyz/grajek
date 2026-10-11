@@ -249,9 +249,9 @@ Shows this week's Dni z muzyką on the home screen and proves the whole flow off
 
 ### Phase 1: Storage contract — schema v3 and connection lifecycle
 #### Automated
-- [ ] 1.1 `pnpm test` passes, including the v3 schema, v2→v3 upgrade, blocking-close, VersionError fallback and reconnect tests
-- [ ] 1.2 `pnpm typecheck` passes
-- [ ] 1.3 `pnpm lint` passes
+- [x] 1.1 `pnpm test` passes, including the v3 schema, v2→v3 upgrade, blocking-close, VersionError fallback and reconnect tests
+- [x] 1.2 `pnpm typecheck` passes
+- [x] 1.3 `pnpm lint` passes
 #### Manual
 
 ### Phase 2: Practice domain — store and week math
