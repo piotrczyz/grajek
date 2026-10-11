@@ -239,4 +239,28 @@ describe('current-week view on the home screen', () => {
     await waitFor(() => expect(musicDays()).toHaveLength(1));
     expect(today()).toHaveAccessibleName(/: Dzień z muzyką \(dziś\)$/);
   });
+
+  it('highlights the new today when a save happens after midnight in a session left open', async () => {
+    // Only Date is faked: IndexedDB and React keep real timers.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date(2026, 9, 11, 23, 59)); // Sunday
+      const name = uniqueName();
+      await storeOn(name).create({ name: 'Ola', instrumentName: 'Gitara' });
+      render(<App store={storeOn(name)} practiceStore={practiceOn(name)} />);
+      await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
+
+      vi.setSystemTime(new Date(2026, 9, 12, 0, 1)); // Monday, no visibilitychange
+      fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+      await screen.findByText('Super! Zapisane.');
+
+      const today = () => screen.getByRole('listitem', { name: /\(dziś\)$/ });
+      await waitFor(() => expect(today()).toHaveAccessibleName(/: Dzień z muzyką \(dziś\)$/));
+      expect(musicDays()).toHaveLength(1);
+      expect(musicDays()[0]).toBe(today());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

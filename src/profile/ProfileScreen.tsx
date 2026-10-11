@@ -78,6 +78,9 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
             setLastDuration(practice.durationMinutes);
             setLogging(false);
             setSaved(true);
+            // The save is stamped with the clock at save time; a session left open
+            // across midnight must show that day (and week) as today.
+            setNow(new Date());
             setSavedCount((n) => n + 1);
           }}
           onCancel={() => setLogging(false)}
