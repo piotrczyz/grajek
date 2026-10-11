@@ -6,6 +6,7 @@ import {
   type Instrument,
   type ProfileStore,
 } from '../profile/profileStore.ts';
+import { useUnsavedWork } from '../pwa/index.ts';
 import {
   ADD_CANCEL_BUTTON,
   ADD_CONFIRM_BUTTON,
@@ -39,6 +40,8 @@ export function AddInstrumentForm({ instruments, profileStore, onAdded, onCancel
   const [other, setOther] = useState('');
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  // The form is an opened panel: a reload onto a new version waits until it closes.
+  useUnsavedWork(true);
 
   const presets = INSTRUMENT_PRESETS.filter(
     (preset) => !instruments.some((instrument) => sameName(instrument.name, preset.label)),

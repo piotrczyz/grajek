@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { MAX_INSTRUMENTS, type Instrument, type ProfileStore } from '../profile/index.ts';
+import { hasUnsavedWork } from '../pwa/index.ts';
 import { InstrumentsCard } from './InstrumentsCard.tsx';
 import { instrumentStats, type StatsPracticeRecord } from './stats.ts';
 import type { StatsStore } from './statsStore.ts';
@@ -137,6 +138,22 @@ describe('InstrumentsCard', () => {
     fireEvent.change(screen.getByLabelText('Jak się nazywa ten instrument?'), { target: { value: ' Akordeon ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Dodaj' }));
     await waitFor(() => expect(profileStore.addInstrument).toHaveBeenCalledWith(' Akordeon '));
+  });
+
+  it('holds a reload onto a new version while the add form is open, until the instrument is saved', async () => {
+    renderCard([guitar]);
+    fireEvent.click(toggle());
+    await list();
+    expect(hasUnsavedWork()).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dodaj instrument' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Inny' }));
+    fireEvent.change(screen.getByLabelText('Jak się nazywa ten instrument?'), { target: { value: 'Akordeon' } });
+    expect(hasUnsavedWork()).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dodaj' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Dodaj' })).not.toBeInTheDocument());
+    expect(hasUnsavedWork()).toBe(false);
   });
 
   it('does not offer the presets already owned', async () => {

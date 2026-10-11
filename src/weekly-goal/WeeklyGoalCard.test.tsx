@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { weekDays, type Practice, type PracticeStore } from '../practice/index.ts';
+import { hasUnsavedWork } from '../pwa/index.ts';
 import { openDb } from '../storage/index.ts';
 import { RETRY_MESSAGE } from './copy.ts';
 import { WeeklyGoalCard } from './WeeklyGoalCard.tsx';
@@ -66,6 +67,16 @@ describe('WeeklyGoalCard', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('0 z 4 dni');
     expect(screen.getByText('Cel tygodnia')).toBeInTheDocument();
     expect(await storeOn(name).load()).toMatchObject({ daysPerWeek: 4, since: '2026-10-12' });
+  });
+
+  it('holds a reload onto a new version once the student changes the choice, until the goal is saved', async () => {
+    renderCard(storeOn(uniqueName()));
+    fireEvent.click(await screen.findByRole('radio', { name: /^4 dni/ }));
+    expect(hasUnsavedWork()).toBe(true);
+
+    fireEvent.click(saveButton());
+    expect(await screen.findByRole('status')).toHaveTextContent('0 z 4 dni');
+    expect(hasUnsavedWork()).toBe(false);
   });
 
   it('shows "3 z 4 dni" with 3 music days', async () => {

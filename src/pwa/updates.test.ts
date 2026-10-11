@@ -1,8 +1,5 @@
 import type { RegisterSWOptions } from 'virtual:pwa-register';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
-// The plugin's virtual module only exists in a Vite build; every test injects its own registerSW.
-vi.mock('virtual:pwa-register', () => ({ registerSW: vi.fn() }));
 import { holdUnsavedWork } from './unsavedWork.ts';
 import {
   applyUpdate,

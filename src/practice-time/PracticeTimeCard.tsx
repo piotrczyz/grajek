@@ -25,6 +25,7 @@ import {
   type Weekday,
 } from './practiceTime.ts';
 import { createIndexedDbPracticeTimeStore, type PracticeTimeStore } from './practiceTimeStore.ts';
+import { useUnsavedWork } from '../pwa/index.ts';
 
 type CardState =
   | { kind: 'loading' }
@@ -121,6 +122,8 @@ function PracticeTimeEditor({ store, initial, onSaved, onCancel }: PracticeTimeE
   }));
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  // The editor is an opened panel: a reload onto a new version waits until it closes.
+  useUnsavedWork(true);
 
   const valid = validatePracticeTime(draft).ok;
 

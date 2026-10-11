@@ -8,3 +8,5 @@ export {
   UPDATE_CHECK_INTERVAL_MS,
   type AppUpdateDeps,
 } from './updates.ts';
+export { UPDATE_AVAILABLE, UPDATE_RELOAD_BUTTON } from './copy.ts';
+export { UpdateBanner } from './UpdateBanner.tsx';

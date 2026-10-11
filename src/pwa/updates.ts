@@ -1,4 +1,4 @@
-import { registerSW as realRegisterSW, type RegisterSWOptions } from 'virtual:pwa-register';
+import type { RegisterSWOptions } from 'virtual:pwa-register';
 import { hasUnsavedWork } from './unsavedWork.ts';
 
 /**
@@ -37,7 +37,11 @@ export interface AppUpdateDeps {
 
 function defaultDeps(): AppUpdateDeps {
   return {
-    registerSW: realRegisterSW,
+    // Loaded on demand: the plugin's virtual module exists only in a Vite build, and a
+    // static import would break every test that renders a form or the update bar.
+    registerSW: (options) => {
+      void import('virtual:pwa-register').then(({ registerSW }) => registerSW(options));
+    },
     document,
     setInterval: (callback, ms) => window.setInterval(callback, ms),
     clearInterval: (handle) => window.clearInterval(handle as number),

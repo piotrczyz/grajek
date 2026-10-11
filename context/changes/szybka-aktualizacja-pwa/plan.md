@@ -208,14 +208,14 @@ iPhone resume path can only be eyeballed on a device after deploy (Manual 2.4).
 
 ### Phase 1: Update checks and reload gate
 #### Automated
-- [x] 1.1 `pnpm test src/pwa` passes, covering the cases listed under Unit tests
-- [x] 1.2 `pnpm lint && pnpm typecheck` pass
-- [x] 1.3 `pnpm build` succeeds and `dist/sw.js` still contains `skipWaiting` and `clientsClaim`
+- [x] 1.1 `pnpm test src/pwa` passes, covering the cases listed under Unit tests — 89fc628
+- [x] 1.2 `pnpm lint && pnpm typecheck` pass — 89fc628
+- [x] 1.3 `pnpm build` succeeds and `dist/sw.js` still contains `skipWaiting` and `clientsClaim` — 89fc628
 
 ### Phase 2: Forms report unsaved work, update bar, e2e
 #### Automated
-- [ ] 2.1 `pnpm test` passes (full suite, including the new bar and form cases)
-- [ ] 2.2 `pnpm lint && pnpm typecheck` pass
-- [ ] 2.3 `CI=1 pnpm test:e2e` passes, including `e2e/update.spec.ts` and the existing `e2e/offline.spec.ts`
+- [x] 2.1 `pnpm test` passes (full suite, including the new bar and form cases)
+- [x] 2.2 `pnpm lint && pnpm typecheck` pass
+- [x] 2.3 `CI=1 pnpm test:e2e` passes, including `e2e/update.spec.ts` and the existing `e2e/offline.spec.ts`
 #### Manual
 - [ ] 2.4 After a deploy, an installed iPhone PWA resumed from the background switches to the new version within a few seconds without losing a half-filled form

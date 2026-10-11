@@ -8,6 +8,7 @@ import { MonthCard } from './month/index.ts';
 import { InstrumentsCard } from './instruments/index.ts';
 import { createIndexedDbProfileStore, type Profile, type ProfileStore } from './profile/index.ts';
 import { NotificationsPanel } from './push/NotificationsPanel.tsx';
+import { UpdateBanner } from './pwa/index.ts';
 
 export { GREETING } from './profile/copy.ts';
 
@@ -44,64 +45,68 @@ export function App({ store: injected, practiceStore: injectedPractice }: AppPro
   }, [store, attempt]);
 
   return (
-    <main
-      className="flex h-full flex-col items-center overflow-y-auto px-6 text-center"
-      style={{
-        paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
-        paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
-        paddingLeft: 'max(1.5rem, env(safe-area-inset-left))',
-        paddingRight: 'max(1.5rem, env(safe-area-inset-right))',
-      }}
-    >
-      {state.kind !== 'loading' && (
-        <div className="m-auto flex w-full flex-col items-center gap-6">
-          {state.kind === 'create' && (
-            <CreateProfileScreen
-              store={store}
-              onCreated={(profile) => setState({ kind: 'profile', profile })}
-            />
-          )}
-          {state.kind === 'profile' && (
-            <>
-              <ProfileScreen profile={state.profile} practiceStore={practiceStore} />
-              <PracticeTimeCard />
-              <MonthCard />
-              <InstrumentsCard
-                instruments={state.profile.instruments}
-                profileStore={store}
-                onAdded={(instrument) =>
-                  setState((current) =>
-                    current.kind === 'profile'
-                      ? {
-                          kind: 'profile',
-                          profile: { ...current.profile, instruments: [...current.profile.instruments, instrument] },
-                        }
-                      : current,
-                  )
-                }
+    <>
+      <main
+        className="flex h-full flex-col items-center overflow-y-auto px-6 text-center"
+        style={{
+          paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
+          paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+          paddingLeft: 'max(1.5rem, env(safe-area-inset-left))',
+          paddingRight: 'max(1.5rem, env(safe-area-inset-right))',
+        }}
+      >
+        {state.kind !== 'loading' && (
+          <div className="m-auto flex w-full flex-col items-center gap-6">
+            {state.kind === 'create' && (
+              <CreateProfileScreen
+                store={store}
+                onCreated={(profile) => setState({ kind: 'profile', profile })}
               />
-            </>
-          )}
-          {state.kind === 'load-failed' && (
-            <>
-              <p role="alert" className="max-w-xs text-2xl leading-snug font-semibold">
-                {RETRY_MESSAGE}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setState({ kind: 'loading' });
-                  setAttempt((n) => n + 1);
-                }}
-                className="min-h-14 rounded-2xl bg-amber-300 px-6 text-2xl font-extrabold text-blue-950"
-              >
-                Spróbuj jeszcze raz
-              </button>
-            </>
-          )}
-          <NotificationsPanel />
-        </div>
-      )}
-    </main>
+            )}
+            {state.kind === 'profile' && (
+              <>
+                <ProfileScreen profile={state.profile} practiceStore={practiceStore} />
+                <PracticeTimeCard />
+                <MonthCard />
+                <InstrumentsCard
+                  instruments={state.profile.instruments}
+                  profileStore={store}
+                  onAdded={(instrument) =>
+                    setState((current) =>
+                      current.kind === 'profile'
+                        ? {
+                            kind: 'profile',
+                            profile: { ...current.profile, instruments: [...current.profile.instruments, instrument] },
+                          }
+                        : current,
+                    )
+                  }
+                />
+              </>
+            )}
+            {state.kind === 'load-failed' && (
+              <>
+                <p role="alert" className="max-w-xs text-2xl leading-snug font-semibold">
+                  {RETRY_MESSAGE}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setState({ kind: 'loading' });
+                    setAttempt((n) => n + 1);
+                  }}
+                  className="min-h-14 rounded-2xl bg-amber-300 px-6 text-2xl font-extrabold text-blue-950"
+                >
+                  Spróbuj jeszcze raz
+                </button>
+              </>
+            )}
+            <NotificationsPanel />
+          </div>
+        )}
+      </main>
+      {/* Outside the screen switch, so the "new version" bar shows on every screen. */}
+      <UpdateBanner />
+    </>
   );
 }
