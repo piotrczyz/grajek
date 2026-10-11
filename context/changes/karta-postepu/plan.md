@@ -158,10 +158,10 @@ None. Read-only use of the existing `practices` store via `PracticeStore.listWee
 
 ### Phase 3: Share button on the home screen
 #### Automated
-- [x] 3.1 `pnpm test` passes (full unit suite, including `ShareCardButton.test.tsx`: hidden with no music days; calls render then share with the week data; shows the download message on `'downloaded'`; shows the retry message when render rejects; disabled while busy).
-- [x] 3.2 `pnpm test:e2e e2e/progress-card.spec.ts` passes on `mobile-chromium`.
-- [x] 3.3 `pnpm build`, `pnpm typecheck` and `pnpm lint` pass.
-- [x] 3.4 `git diff e4e6ed3 -- src/App.tsx src/storage package.json pnpm-lock.yaml` is empty (no App.tsx edit, no migration, no new dependency).
+- [x] 3.1 `pnpm test` passes (full unit suite, including `ShareCardButton.test.tsx`: hidden with no music days; calls render then share with the week data; shows the download message on `'downloaded'`; shows the retry message when render rejects; disabled while busy). — 1d4bc26
+- [x] 3.2 `pnpm test:e2e e2e/progress-card.spec.ts` passes on `mobile-chromium`. — 1d4bc26
+- [x] 3.3 `pnpm build`, `pnpm typecheck` and `pnpm lint` pass. — 1d4bc26
+- [x] 3.4 `git diff e4e6ed3 -- src/App.tsx src/storage package.json pnpm-lock.yaml` is empty (no App.tsx edit, no migration, no new dependency). — 1d4bc26
 #### Manual
 - [ ] 3.5 On an Android phone and an iPhone (installed PWA, airplane mode), tapping the button opens the system share sheet with the card image, and sending it to a messenger delivers the picture.
 - [ ] 3.6 The card is legible for a 7-year-old (large text, clear music-day highlights) and shows no name.
