@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App, GREETING } from './App.tsx';
 import { createIndexedDbPracticeStore } from './practice/index.ts';
 import { createIndexedDbProfileStore, type ProfileStore } from './profile/index.ts';
@@ -82,6 +82,7 @@ describe('first launch', () => {
     const store: ProfileStore = {
       load: () => Promise.resolve(null),
       create: vi.fn(() => Promise.reject(new Error('quota'))),
+      addInstrument: vi.fn(),
     };
     await renderFirstLaunch(store);
     fireEvent.change(nameInput(), { target: { value: 'Ola' } });
@@ -112,6 +113,7 @@ describe('returning student', () => {
     const store: ProfileStore = {
       load: () => new Promise(() => {}),
       create: vi.fn(),
+      addInstrument: vi.fn(),
     };
     render(<App store={store} />);
     expect(screen.getByRole('main')).toBeEmptyDOMElement();
@@ -122,7 +124,7 @@ describe('returning student', () => {
       .fn<ProfileStore['load']>()
       .mockRejectedValueOnce(new Error('blocked'))
       .mockResolvedValue(null);
-    render(<App store={{ load, create: vi.fn() }} />);
+    render(<App store={{ load, create: vi.fn(), addInstrument: vi.fn() }} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Spróbuj jeszcze raz');
     fireEvent.click(screen.getByRole('button', { name: 'Spróbuj jeszcze raz' }));
@@ -177,12 +179,12 @@ describe('logging a practice session', () => {
     await practiceOn(name).add({ instrumentId: profile.instrument.id, durationMinutes: 45 });
 
     const practiceStore = practiceOn(name);
-    const lastDuration = vi.spyOn(practiceStore, 'lastDuration');
+    const lastPractice = vi.spyOn(practiceStore, 'lastPractice');
     render(<App store={storeOn(name)} practiceStore={practiceStore} />);
     await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
-    await waitFor(() => expect(lastDuration).toHaveBeenCalled());
+    await waitFor(() => expect(lastPractice).toHaveBeenCalled());
     await act(async () => {
-      await lastDuration.mock.results[0].value;
+      await lastPractice.mock.results[0].value;
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
@@ -262,5 +264,139 @@ describe('current-week view on the home screen', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('several instruments on the home screen', () => {
+  const practiceOn = (name: string) => createIndexedDbPracticeStore((onClose) => openDb({ name, onClose }));
+
+  async function seedTwoInstruments() {
+    const name = uniqueName();
+    const profile = await storeOn(name).create({ name: 'Ola', instrumentName: 'Gitara' });
+    const piano = await storeOn(name).addInstrument('Pianino');
+    return { name, guitar: profile.instrument, piano };
+  }
+
+  async function renderAndWaitForLastPractice(name: string) {
+    const practiceStore = practiceOn(name);
+    const lastPractice = vi.spyOn(practiceStore, 'lastPractice');
+    render(<App store={storeOn(name)} practiceStore={practiceStore} />);
+    await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
+    await waitFor(() => expect(lastPractice).toHaveBeenCalled());
+    await act(async () => {
+      await lastPractice.mock.results[0].value;
+    });
+    return practiceStore;
+  }
+
+  it('counts sessions on two instruments on the same day as one Dzień z muzyką', async () => {
+    const { name, guitar, piano } = await seedTwoInstruments();
+    await practiceOn(name).add({ instrumentId: guitar.id, durationMinutes: 15 });
+    await practiceOn(name).add({ instrumentId: piano.id, durationMinutes: 20 });
+
+    render(<App store={storeOn(name)} practiceStore={practiceOn(name)} />);
+    await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
+
+    const week = () =>
+      within(screen.getByRole('list', { name: 'Ten tydzień' }))
+        .getAllByRole('listitem')
+        .filter((item) => item.getAttribute('aria-label')?.includes('Dzień z muzyką'));
+    await waitFor(() => expect(week()).toHaveLength(1));
+    expect(week()[0]).toBe(screen.getByRole('listitem', { name: /: Dzień z muzyką \(dziś\)$/ }));
+  });
+
+  it('shows the last used instrument in the header after reload and preselects it', async () => {
+    const { name, piano } = await seedTwoInstruments();
+    await practiceOn(name).add({ instrumentId: piano.id, durationMinutes: 30 });
+
+    await renderAndWaitForLastPractice(name);
+    expect(screen.getByText('Pianino')).toBeInTheDocument();
+    expect(screen.queryByText('Gitara')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    expect(screen.getByRole('radio', { name: 'Pianino' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: '30 min' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('preselects the oldest instrument before the first session and switches to the one just used', async () => {
+    const { name, guitar } = await seedTwoInstruments();
+    const practiceStore = await renderAndWaitForLastPractice(name);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    expect(screen.getByRole('radio', { name: 'Gitara' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(screen.getByRole('radio', { name: 'Pianino' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await screen.findByText('Super! Zapisane.');
+
+    expect(screen.getByText('Pianino')).toBeInTheDocument();
+    const week = await practiceStore.listWeek();
+    expect(week.map((practice) => practice.instrumentId)).not.toContain(guitar.id);
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    expect(screen.getByRole('radio', { name: 'Pianino' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('shows no instrument choice when the profile has one instrument', async () => {
+    const name = uniqueName();
+    await storeOn(name).create({ name: 'Ola', instrumentName: 'Gitara' });
+    await renderAndWaitForLastPractice(name);
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    expect(screen.queryByRole('radiogroup', { name: 'Na czym grałeś?' })).not.toBeInTheDocument();
+  });
+});
+
+describe('notifications panel', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('hides the notifications panel where push cannot work (jsdom, no VAPID key)', async () => {
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', '');
+    await renderFirstLaunch();
+    expect(screen.getByRole('heading', { level: 1, name: 'Grajek' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Powiadomienia' })).not.toBeInTheDocument();
+  });
+
+  it('mounts the notifications panel on the first-launch screen (install hint without PushManager)', async () => {
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'test-key');
+    vi.stubGlobal('navigator', {
+      userAgent: 'Mozilla/5.0 (Linux; Android 14)',
+      maxTouchPoints: 5,
+      serviceWorker: { ready: new Promise(() => {}) },
+    });
+    await renderFirstLaunch();
+    expect(screen.getByRole('heading', { level: 2, name: 'Powiadomienia' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Dodaj Grajka do ekranu początkowego, żeby dostawać przypomnienia.'),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('weekly goal on the home screen', () => {
+  const practiceOn = (name: string) => createIndexedDbPracticeStore((onClose) => openDb({ name, onClose }));
+  const goalStatus = () =>
+    within(screen.getByRole('region', { name: 'Cel tygodnia' })).getByRole('status');
+
+  it('shows the goal reached right after a save, and a second save the same day changes nothing', async () => {
+    const name = uniqueName();
+    await storeOn(name).create({ name: 'Ola', instrumentName: 'Gitara' });
+    render(<App store={storeOn(name)} practiceStore={practiceOn(name)} />);
+    await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
+
+    fireEvent.click(await screen.findByRole('radio', { name: /^1 dzień/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ustaw cel' }));
+    await waitFor(() => expect(goalStatus()).toHaveTextContent('0 z 1 dnia'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await waitFor(() => expect(goalStatus()).toHaveTextContent('Cel osiągnięty!'));
+    expect(goalStatus()).toHaveTextContent('W tym tygodniu: 1 dzień z muzyką');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    fireEvent.click(screen.getByRole('radio', { name: '5 min' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await screen.findByText('Super! Zapisane.');
+    await waitFor(() => expect(goalStatus()).toHaveTextContent('W tym tygodniu: 1 dzień z muzyką'));
+    expect(goalStatus()).toHaveTextContent('Cel osiągnięty!');
   });
 });

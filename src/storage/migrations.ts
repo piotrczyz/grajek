@@ -42,4 +42,9 @@ export const migrations: readonly Migration[] = [
     const practices = db.createObjectStore('practices', { keyPath: 'id' });
     practices.createIndex('byDay', 'day', { unique: false });
   },
+  // v5 "device" (F-02): the anonymous push registration. Out-of-line keys; one
+  // record under the key `registration` (see src/push/device-id.ts).
+  (db) => {
+    db.createObjectStore('device');
+  },
 ];

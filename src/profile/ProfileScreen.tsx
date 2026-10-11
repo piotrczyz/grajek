@@ -4,6 +4,8 @@ import { LogPractice } from '../practice/LogPractice.tsx';
 import { DEFAULT_DURATION, type PracticeStore } from '../practice/practiceStore.ts';
 import { dayKey, weekDays } from '../practice/week.ts';
 import { WeekView } from '../practice/WeekView.tsx';
+import { ShareCardButton } from '../progress-card/index.ts';
+import { WeeklyGoalCard } from '../weekly-goal/WeeklyGoalCard.tsx';
 import { instrumentIcon } from './instruments.ts';
 import type { Profile } from './profileStore.ts';
 
@@ -12,11 +14,15 @@ interface ProfileScreenProps {
   practiceStore: PracticeStore;
 }
 
-/** The home screen: greeting, instrument, logging a practice session and the current week. */
+/**
+ * The home screen: greeting, the last used instrument, logging a practice
+ * session and the current week.
+ */
 export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
   const [logging, setLogging] = useState(false);
   const [saved, setSaved] = useState(false);
   const [lastDuration, setLastDuration] = useState(DEFAULT_DURATION);
+  const [lastInstrumentId, setLastInstrumentId] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [musicDays, setMusicDays] = useState<ReadonlySet<string>>(() => new Set());
   const [savedCount, setSavedCount] = useState(0);
@@ -47,12 +53,15 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
 
   useEffect(() => {
     let active = true;
-    practiceStore.lastDuration().then(
-      (minutes) => {
-        if (active && minutes !== null) setLastDuration(minutes);
+    practiceStore.lastPractice().then(
+      (practice) => {
+        if (active && practice !== null) {
+          setLastDuration(practice.durationMinutes);
+          setLastInstrumentId(practice.instrumentId);
+        }
       },
       () => {
-        // Keep the default duration; logging still works.
+        // Keep the default duration and instrument; logging still works.
       },
     );
     return () => {
@@ -60,22 +69,28 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
     };
   }, [practiceStore]);
 
+  // The last used instrument while it is still in the Profile, else the oldest one.
+  const instrument =
+    profile.instruments.find((candidate) => candidate.id === lastInstrumentId) ?? profile.instrument;
+
   return (
     <>
       <h1 className="text-5xl font-extrabold tracking-tight break-words">Cześć, {profile.name}!</h1>
       <p className="flex flex-col items-center gap-2 text-3xl font-semibold">
         <span aria-hidden="true" className="text-8xl">
-          {instrumentIcon(profile.instrument.name)}
+          {instrumentIcon(instrument.name)}
         </span>
-        <span>{profile.instrument.name}</span>
+        <span>{instrument.name}</span>
       </p>
       {logging ? (
         <LogPractice
           store={practiceStore}
-          instrumentId={profile.instrument.id}
+          instruments={profile.instruments}
+          initialInstrumentId={instrument.id}
           initialDuration={lastDuration}
           onSaved={(practice) => {
             setLastDuration(practice.durationMinutes);
+            setLastInstrumentId(practice.instrumentId);
             setLogging(false);
             setSaved(true);
             // The save is stamped with the clock at save time; a session left open
@@ -103,6 +118,8 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
         </>
       )}
       <WeekView days={weekDays(now)} musicDays={musicDays} today={dayKey(now)} />
+      <ShareCardButton days={weekDays(now)} musicDays={musicDays} instrumentName={instrument.name} />
+      <WeeklyGoalCard musicDayCount={musicDays.size} now={now} practiceStore={practiceStore} />
     </>
   );
 }
