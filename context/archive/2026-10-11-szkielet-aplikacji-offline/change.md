@@ -1,10 +1,10 @@
 ---
 change_id: szkielet-aplikacji-offline
 title: Offline-capable installable app skeleton
-status: impl_reviewed
+status: archived
 created: 2026-10-11
 updated: 2026-10-11
-archived_at: null
+archived_at: 2026-10-11T15:34:42Z
 ---
 
 ## Notes
