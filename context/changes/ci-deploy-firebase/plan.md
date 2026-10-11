@@ -140,8 +140,8 @@ No app code changes, so the existing suites only need to stay green (Phase 1 cri
 
 ### Phase 2: Setup documentation
 #### Automated
-- [x] 2.1 `grep -nE "firebase(-tools)? (login|deploy)" README.md` finds nothing
-- [x] 2.2 `README.md` mentions `FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP`, `init hosting:github`, `Firebase Hosting Admin` and `gh secret set` (each grep finds a match)
-- [x] 2.3 `context/foundation/tech-stack.md` `## CI/CD` mentions Firebase Hosting and no longer says "no remote configured yet"
+- [x] 2.1 `grep -nE "firebase(-tools)? (login|deploy)" README.md` finds nothing — 1f5ed7d
+- [x] 2.2 `README.md` mentions `FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP`, `init hosting:github`, `Firebase Hosting Admin` and `gh secret set` (each grep finds a match) — 1f5ed7d
+- [x] 2.3 `context/foundation/tech-stack.md` `## CI/CD` mentions Firebase Hosting and no longer says "no remote configured yet" — 1f5ed7d
 #### Manual
 - [ ] 2.4 A developer can create the secret by following either README path without other sources
