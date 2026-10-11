@@ -20,3 +20,4 @@ export {
   type WeeklyGoalErrorCode,
   type WeeklyGoalStore,
 } from './weeklyGoalStore.ts';
+export { WeeklyGoalCard, type WeeklyGoalCardProps } from './WeeklyGoalCard.tsx';

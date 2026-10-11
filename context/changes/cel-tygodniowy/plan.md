@@ -183,18 +183,18 @@ The no-pressure suggestion after 3 reached weeks, and an offline e2e proof of th
 
 ### Phase 1: Goal rules and persistence
 #### Automated
-- [x] 1.1 `pnpm test` passes, including the weekly-goal rules and store tests (options 1..6 only, reached, raise rule, coexistence with the Profile)
-- [x] 1.2 `pnpm typecheck` passes
-- [x] 1.3 `pnpm lint` passes
-- [x] 1.4 `git diff --name-only` for the change touches no file under `src/storage/`
+- [x] 1.1 `pnpm test` passes, including the weekly-goal rules and store tests (options 1..6 only, reached, raise rule, coexistence with the Profile) — a0c0ee0
+- [x] 1.2 `pnpm typecheck` passes — a0c0ee0
+- [x] 1.3 `pnpm lint` passes — a0c0ee0
+- [x] 1.4 `git diff --name-only` for the change touches no file under `src/storage/` — a0c0ee0
 #### Manual
 
 ### Phase 2: Goal card on the home screen
 #### Automated
-- [ ] 2.1 `pnpm test` passes, including the card tests, the App goal-reached-after-save test and the no-failure-wording copy test
-- [ ] 2.2 `pnpm typecheck` passes
-- [ ] 2.3 `pnpm lint` passes
-- [ ] 2.4 `git diff --name-only e4e6ed3..HEAD` shows no change to `src/App.tsx`
+- [x] 2.1 `pnpm test` passes, including the card tests, the App goal-reached-after-save test and the no-failure-wording copy test
+- [x] 2.2 `pnpm typecheck` passes
+- [x] 2.3 `pnpm lint` passes
+- [x] 2.4 `git diff --name-only e4e6ed3..HEAD` shows no change to `src/App.tsx`
 #### Manual
 - [ ] 2.5 On a phone, the six goal buttons are easy to hit for a child and "3 z 4 dni" / "Cel osiągnięty!" read clearly under the week row
 
