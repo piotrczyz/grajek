@@ -190,13 +190,13 @@ Proves the practice time survives a reload online and offline in a real browser.
 
 ### Phase 2: Practice-time domain and store
 #### Automated
-- [x] 2.1 `pnpm test src/practice-time` passes
-- [x] 2.2 `pnpm typecheck` and `pnpm lint` pass
+- [x] 2.1 `pnpm test src/practice-time` passes — 71a9945
+- [x] 2.2 `pnpm typecheck` and `pnpm lint` pass — 71a9945
 
 ### Phase 3: Practice-time card on the home screen
 #### Automated
-- [ ] 3.1 `pnpm test` passes (whole suite, including `src/App.test.tsx` unchanged)
-- [ ] 3.2 `pnpm typecheck`, `pnpm lint` and `pnpm build` pass
+- [x] 3.1 `pnpm test` passes (whole suite, including `src/App.test.tsx` unchanged)
+- [x] 3.2 `pnpm typecheck`, `pnpm lint` and `pnpm build` pass
 #### Manual
 - [ ] 3.3 On a phone, the editor's time picker and day toggles are easy to use with a thumb and the card reads well under the profile
 

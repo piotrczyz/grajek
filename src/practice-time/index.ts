@@ -12,6 +12,7 @@ export {
   type PracticeTimeInputResult,
   type Weekday,
 } from './practiceTime.ts';
+export { PracticeTimeCard } from './PracticeTimeCard.tsx';
 export {
   createIndexedDbPracticeTimeStore,
   PracticeTimeError,
