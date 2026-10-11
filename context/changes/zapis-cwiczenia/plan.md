@@ -256,16 +256,16 @@ Shows this week's Dni z muzyką on the home screen and proves the whole flow off
 
 ### Phase 2: Practice domain — store and week math
 #### Automated
-- [x] 2.1 `pnpm test` passes, including week math and practice store tests
-- [x] 2.2 `pnpm typecheck` passes
-- [x] 2.3 `pnpm lint` passes
+- [x] 2.1 `pnpm test` passes, including week math and practice store tests — 301f555
+- [x] 2.2 `pnpm typecheck` passes — 301f555
+- [x] 2.3 `pnpm lint` passes — 301f555
 #### Manual
 
 ### Phase 3: Logging flow on the home screen
 #### Automated
-- [ ] 3.1 `pnpm test` passes, including the 3-tap save test and the optional-fields test
-- [ ] 3.2 `pnpm typecheck` passes
-- [ ] 3.3 `pnpm lint` passes
+- [x] 3.1 `pnpm test` passes, including the 3-tap save test and the optional-fields test
+- [x] 3.2 `pnpm typecheck` passes
+- [x] 3.3 `pnpm lint` passes
 #### Manual
 - [ ] 3.4 On a phone, logging a session from the home screen takes about 10 seconds and the buttons are easy to hit for a child
 
