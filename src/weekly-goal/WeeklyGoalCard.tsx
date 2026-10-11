@@ -8,6 +8,9 @@ import {
   GOAL_QUESTION,
   goalOptionLabel,
   progressLabel,
+  RAISE_ACCEPT,
+  raiseDecline,
+  raiseOffer,
   REACHED,
   reachedDays,
   RETRY_MESSAGE,
@@ -16,7 +19,19 @@ import {
   SPARE_DAY_NOTE,
   SUGGESTED_HINT,
 } from './copy.ts';
-import { DEFAULT_GOAL, GOAL_OPTIONS, isReached, SUGGESTED_GOALS, type WeeklyGoal } from './weeklyGoal.ts';
+import {
+  DEFAULT_GOAL,
+  GOAL_MAX,
+  GOAL_OPTIONS,
+  isReached,
+  previousWeekStarts,
+  RAISE_AFTER_WEEKS,
+  shouldOfferRaise,
+  SUGGESTED_GOALS,
+  weekStart,
+  type WeekCount,
+  type WeeklyGoal,
+} from './weeklyGoal.ts';
 import { createIndexedDbWeeklyGoalStore, type WeeklyGoalStore } from './weeklyGoalStore.ts';
 
 type CardState =
@@ -37,16 +52,57 @@ const primaryButton =
   'min-h-14 rounded-2xl bg-amber-300 px-6 text-2xl font-extrabold text-blue-950 disabled:opacity-40';
 const secondaryButton = 'min-h-14 rounded-2xl border-2 border-white/40 bg-white/10 px-6 text-xl font-semibold';
 
+/** Local noon of a `YYYY-MM-DD` day key, safely inside that day. */
+const dateOf = (key: string) => {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year, month - 1, day, 12);
+};
+
+/** Both answers to the raise offer look and weigh the same: no nudge either way. */
+const offerButton = 'min-h-14 rounded-2xl border-2 border-white/40 bg-white/10 px-2 text-lg font-semibold';
+
 const optionClass = (checked: boolean) =>
   [
     'flex min-h-14 flex-col items-center justify-center rounded-2xl border-2 px-1 py-2 font-extrabold',
     checked ? 'border-amber-300 bg-amber-300 text-blue-950' : 'border-white/40 bg-white/10 text-white',
   ].join(' ');
 
-/** The student's Cel tygodniowy under the week row: pick N of 7 days, see "X z N dni", see it reached. */
-export function WeeklyGoalCard({ musicDayCount, store: injected }: WeeklyGoalCardProps) {
+/**
+ * The student's Cel tygodniowy under the week row: pick N of 7 days, see "X z N dni", see it reached,
+ * and after a few reached weeks get one gentle offer to try one more day.
+ */
+export function WeeklyGoalCard({ musicDayCount, now, practiceStore, store: injected }: WeeklyGoalCardProps) {
   const [store] = useState(() => injected ?? createIndexedDbWeeklyGoalStore());
   const [state, setState] = useState<CardState>({ kind: 'loading' });
+  const [recent, setRecent] = useState<{ week: string; weeks: WeekCount[] } | null>(null);
+  const [offerHidden, setOfferHidden] = useState(false);
+
+  const currentWeek = weekStart(now);
+  const canRaise = state.kind === 'progress' && state.goal.daysPerWeek < GOAL_MAX;
+
+  // Past weeks never change by logging today, so they are read on mount and when the week changes.
+  useEffect(() => {
+    if (!canRaise) return;
+    let active = true;
+    const starts = previousWeekStarts(dateOf(currentWeek), RAISE_AFTER_WEEKS);
+    Promise.all(
+      starts.map((start) =>
+        practiceStore
+          .listWeek(dateOf(start))
+          .then((practices) => ({ start, musicDayCount: new Set(practices.map((p) => p.day)).size })),
+      ),
+    ).then(
+      (weeks) => {
+        if (active) setRecent({ week: currentWeek, weeks });
+      },
+      () => {
+        // Without the past weeks there is simply no offer; the progress stays.
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [practiceStore, currentWeek, canRaise]);
 
   useEffect(() => {
     let active = true;
@@ -80,6 +136,21 @@ export function WeeklyGoalCard({ musicDayCount, store: injected }: WeeklyGoalCar
 
   const { goal } = state;
   const reached = isReached(musicDayCount, goal.daysPerWeek);
+  const offer =
+    !offerHidden && recent !== null && recent.week === currentWeek && shouldOfferRaise(goal, recent.weeks);
+
+  const answer = (save: Promise<WeeklyGoal>) => {
+    setOfferHidden(true);
+    save.then(
+      (saved) => {
+        setState({ kind: 'progress', goal: saved });
+        setOfferHidden(false);
+      },
+      () => {
+        // The offer just stays away; the goal is unchanged.
+      },
+    );
+  };
   return (
     <section
       aria-label={GOAL_LABEL}
@@ -99,6 +170,23 @@ export function WeeklyGoalCard({ musicDayCount, store: injected }: WeeklyGoalCar
       <button type="button" onClick={() => setState({ kind: 'choose', goal })} className={secondaryButton}>
         {CHANGE}
       </button>
+      {offer && (
+        <div className="flex w-full flex-col gap-2 rounded-2xl border-2 border-white/20 p-3">
+          <p className="text-lg font-semibold">{raiseOffer(goal.daysPerWeek + 1)}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => answer(store.setGoal(goal.daysPerWeek + 1))}
+              className={offerButton}
+            >
+              {RAISE_ACCEPT}
+            </button>
+            <button type="button" onClick={() => answer(store.declineRaise())} className={offerButton}>
+              {raiseDecline(goal.daysPerWeek)}
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

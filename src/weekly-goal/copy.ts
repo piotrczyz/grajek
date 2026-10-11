@@ -29,3 +29,9 @@ export const progressLabel = (count: number, goal: number) =>
 
 /** "W tym tygodniu: 4 dni z muzyką". */
 export const reachedDays = (count: number) => `W tym tygodniu: ${count} ${daysUnit(count)} z muzyką`;
+
+/** The gentle offer after a few reached weeks: "Świetnie Ci idzie! Chcesz spróbować 5 dni?". */
+export const raiseOffer = (next: number) => `Świetnie Ci idzie! Chcesz spróbować ${next} ${daysUnit(next)}?`;
+export const RAISE_ACCEPT = 'Tak, spróbuję';
+/** "Zostaję przy 4". */
+export const raiseDecline = (current: number) => `Zostaję przy ${current}`;

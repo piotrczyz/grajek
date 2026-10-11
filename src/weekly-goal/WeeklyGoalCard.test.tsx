@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PracticeStore } from '../practice/index.ts';
+import { weekDays, type Practice, type PracticeStore } from '../practice/index.ts';
 import { openDb } from '../storage/index.ts';
 import { RETRY_MESSAGE } from './copy.ts';
 import { WeeklyGoalCard } from './WeeklyGoalCard.tsx';
@@ -137,5 +137,103 @@ describe('WeeklyGoalCard', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(RETRY_MESSAGE);
     expect(screen.getAllByRole('radio')).toHaveLength(6);
     expect(saveButton()).toBeEnabled();
+  });
+});
+
+describe('WeeklyGoalCard raise offer', () => {
+  // Goal set on Wednesday 2026-09-16 (week of 2026-09-14); the three completed
+  // weeks before the current one start 2026-09-21, 2026-09-28 and 2026-10-05.
+  const SEPTEMBER = new Date(2026, 8, 16, 10, 0);
+
+  /** A practice store whose past weeks hold `counts[weekStart]` distinct music days. */
+  const pastWeeks = (counts: Record<string, number>): PracticeStore => ({
+    add: () => Promise.reject(new Error('not used')),
+    listWeek: (when = new Date()) => {
+      const days = weekDays(when);
+      const count = counts[days[0]] ?? 0;
+      return Promise.resolve(
+        days.slice(0, count).map(
+          (day, i): Practice => ({
+            id: `${day}-${i}`,
+            instrumentId: 'i1',
+            durationMinutes: 15,
+            day,
+            createdAt: `${day}T10:00:00.000Z`,
+          }),
+        ),
+      );
+    },
+    lastDuration: () => Promise.resolve(null),
+  });
+
+  const reachedThree = (days: number) =>
+    pastWeeks({ '2026-09-21': days, '2026-09-28': days, '2026-10-05': days });
+
+  async function goalSetInSeptember(name: string, days: number) {
+    await createIndexedDbWeeklyGoalStore((onClose) => openDb({ name, onClose }), () => SEPTEMBER).setGoal(days);
+    return storeOn(name);
+  }
+
+  const renderWith = (store: WeeklyGoalStore, practices: PracticeStore) =>
+    render(<WeeklyGoalCard musicDayCount={1} now={WEDNESDAY} practiceStore={practices} store={store} />);
+
+  it('offers one more day after 3 reached weeks, and accepting raises the goal', async () => {
+    const name = uniqueName();
+    renderWith(await goalSetInSeptember(name, 4), reachedThree(4));
+
+    expect(await screen.findByText('Świetnie Ci idzie! Chcesz spróbować 5 dni?')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('1 z 4 dni');
+    expect(screen.queryByText(/\d+ tygod/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tak, spróbuję' }));
+    expect(await screen.findByText('1 z 5 dni')).toBeInTheDocument();
+    expect(screen.queryByText(/Chcesz spróbować/)).not.toBeInTheDocument();
+    expect(await storeOn(name).load()).toMatchObject({ daysPerWeek: 5, since: '2026-10-12' });
+  });
+
+  it('declining hides the offer, also after a re-mount in the same week', async () => {
+    const name = uniqueName();
+    const { unmount } = renderWith(await goalSetInSeptember(name, 3), reachedThree(3));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Zostaję przy 3' }));
+    await vi.waitFor(async () =>
+      expect(await storeOn(name).load()).toMatchObject({ daysPerWeek: 3, raiseDeclinedWeek: '2026-10-12' }),
+    );
+    expect(screen.queryByText(/Chcesz spróbować/)).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('1 z 3 dni');
+    unmount();
+
+    renderWith(storeOn(name), reachedThree(3));
+    expect(await screen.findByRole('status')).toHaveTextContent('1 z 3 dni');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.queryByText(/Chcesz spróbować/)).not.toBeInTheDocument();
+  });
+
+  it('does not offer after only two reached weeks', async () => {
+    renderWith(
+      await goalSetInSeptember(uniqueName(), 4),
+      pastWeeks({ '2026-09-21': 2, '2026-09-28': 4, '2026-10-05': 4 }),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent('1 z 4 dni');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.queryByText(/Chcesz spróbować/)).not.toBeInTheDocument();
+  });
+
+  it('never offers with a goal of 6', async () => {
+    const practices = reachedThree(7);
+    const listWeek = vi.spyOn(practices, 'listWeek');
+    renderWith(await goalSetInSeptember(uniqueName(), 6), practices);
+    expect(await screen.findByRole('status')).toHaveTextContent('1 z 6 dni');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.queryByText(/Chcesz spróbować/)).not.toBeInTheDocument();
+    expect(listWeek).not.toHaveBeenCalled();
+  });
+
+  it('hides the offer when the past weeks cannot be read', async () => {
+    const practices: PracticeStore = { ...reachedThree(4), listWeek: () => Promise.reject(new Error('boom')) };
+    renderWith(await goalSetInSeptember(uniqueName(), 4), practices);
+    expect(await screen.findByRole('status')).toHaveTextContent('1 z 4 dni');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.queryByText(/Chcesz spróbować/)).not.toBeInTheDocument();
   });
 });

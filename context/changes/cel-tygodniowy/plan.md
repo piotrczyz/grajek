@@ -191,19 +191,19 @@ The no-pressure suggestion after 3 reached weeks, and an offline e2e proof of th
 
 ### Phase 2: Goal card on the home screen
 #### Automated
-- [x] 2.1 `pnpm test` passes, including the card tests, the App goal-reached-after-save test and the no-failure-wording copy test
-- [x] 2.2 `pnpm typecheck` passes
-- [x] 2.3 `pnpm lint` passes
-- [x] 2.4 `git diff --name-only e4e6ed3..HEAD` shows no change to `src/App.tsx`
+- [x] 2.1 `pnpm test` passes, including the card tests, the App goal-reached-after-save test and the no-failure-wording copy test — 38ecdf8
+- [x] 2.2 `pnpm typecheck` passes — 38ecdf8
+- [x] 2.3 `pnpm lint` passes — 38ecdf8
+- [x] 2.4 `git diff --name-only e4e6ed3..HEAD` shows no change to `src/App.tsx` — 38ecdf8
 #### Manual
 - [ ] 2.5 On a phone, the six goal buttons are easy to hit for a child and "3 z 4 dni" / "Cel osiągnięty!" read clearly under the week row
 
 ### Phase 3: Gentle raise offer and end-to-end check
 #### Automated
-- [ ] 3.1 `pnpm test` passes, including the raise offer accept, decline and not-offered tests
-- [ ] 3.2 `pnpm test:e2e` passes, including the weekly-goal offline reload test
-- [ ] 3.3 `pnpm build` succeeds
-- [ ] 3.4 `pnpm typecheck` passes
-- [ ] 3.5 `pnpm lint` passes
+- [x] 3.1 `pnpm test` passes, including the raise offer accept, decline and not-offered tests
+- [x] 3.2 `pnpm test:e2e` passes, including the weekly-goal offline reload test
+- [x] 3.3 `pnpm build` succeeds
+- [x] 3.4 `pnpm typecheck` passes
+- [x] 3.5 `pnpm lint` passes
 #### Manual
 - [ ] 3.6 On a phone, the raise offer reads as an invitation, not pressure, and "Zostaję przy N" is as easy to tap as "Tak, spróbuję"
