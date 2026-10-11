@@ -160,9 +160,9 @@ None. The change only reads the existing `practices` store and `byDay` index (mi
 
 ### Phase 2: Month card on the home screen
 #### Automated
-- [x] 2.1 `pnpm test` passes (including `src/month/MonthCard.test.tsx` and the unchanged `src/App.test.tsx`)
-- [x] 2.2 `pnpm typecheck`, `pnpm lint` and `pnpm build` pass
-- [x] 2.3 `pnpm test:e2e e2e/month.spec.ts` passes
-- [x] 2.4 `git diff e4e6ed3..HEAD -- src/App.tsx` adds only the `MonthCard` import and one `<MonthCard />` element
+- [x] 2.1 `pnpm test` passes (including `src/month/MonthCard.test.tsx` and the unchanged `src/App.test.tsx`) — 48efd15
+- [x] 2.2 `pnpm typecheck`, `pnpm lint` and `pnpm build` pass — 48efd15
+- [x] 2.3 `pnpm test:e2e e2e/month.spec.ts` passes — 48efd15
+- [x] 2.4 `git diff e4e6ed3..HEAD -- src/App.tsx` adds only the `MonthCard` import and one `<MonthCard />` element — 48efd15
 #### Manual
 - [ ] 2.5 On a phone-sized viewport the closed card adds only one button to the home screen, and the opened month is readable without horizontal scrolling, with no red or "missed" styling on empty days
