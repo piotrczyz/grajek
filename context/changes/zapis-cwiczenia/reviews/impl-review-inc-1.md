@@ -56,7 +56,7 @@ Architecture gate: `context/architecture/model.c4` does not exist, so the gate d
 
   This breaks the Phase 4 contract "after `onSaved`, today's cell becomes a Dzień z muzyką without a reload" and the plan's "Today rollover" intent.
 - **Fix**: In `onSaved`, also call `setNow(new Date())`, so the week and "today" are recomputed at save time. Add an App test with an injected clock/practice store that crosses Sunday→Monday between mount and save, and assert that today's item is labelled Dzień z muzyką.
-- **Decision**: FIX. A one-line, unambiguous fix to a planned contract.
+- **Decision**: FIXED (4668a29)
 
 ### F1: Panel opened before the last duration loads preselects 15
 - **Severity**: OBSERVATION
