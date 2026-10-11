@@ -507,11 +507,11 @@ manual handover (VAPID keys, billing, deploy, real-device check, RODO).
 
 ### Phase 1: Device registry function
 #### Automated
-- [ ] 1.1 `pnpm --dir functions install --frozen-lockfile && pnpm --dir functions build` succeeds
-- [ ] 1.2 `pnpm --dir functions typecheck` passes
-- [ ] 1.3 `pnpm --dir functions test` passes (register/upsert, validation, allowlist, delete, test-send 202/404/429/410, stored-field whitelist)
-- [ ] 1.4 `pnpm lint` passes with `functions/src` linted
-- [ ] 1.5 `firebase.json` lists the `/api/**` rewrite before `**` and `firestore.rules` denies all (unit test)
+- [x] 1.1 `pnpm --dir functions install --frozen-lockfile && pnpm --dir functions build` succeeds
+- [x] 1.2 `pnpm --dir functions typecheck` passes
+- [x] 1.3 `pnpm --dir functions test` passes (register/upsert, validation, allowlist, delete, test-send 202/404/429/410, stored-field whitelist)
+- [x] 1.4 `pnpm lint` passes with `functions/src` linted
+- [x] 1.5 `firebase.json` lists the `/api/**` rewrite before `**` and `firestore.rules` denies all (unit test)
 
 ### Phase 2: Client registration module
 #### Automated

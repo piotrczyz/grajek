@@ -6,7 +6,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig([
-  globalIgnores(['dist', 'dev-dist', 'coverage', 'playwright-report', 'test-results']),
+  globalIgnores(['dist', 'dev-dist', 'coverage', 'playwright-report', 'test-results', 'functions/lib']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -22,6 +22,13 @@ export default defineConfig([
   },
   {
     files: ['*.config.{js,ts}', 'e2e/**/*.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
+    // The Cloud Function package runs on Node, not in the browser.
+    files: ['functions/**/*.ts'],
     languageOptions: {
       globals: globals.node,
     },
