@@ -1,7 +1,7 @@
 ---
 change_id: przypomnienie-o-porze
 title: One gentle daily reminder at the practice time
-status: planned
+status: implementing
 created: 2026-10-11
 updated: 2026-10-11
 archived_at: null

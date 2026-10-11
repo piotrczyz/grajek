@@ -2,6 +2,8 @@ import type { PushSender } from './push-sender.js';
 import type { DeviceRepository } from './repository.js';
 import type { PushPayload } from './types.js';
 import { parseDeviceId, parseSubscription } from './validation.js';
+import { nextReminderAt } from '../reminders/schedule.js';
+import { parseReminder } from '../reminders/validation.js';
 
 /** The subset of the Express request the handler reads. */
 export interface HttpRequest {
@@ -37,8 +39,13 @@ export const TEST_PAYLOAD: PushPayload = {
   tag: 'grajek-test',
 };
 
-/** `/devices/{id}` or `/devices/{id}/test`, with or without the `/api` prefix. */
-const ROUTE = /^(?:\/api)?\/devices\/([^/]+)(\/test)?\/?$/;
+/**
+ * `/devices/{id}`, `/devices/{id}/test` or `/devices/{id}/reminder`, with or
+ * without the `/api` prefix.
+ */
+const ROUTE = /^(?:\/api)?\/devices\/([^/]+)(\/test|\/reminder)?\/?$/;
+
+const ALLOWED: Record<string, string> = { '': 'PUT, DELETE', '/test': 'POST', '/reminder': 'PUT' };
 
 function error(res: HttpResponse, status: number, code: string): void {
   res.status(status).json({ error: code });
@@ -85,6 +92,26 @@ export function createDevicesHandler(deps: DevicesHandlerDeps) {
     return noContent(res);
   }
 
+  async function saveReminder(req: HttpRequest, res: HttpResponse, id: string) {
+    if (bodySize(req) > MAX_BODY_BYTES) {
+      return error(res, 413, 'body_too_large');
+    }
+    if (!isJson(req)) {
+      return error(res, 415, 'unsupported_media_type');
+    }
+    const state = parseReminder(req.body);
+    if (!state) {
+      return error(res, 400, 'invalid_reminder');
+    }
+    const at = now();
+    const nextAt = nextReminderAt(state.times, state.timezone, at);
+    const stored = await repo.saveReminder(id, state, nextAt, at);
+    if (!stored) {
+      return error(res, 404, 'unknown_device');
+    }
+    return noContent(res);
+  }
+
   async function unregister(res: HttpResponse, id: string) {
     await repo.delete(id);
     return noContent(res);
@@ -120,8 +147,8 @@ export function createDevicesHandler(deps: DevicesHandlerDeps) {
     if (!match) {
       return error(res, 404, 'not_found');
     }
-    const isTest = match[2] !== undefined;
-    const allowed = isTest ? 'POST' : 'PUT, DELETE';
+    const sub = match[2] ?? '';
+    const allowed = ALLOWED[sub];
     if (!allowed.split(', ').includes(req.method)) {
       res.set('Allow', allowed);
       return error(res, 405, 'method_not_allowed');
@@ -131,8 +158,11 @@ export function createDevicesHandler(deps: DevicesHandlerDeps) {
       return error(res, 400, 'invalid_device_id');
     }
     try {
-      if (isTest) {
+      if (sub === '/test') {
         return await sendTest(res, id);
+      }
+      if (sub === '/reminder') {
+        return await saveReminder(req, res, id);
       }
       return req.method === 'PUT' ? await register(req, res, id) : await unregister(res, id);
     } catch (err) {

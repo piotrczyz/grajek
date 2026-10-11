@@ -228,9 +228,9 @@ Let the student limit reminders to chosen days, and connect the sync triggers.
 
 ### Phase 1: Server — reminder contract and schedule math
 #### Automated
-- [ ] 1.1 `pnpm --dir functions typecheck` passes
-- [ ] 1.2 `pnpm --dir functions build` passes
-- [ ] 1.3 `pnpm --dir functions test` passes, including the new schedule and reminder-endpoint tests
+- [x] 1.1 `pnpm --dir functions typecheck` passes
+- [x] 1.2 `pnpm --dir functions build` passes
+- [x] 1.3 `pnpm --dir functions test` passes, including the new schedule and reminder-endpoint tests
 #### Manual
 
 ### Phase 2: Server — scheduled reminder sender

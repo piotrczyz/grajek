@@ -1,5 +1,5 @@
-import { Timestamp, type Firestore } from 'firebase-admin/firestore';
-import type { DeviceRecord, PushSubscriptionRecord } from './types.js';
+import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
+import type { DeviceRecord, PushSubscriptionRecord, ReminderState } from './types.js';
 
 export const DEVICES_COLLECTION = 'devices';
 
@@ -10,6 +10,12 @@ export interface DeviceRepository {
   /** Idempotent: deleting an unknown device is not an error. */
   delete(id: string): Promise<void>;
   markTested(id: string, now: Date): Promise<void>;
+  /**
+   * Overwrites the reminder state of an existing device; `false` (nothing
+   * written) when the device is unknown. `nextAt === null` removes
+   * `nextReminderAt`, so the scheduler never picks the device up.
+   */
+  saveReminder(id: string, state: ReminderState, nextAt: Date | null, now: Date): Promise<boolean>;
 }
 
 function toDate(value: unknown): Date | undefined {
@@ -58,6 +64,23 @@ export function createFirestoreRepository(db: Firestore): DeviceRepository {
 
     async markTested(id, now) {
       await doc(id).update({ lastTestAt: Timestamp.fromDate(now) });
+    },
+
+    async saveReminder(id, state, nextAt, now) {
+      const ref = doc(id);
+      return db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) {
+          return false;
+        }
+        tx.update(ref, {
+          reminder: { timezone: state.timezone, times: state.times },
+          practicedOn: state.practicedOn,
+          nextReminderAt: nextAt ? Timestamp.fromDate(nextAt) : FieldValue.delete(),
+          reminderUpdatedAt: Timestamp.fromDate(now),
+        });
+        return true;
+      });
     },
   };
 }
