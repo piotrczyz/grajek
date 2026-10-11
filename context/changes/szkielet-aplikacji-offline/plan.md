@@ -343,10 +343,10 @@ Make the publication method explicit and keep it checked on every push.
 
 ### Phase 3: Installable offline PWA
 #### Automated
-- [x] 3.1 `pnpm build` emits `dist/sw.js` and `dist/manifest.webmanifest`
-- [x] 3.2 `pnpm test:e2e` passes: offline reload shows the welcome screen
-- [x] 3.3 `pnpm test:e2e` passes: manifest, icons and iOS head tags are served correctly
-- [x] 3.4 `pnpm lint`, `pnpm typecheck` and `pnpm test` still pass
+- [x] 3.1 `pnpm build` emits `dist/sw.js` and `dist/manifest.webmanifest` — 8235e62
+- [x] 3.2 `pnpm test:e2e` passes: offline reload shows the welcome screen — 8235e62
+- [x] 3.3 `pnpm test:e2e` passes: manifest, icons and iOS head tags are served correctly — 8235e62
+- [x] 3.4 `pnpm lint`, `pnpm typecheck` and `pnpm test` still pass — 8235e62
 #### Manual
 - [ ] 3.5 On an Android phone (Chrome, HTTPS host) the app installs to the home screen and opens offline in standalone mode
 - [ ] 3.6 On an iPhone (Safari, HTTPS host) "Add to Home Screen" shows the Grajek icon and title, and the app opens offline
@@ -354,7 +354,7 @@ Make the publication method explicit and keep it checked on every push.
 
 ### Phase 4: Static publication and CI
 #### Automated
-- [ ] 4.1 `.github/workflows/ci.yml` is valid YAML and runs the same scripts as `package.json`
-- [ ] 4.2 Full local run passes: `pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`
+- [x] 4.1 `.github/workflows/ci.yml` is valid YAML and runs the same scripts as `package.json`
+- [x] 4.2 Full local run passes: `pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`
 #### Manual
 - [ ] 4.3 README publication steps are enough for someone to serve `dist/` from a static host under a sub-path
