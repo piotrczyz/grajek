@@ -2,7 +2,7 @@
 # Implementation Review: Log a practice session with the current-week view
 
 **Plan**: context/changes/zapis-cwiczenia/plan.md   **Scope**: increment 1 (phases 1-4, full plan)   **Date**: 2026-10-11
-**Round**: 1   **Verdict**: NEEDS_ATTENTION   **Findings**: 8
+**Round**: 2   **Verdict**: APPROVED   **Findings**: 8
 
 Review base: `246ca4d` (F-01 + S-01 in the stack), diff `246ca4d..HEAD` (7 commits).
 
@@ -11,7 +11,7 @@ Review base: `246ca4d` (F-01 + S-01 in the stack), diff `246ca4d..HEAD` (7 commi
 |---|---|
 | Plan Adherence | PASS |
 | Scope Discipline | PASS |
-| Safety & Quality | WARNING |
+| Safety & Quality | PASS |
 | Architecture | PASS |
 | Pattern Consistency | PASS |
 | Success Criteria | PASS |
@@ -56,7 +56,7 @@ Architecture gate: `context/architecture/model.c4` does not exist, so the gate d
 
   This breaks the Phase 4 contract "after `onSaved`, today's cell becomes a Dzień z muzyką without a reload" and the plan's "Today rollover" intent.
 - **Fix**: In `onSaved`, also call `setNow(new Date())`, so the week and "today" are recomputed at save time. Add an App test with an injected clock/practice store that crosses Sunday→Monday between mount and save, and assert that today's item is labelled Dzień z muzyką.
-- **Decision**: FIXED (4668a29)
+- **Decision**: FIXED (4668a29) — verified r2
 
 ### F1: Panel opened before the last duration loads preselects 15
 - **Severity**: OBSERVATION
@@ -120,3 +120,17 @@ Architecture gate: `context/architecture/model.c4` does not exist, so the gate d
 - **Detail**: Unavailable over plain-http LAN dev URLs.
 - **Fix**: None.
 - **Decision**: DISMISS. The app is an HTTPS PWA: its service worker already requires a secure context. The unit and e2e suites pass (`localhost` is secure).
+
+## Round 2
+Re-review of fix commit `4668a29`, with evidence in `reviews/fix-r1.md`.
+- **F0 is fixed.** `onSaved` now calls `setNow(new Date())` (`src/profile/ProfileScreen.tsx:81-83`).
+- **The new test asserts the reported symptom.** The App test fakes only `Date`, mounts on Sunday 23:59 and saves on Monday 00:01 without a `visibilitychange`. It asserts that the "(dziś)" item is the single Dzień z muzyką. `fix-r1.md` records it failing with the fix reverted.
+- **Regression sweep is clean.** No ACCEPT or DISMISS finding was touched. The fix stays inside owned files: `ProfileScreen.tsx`, `App.test.tsx` and `fix-r1.md`.
+- **Phase 4 criteria re-run here, all PASS:**
+  - `pnpm test`: 73/73
+  - `pnpm test:e2e`: 5/5
+  - `pnpm build`: exit 0
+  - `pnpm typecheck`: exit 0
+  - `pnpm lint`: exit 0
+
+**Verdict: APPROVED.** This is the last increment, so `change.md` moves to `impl_reviewed`.
