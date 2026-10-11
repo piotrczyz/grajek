@@ -235,16 +235,16 @@ Let the student limit reminders to chosen days, and connect the sync triggers.
 
 ### Phase 2: Server — scheduled reminder sender
 #### Automated
-- [x] 2.1 `pnpm --dir functions typecheck` passes
-- [x] 2.2 `pnpm --dir functions test` passes, including the tick tests
+- [x] 2.1 `pnpm --dir functions typecheck` passes — 0351676
+- [x] 2.2 `pnpm --dir functions test` passes, including the tick tests — 0351676
 - [ ] 2.3 `pnpm --dir functions test:emulators` passes in the CI `functions` job (needs JDK 21; cannot run on this machine, which has no Java)
 #### Manual
 
 ### Phase 3: Client — reminder setting and offline-safe sync
 #### Automated
-- [ ] 3.1 `pnpm typecheck` passes
-- [ ] 3.2 `pnpm lint` passes
-- [ ] 3.3 `pnpm test` passes, including the new reminder tests
+- [x] 3.1 `pnpm typecheck` passes
+- [x] 3.2 `pnpm lint` passes
+- [x] 3.3 `pnpm test` passes, including the new reminder tests
 #### Manual
 
 ### Phase 4: Client — panel setting and app wiring
