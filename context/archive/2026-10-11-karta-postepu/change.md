@@ -1,10 +1,10 @@
 ---
 change_id: karta-postepu
 title: Shareable Progress Card image generated on the device
-status: impl_reviewed
+status: archived
 created: 2026-10-11
 updated: 2026-10-11
-archived_at: null
+archived_at: 2026-10-11T16:36:53Z
 ---
 
 ## Notes
