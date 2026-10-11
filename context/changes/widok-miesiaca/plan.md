@@ -153,9 +153,9 @@ None. The change only reads the existing `practices` store and `byDay` index (mi
 
 ### Phase 1: Month data
 #### Automated
-- [ ] 1.1 `pnpm test src/month` passes, covering month grid (31/30/28/29-day months, a month starting on Monday and on Sunday), duration and plural formatting, month range and lifetime queries
-- [ ] 1.2 `pnpm typecheck` and `pnpm lint` pass
-- [ ] 1.3 `git diff --stat e4e6ed3..HEAD -- src/storage` shows no change to the storage module (no migration)
+- [x] 1.1 `pnpm test src/month` passes, covering month grid (31/30/28/29-day months, a month starting on Monday and on Sunday), duration and plural formatting, month range and lifetime queries
+- [x] 1.2 `pnpm typecheck` and `pnpm lint` pass
+- [x] 1.3 `git diff --stat e4e6ed3..HEAD -- src/storage` shows no change to the storage module (no migration)
 #### Manual
 
 ### Phase 2: Month card on the home screen
