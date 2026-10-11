@@ -3,12 +3,17 @@
  *
  * One HTTPS function `api`, reached same-origin through the Hosting rewrite
  * `/api/**`. It stores anonymous Web Push registrations in Firestore
- * (`devices/{deviceId}`) and can send one test notification per device.
+ * (`devices/{deviceId}`), can send one test notification per device and
+ * stores each device's daily reminder state (roadmap S-08).
+ *
+ * One scheduled function `reminders` runs every 5 minutes and sends the due
+ * daily reminders, at most one per device per local day.
  */
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import { onRequest } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import { createDevicesHandler } from './devices/handler.js';
 import {
@@ -19,6 +24,8 @@ import {
   type PushSender,
 } from './devices/push-sender.js';
 import { createFirestoreRepository } from './devices/repository.js';
+import { createFirestoreReminderRepository } from './reminders/repository.js';
+import { runReminderTick } from './reminders/tick.js';
 
 const VAPID_PRIVATE_KEY = defineSecret('VAPID_PRIVATE_KEY');
 const VAPID_PUBLIC_KEY = defineString('VAPID_PUBLIC_KEY', {
@@ -55,4 +62,24 @@ export const api = onRequest(
     maxInstances: 2,
   },
   handler,
+);
+
+export const reminders = onSchedule(
+  {
+    schedule: 'every 5 minutes',
+    timeZone: 'Etc/UTC',
+    region: 'europe-central2',
+    secrets: [VAPID_PRIVATE_KEY],
+    maxInstances: 1,
+    retryCount: 0,
+  },
+  async () => {
+    const result = await runReminderTick({
+      repo: createFirestoreReminderRepository(getFirestore()),
+      sender,
+      now: () => new Date(),
+      onError: (error) => logger.error('reminders tick error', toLoggableError(error)),
+    });
+    logger.info('reminders tick', result);
+  },
 );
