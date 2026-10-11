@@ -160,11 +160,11 @@ deploy from CI (Manual criteria); nothing is deployed from this machine.
 
 ### Phase 1: Hosting sites and legacy cleanup worker
 #### Automated
-- [x] 1.1 `pnpm test` passes, including `src/hosting/firebase-config.test.ts` and `src/hosting/legacy-sw.test.ts`
-- [x] 1.2 `node -e "JSON.parse(require('fs').readFileSync('firebase.json','utf8'))"` succeeds and `.firebaserc` is unchanged (`git diff --quiet origin/main -- .firebaserc`)
-- [x] 1.3 `pnpm lint && pnpm typecheck && pnpm build` pass
-- [x] 1.4 `CI=1 pnpm test:e2e` passes
-- [x] 1.5 `pnpm --dir functions test` passes; `pnpm --dir functions test:emulators` passes where a JDK 21 is available (else CI's `functions` job is the proof)
+- [x] 1.1 `pnpm test` passes, including `src/hosting/firebase-config.test.ts` and `src/hosting/legacy-sw.test.ts` — 8c5ea8d
+- [x] 1.2 `node -e "JSON.parse(require('fs').readFileSync('firebase.json','utf8'))"` succeeds and `.firebaserc` is unchanged (`git diff --quiet origin/main -- .firebaserc`) — 8c5ea8d
+- [x] 1.3 `pnpm lint && pnpm typecheck && pnpm build` pass — 8c5ea8d
+- [x] 1.4 `CI=1 pnpm test:e2e` passes — 8c5ea8d
+- [x] 1.5 `pnpm --dir functions test` passes; `pnpm --dir functions test:emulators` passes where a JDK 21 is available (else CI's `functions` job is the proof) — 8c5ea8d
 #### Manual
 - [ ] 1.6 After the first live deploy, `curl -sI https://grajek-app.web.app/some/path` returns `301` with `location: https://grajek.web.app/some/path`, and `curl -sI https://grajek-app.web.app/sw.js` returns `200`
 - [ ] 1.7 After the first live deploy, `https://grajek.web.app/api/...` reaches the function
@@ -172,9 +172,9 @@ deploy from CI (Manual criteria); nothing is deployed from this machine.
 
 ### Phase 2: CI deploy targets and references
 #### Automated
-- [ ] 2.1 `git grep -n "grajek-app.web.app" -- . ':!context/archive' ':!context/changes'` lists only legacy-site references (`firebase.json`, `hosting/`, `src/hosting/`) and README lines that describe the redirect
-- [ ] 2.2 `npx --yes js-yaml .github/workflows/ci.yml` parses; `deploy-preview` has `target: grajek`; `deploy-live` has `channelId: live` and no `target`; both keep `projectId: grajek-app`
-- [ ] 2.3 `.firebaserc`, `functions/` and the secret name are unchanged (`git diff --quiet origin/main -- .firebaserc functions`; `grep -c FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP .github/workflows/ci.yml` prints 2)
-- [ ] 2.4 `pnpm lint && pnpm typecheck && pnpm test` pass
+- [x] 2.1 `git grep -n "grajek-app.web.app" -- . ':!context/archive' ':!context/changes'` lists only legacy-site references (`firebase.json`, `hosting/`, `src/hosting/`) and README lines that describe the redirect
+- [x] 2.2 `npx --yes js-yaml .github/workflows/ci.yml` parses; `deploy-preview` has `target: grajek`; `deploy-live` has `channelId: live` and no `target`; both keep `projectId: grajek-app`
+- [x] 2.3 `.firebaserc`, `functions/` and the secret name are unchanged (`git diff --quiet origin/main -- .firebaserc functions`; `grep -c FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP .github/workflows/ci.yml` prints 2)
+- [x] 2.4 `pnpm lint && pnpm typecheck && pnpm test` pass
 #### Manual
 - [ ] 2.5 On this change's PR, the preview comment links a `grajek--` channel URL on `web.app` that serves the app
