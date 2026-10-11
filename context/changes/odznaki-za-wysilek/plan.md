@@ -217,15 +217,15 @@ None: no schema change. The `badges` key in the out-of-line `profile` store is a
 
 ### Phase 1: Catalog and award rules
 #### Automated
-- [x] 1.1 `pnpm test src/badges` passes (catalog, rules, copy tests)
-- [x] 1.2 `pnpm typecheck` passes
-- [x] 1.3 `pnpm lint` passes
+- [x] 1.1 `pnpm test src/badges` passes (catalog, rules, copy tests) — 007a770
+- [x] 1.2 `pnpm typecheck` passes — 007a770
+- [x] 1.3 `pnpm lint` passes — 007a770
 
 ### Phase 2: Persistence and atomic award
 #### Automated
-- [ ] 2.1 `pnpm test src/badges` passes (including store tests)
-- [ ] 2.2 `pnpm typecheck` passes
-- [ ] 2.3 `pnpm lint` passes
+- [x] 2.1 `pnpm test src/badges` passes (including store tests)
+- [x] 2.2 `pnpm typecheck` passes
+- [x] 2.3 `pnpm lint` passes
 
 ### Phase 3: Badges block on the home screen
 #### Automated
