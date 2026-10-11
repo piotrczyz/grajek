@@ -507,17 +507,17 @@ manual handover (VAPID keys, billing, deploy, real-device check, RODO).
 
 ### Phase 1: Device registry function
 #### Automated
-- [x] 1.1 `pnpm --dir functions install --frozen-lockfile && pnpm --dir functions build` succeeds
-- [x] 1.2 `pnpm --dir functions typecheck` passes
-- [x] 1.3 `pnpm --dir functions test` passes (register/upsert, validation, allowlist, delete, test-send 202/404/429/410, stored-field whitelist)
-- [x] 1.4 `pnpm lint` passes with `functions/src` linted
-- [x] 1.5 `firebase.json` lists the `/api/**` rewrite before `**` and `firestore.rules` denies all (unit test)
+- [x] 1.1 `pnpm --dir functions install --frozen-lockfile && pnpm --dir functions build` succeeds — 152d972
+- [x] 1.2 `pnpm --dir functions typecheck` passes — 152d972
+- [x] 1.3 `pnpm --dir functions test` passes (register/upsert, validation, allowlist, delete, test-send 202/404/429/410, stored-field whitelist) — 152d972
+- [x] 1.4 `pnpm lint` passes with `functions/src` linted — 152d972
+- [x] 1.5 `firebase.json` lists the `/api/**` rewrite before `**` and `firestore.rules` denies all (unit test) — 152d972
 
 ### Phase 2: Client registration module
 #### Automated
-- [ ] 2.1 `pnpm test` passes including migration v2, device-id, push controller and `pushSupport` tests
-- [ ] 2.2 `pnpm typecheck && pnpm lint` pass
-- [ ] 2.3 `pnpm build` succeeds and `dist/sw.js` imports `push-sw.js`, `dist/push-sw.js` exists
+- [x] 2.1 `pnpm test` passes including migration v2, device-id, push controller and `pushSupport` tests
+- [x] 2.2 `pnpm typecheck && pnpm lint` pass
+- [x] 2.3 `pnpm build` succeeds and `dist/sw.js` imports `push-sw.js`, `dist/push-sw.js` exists
 
 ### Phase 3: Notifications panel
 #### Automated
