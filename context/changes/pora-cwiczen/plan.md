@@ -184,9 +184,9 @@ Proves the practice time survives a reload online and offline in a real browser.
 
 ### Phase 1: Storage — migration v3 and connection lifecycle (F2)
 #### Automated
-- [ ] 1.1 `pnpm test src/storage` passes, including the new v3 upgrade and `blocking`/`onClose` tests
-- [ ] 1.2 `pnpm test src/profile` passes unchanged
-- [ ] 1.3 `pnpm typecheck` and `pnpm lint` pass
+- [x] 1.1 `pnpm test src/storage` passes, including the new v3 upgrade and `blocking`/`onClose` tests
+- [x] 1.2 `pnpm test src/profile` passes unchanged
+- [x] 1.3 `pnpm typecheck` and `pnpm lint` pass
 
 ### Phase 2: Practice-time domain and store
 #### Automated

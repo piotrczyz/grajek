@@ -25,4 +25,10 @@ export const migrations: readonly Migration[] = [
     db.createObjectStore('profile');
     db.createObjectStore('instruments', { keyPath: 'id' });
   },
+  // v3 "practice time" (S-07): the student's Pora ćwiczeń under the fixed key
+  // `current`. Kept apart from `profile` on purpose: S-08 (reminders) may read
+  // it and later send it off the device, and it holds no Profile data.
+  (db) => {
+    db.createObjectStore('practiceTime');
+  },
 ];
