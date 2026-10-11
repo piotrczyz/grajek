@@ -160,11 +160,11 @@ deploy from CI (Manual criteria); nothing is deployed from this machine.
 
 ### Phase 1: Hosting sites and legacy cleanup worker
 #### Automated
-- [ ] 1.1 `pnpm test` passes, including `src/hosting/firebase-config.test.ts` and `src/hosting/legacy-sw.test.ts`
-- [ ] 1.2 `node -e "JSON.parse(require('fs').readFileSync('firebase.json','utf8'))"` succeeds and `.firebaserc` is unchanged (`git diff --quiet origin/main -- .firebaserc`)
-- [ ] 1.3 `pnpm lint && pnpm typecheck && pnpm build` pass
-- [ ] 1.4 `CI=1 pnpm test:e2e` passes
-- [ ] 1.5 `pnpm --dir functions test` passes; `pnpm --dir functions test:emulators` passes where a JDK 21 is available (else CI's `functions` job is the proof)
+- [x] 1.1 `pnpm test` passes, including `src/hosting/firebase-config.test.ts` and `src/hosting/legacy-sw.test.ts`
+- [x] 1.2 `node -e "JSON.parse(require('fs').readFileSync('firebase.json','utf8'))"` succeeds and `.firebaserc` is unchanged (`git diff --quiet origin/main -- .firebaserc`)
+- [x] 1.3 `pnpm lint && pnpm typecheck && pnpm build` pass
+- [x] 1.4 `CI=1 pnpm test:e2e` passes
+- [x] 1.5 `pnpm --dir functions test` passes; `pnpm --dir functions test:emulators` passes where a JDK 21 is available (else CI's `functions` job is the proof)
 #### Manual
 - [ ] 1.6 After the first live deploy, `curl -sI https://grajek-app.web.app/some/path` returns `301` with `location: https://grajek.web.app/some/path`, and `curl -sI https://grajek-app.web.app/sw.js` returns `200`
 - [ ] 1.7 After the first live deploy, `https://grajek.web.app/api/...` reaches the function
