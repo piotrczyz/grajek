@@ -127,12 +127,12 @@ No app code changes, so the existing suites only need to stay green (Phase 1 cri
 
 ### Phase 1: Deploy jobs in CI
 #### Automated
-- [x] 1.1 `npx --yes js-yaml .github/workflows/ci.yml` parses the workflow without error
-- [x] 1.2 `ci.yml` has exactly two `FirebaseExtended/action-hosting-deploy@v0` steps, in jobs `deploy-preview` and `deploy-live`, each with `needs: check` and `projectId: grajek-app`
-- [x] 1.3 `deploy-preview` condition requires `github.event.pull_request.head.repo.full_name == github.repository`; `deploy-live` condition requires `github.ref == 'refs/heads/main'` and it sets `channelId: live`
-- [x] 1.4 Top-level `permissions` is still only `contents: read`; `pull-requests: write` and `checks: write` appear only in `deploy-preview`; `secrets.` appears only in the two deploy jobs
-- [x] 1.5 `package.json` contains no `firebase` reference (`grep -c firebase package.json` prints 0)
-- [x] 1.6 `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass
+- [x] 1.1 `npx --yes js-yaml .github/workflows/ci.yml` parses the workflow without error — 9794dae
+- [x] 1.2 `ci.yml` has exactly two `FirebaseExtended/action-hosting-deploy@v0` steps, in jobs `deploy-preview` and `deploy-live`, each with `needs: check` and `projectId: grajek-app` — 9794dae
+- [x] 1.3 `deploy-preview` condition requires `github.event.pull_request.head.repo.full_name == github.repository`; `deploy-live` condition requires `github.ref == 'refs/heads/main'` and it sets `channelId: live` — 9794dae
+- [x] 1.4 Top-level `permissions` is still only `contents: read`; `pull-requests: write` and `checks: write` appear only in `deploy-preview`; `secrets.` appears only in the two deploy jobs — 9794dae
+- [x] 1.5 `package.json` contains no `firebase` reference (`grep -c firebase package.json` prints 0) — 9794dae
+- [x] 1.6 `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass — 9794dae
 #### Manual
 - [ ] 1.7 After the secret exists, a PR from a branch of this repo gets a comment with a working preview URL once `check` passes
 - [ ] 1.8 After a merge to `main`, https://grajek-app.web.app serves the new build
@@ -140,8 +140,8 @@ No app code changes, so the existing suites only need to stay green (Phase 1 cri
 
 ### Phase 2: Setup documentation
 #### Automated
-- [ ] 2.1 `grep -nE "firebase(-tools)? (login|deploy)" README.md` finds nothing
-- [ ] 2.2 `README.md` mentions `FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP`, `init hosting:github`, `Firebase Hosting Admin` and `gh secret set` (each grep finds a match)
-- [ ] 2.3 `context/foundation/tech-stack.md` `## CI/CD` mentions Firebase Hosting and no longer says "no remote configured yet"
+- [x] 2.1 `grep -nE "firebase(-tools)? (login|deploy)" README.md` finds nothing
+- [x] 2.2 `README.md` mentions `FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP`, `init hosting:github`, `Firebase Hosting Admin` and `gh secret set` (each grep finds a match)
+- [x] 2.3 `context/foundation/tech-stack.md` `## CI/CD` mentions Firebase Hosting and no longer says "no remote configured yet"
 #### Manual
 - [ ] 2.4 A developer can create the secret by following either README path without other sources
