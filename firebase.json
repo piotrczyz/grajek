@@ -57,6 +57,11 @@
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "redirects": [
         {
+          "regex": "^/$",
+          "destination": "https://grajek.web.app/",
+          "type": 301
+        },
+        {
           "regex": "^/((?:|[^s].*|s|s[^w].*|sw|sw[^.].*|sw\\.|sw\\.[^j].*|sw\\.j|sw\\.j[^s].*|sw\\.js.+))$",
           "destination": "https://grajek.web.app/:1",
           "type": 301

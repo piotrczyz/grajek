@@ -30,18 +30,31 @@ const IGNORE = ['firebase.json', '**/.*', '**/node_modules/**'];
 const NEW_ORIGIN = 'https://grajek.web.app';
 
 /**
- * Evaluates a Hosting redirect rule on a path the way Hosting does for a
- * regex rule: match, then substitute `:N` / `:name` from the capture groups.
- * Returns the redirect location, or null when the rule does not match.
+ * Evaluates one Hosting regex redirect rule on a path: match, then substitute
+ * `:N` / `:name` from the capture groups. The Hosting emulator (firebase-tools
+ * 15.33) skips a rule whose referenced capture is empty, so an empty capture
+ * counts as no match here too. Returns the location, or null.
  */
-function redirectFor(rule: Redirect, path: string): string | null {
+function applyRule(rule: Redirect, path: string): string | null {
   if (!rule.regex) throw new Error('expected a regex redirect rule');
   const match = new RegExp(rule.regex).exec(path);
   if (!match) return null;
-  return rule.destination.replace(/:(\w+)/g, (_all, ref: string) => {
+  let skipped = false;
+  const location = rule.destination.replace(/:(\w+)/g, (_all, ref: string) => {
     const value = /^\d+$/.test(ref) ? match[Number(ref)] : match.groups?.[ref];
+    if (!value) skipped = true;
     return value ?? '';
   });
+  return skipped ? null : location;
+}
+
+/** Evaluates the rules in order, first match wins, as Hosting does. */
+function redirectFor(rules: Redirect[], path: string): string | null {
+  for (const rule of rules) {
+    const location = applyRule(rule, path);
+    if (location !== null) return location;
+  }
+  return null;
 }
 
 describe('firebase.json hosting', () => {
@@ -89,18 +102,25 @@ describe('firebase.json hosting', () => {
       expect(legacy.rewrites).toBeUndefined();
     });
 
-    it('has a single 301 rule to the new address', () => {
-      expect(legacy.redirects).toHaveLength(1);
-      const [rule] = legacy.redirects!;
-      expect(rule.type).toBe(301);
-      expect(rule.destination.startsWith(`${NEW_ORIGIN}/`)).toBe(true);
+    it('has two 301 rules to the new address: the root, then every other path', () => {
+      expect(legacy.redirects).toHaveLength(2);
+      expect(legacy.redirects![0]).toEqual({
+        regex: '^/$',
+        destination: `${NEW_ORIGIN}/`,
+        type: 301,
+      });
+      for (const rule of legacy.redirects!) {
+        expect(rule.type).toBe(301);
+        expect(rule.destination.startsWith(`${NEW_ORIGIN}/`)).toBe(true);
+      }
     });
 
-    it('uses an RE2-compatible regex (no lookaround, no backreferences)', () => {
-      const [rule] = legacy.redirects!;
-      expect(rule.regex).toBeDefined();
-      expect(rule.regex).not.toMatch(/\(\?<?[=!]/);
-      expect(rule.regex).not.toMatch(/\\[1-9]/);
+    it('uses RE2-compatible regexes (no lookaround, no backreferences)', () => {
+      for (const rule of legacy.redirects!) {
+        expect(rule.regex).toBeDefined();
+        expect(rule.regex).not.toMatch(/\(\?<?[=!]/);
+        expect(rule.regex).not.toMatch(/\\[1-9]/);
+      }
     });
 
     it.each([
@@ -117,11 +137,11 @@ describe('firebase.json hosting', () => {
       ['/sw.js/x', `${NEW_ORIGIN}/sw.js/x`],
       ['/a/sw.js', `${NEW_ORIGIN}/a/sw.js`],
     ])('redirects %s to the same path on the new address', (path, location) => {
-      expect(redirectFor(legacy.redirects![0], path)).toBe(location);
+      expect(redirectFor(legacy.redirects!, path)).toBe(location);
     });
 
     it('does not redirect /sw.js, which serves the cleanup worker', () => {
-      expect(redirectFor(legacy.redirects![0], '/sw.js')).toBeNull();
+      expect(redirectFor(legacy.redirects!, '/sw.js')).toBeNull();
     });
 
     it('serves /sw.js with no-cache', () => {
