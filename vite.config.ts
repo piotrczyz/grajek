@@ -49,10 +49,23 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
-        // No runtimeCaching: the app makes no requests to external origins.
+        // Push and notificationclick handlers (F-02), plain JS from public/.
+        importScripts: ['push-sw.js'],
+        // No runtimeCaching: the app makes no requests to external origins. Its
+        // only API is same-origin `/api` (never cached); push endpoints are
+        // called by the server, and pushes arrive through the browser's push service.
       },
     }),
   ],
+  server: {
+    // `pnpm dev` talks to the local Functions emulator (`pnpm --dir functions emulators`).
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:5001',
+        rewrite: (path) => `/demo-grajek/europe-central2/api${path.replace(/^\/api/, '')}`,
+      },
+    },
+  },
   preview: {
     port: 4173,
     strictPort: true,

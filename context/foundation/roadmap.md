@@ -26,7 +26,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 | ID | Change ID | Outcome | Prerequisites | PRD refs | Status |
 |---|---|---|---|---|---|
 | F-01 | szkielet-aplikacji-offline | Uczeń może zainstalować pustą aplikację na telefonie i otworzyć ją bez internetu | — | NFR Offline, NFR Urządzenia | done |
-| F-02 | anonimowa-rejestracja-urzadzenia | Urządzenie może zarejestrować się anonimowo do powiadomień | — | FR-004, NFR Prywatność, ADR 0001 | ready |
+| F-02 | anonimowa-rejestracja-urzadzenia | Urządzenie może zarejestrować się anonimowo do powiadomień | — | FR-004, NFR Prywatność, ADR 0001 | done |
 | S-01 | profil-i-instrument | Uczeń może utworzyć Profil i dodać instrument | F-01 | FR-001 | done |
 | S-02 | zapis-cwiczenia | Uczeń może zapisać Ćwiczenie w ok. 10 s i zobaczyć je w bieżącym tygodniu | S-01 | FR-005, FR-006, US-01 | done |
 | S-03 | cel-tygodniowy | Uczeń może wybrać Cel tygodniowy i widzieć postęp tygodnia | S-02 | FR-002, US-01 | proposed |
@@ -77,7 +77,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - **Blockers:** —
 - **Unknowns:** czy anonimowe dane wymagają zgody rodzica (RODO) — Owner: użytkownik — Block: no (blokuje publikację, nie budowę)
 - **Risk:** dostarczanie powiadomień na iOS do aplikacji instalowanej z przeglądarki jest ograniczone.
-- **Status:** ready
+- **Status:** done
 - **Unlocks:** S-08; ścieżkę weryfikacji dostarczania powiadomień na obu platformach.
 
 ## Slices
@@ -223,3 +223,4 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - S-01 Profil i instrument (`profil-i-instrument`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-profil-i-instrument`.
 - S-07 Pora ćwiczeń (`pora-cwiczen`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-pora-cwiczen` (review r1 APPROVED; manual check of the time picker on a phone pending).
 - S-02 Zapis Ćwiczenia z widokiem tygodnia (`zapis-cwiczenia`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-zapis-cwiczenia` (review r2 APPROVED; manual checks pending on device).
+- F-02 — anonimowa-rejestracja-urzadzenia — archived 2026-10-11

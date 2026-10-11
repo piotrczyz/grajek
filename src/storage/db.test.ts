@@ -15,8 +15,9 @@ describe('openDb', () => {
   it('opens a fresh database at migrations.length with the shipped migrations', async () => {
     const db = await openDb({ name: uniqueName() });
     expect(db.version).toBe(migrations.length);
-    expect(db.version).toBe(4);
+    expect(db.version).toBe(5);
     expect(Array.from(db.objectStoreNames).sort()).toEqual([
+      'device',
       'instruments',
       'practiceTime',
       'practices',
@@ -93,6 +94,7 @@ describe('shipped migrations', () => {
     const latest = await openDb({ name });
     expect(latest.version).toBe(migrations.length);
     expect(Array.from(latest.objectStoreNames).sort()).toEqual([
+      'device',
       'instruments',
       'practiceTime',
       'practices',
@@ -128,7 +130,7 @@ describe('shipped migrations', () => {
     await v3.put('practiceTime', { days: [1], time: '17:00' }, 'current');
     v3.close();
 
-    const v4 = await openDb({ name });
+    const v4 = await openDb({ name, migrations: migrations.slice(0, 4) });
     expect(v4.version).toBe(4);
     expect(v4.objectStoreNames.contains('practices')).toBe(true);
     expect(await v4.get('practiceTime', 'current')).toEqual({ days: [1], time: '17:00' });
@@ -166,6 +168,29 @@ describe('shipped migrations', () => {
       name: 'Ola',
       instrument: { name: 'Gitara' },
     });
+  });
+
+  it('v5 adds the device store with out-of-line keys', async () => {
+    const db = await openDb({ name: uniqueName() });
+    expect(db.version).toBe(5);
+    const store = db.transaction('device').store;
+    expect(store.keyPath).toBeNull();
+    expect(store.autoIncrement).toBe(false);
+    db.close();
+  });
+
+  it('upgrades a populated version-4 database to version 5 keeping earlier rows', async () => {
+    const name = uniqueName();
+    const v4 = await openDb({ name, migrations: migrations.slice(0, 4) });
+    expect(v4.objectStoreNames.contains('device')).toBe(false);
+    await v4.put('practiceTime', { days: [2], time: '18:00' }, 'current');
+    v4.close();
+
+    const v5 = await openDb({ name });
+    expect(v5.version).toBe(5);
+    expect(v5.objectStoreNames.contains('device')).toBe(true);
+    expect(await v5.get('practiceTime', 'current')).toEqual({ days: [2], time: '18:00' });
+    v5.close();
   });
 });
 
