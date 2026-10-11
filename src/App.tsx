@@ -4,6 +4,7 @@ import { RETRY_MESSAGE } from './profile/copy.ts';
 import { CreateProfileScreen } from './profile/CreateProfileScreen.tsx';
 import { ProfileScreen } from './profile/ProfileScreen.tsx';
 import { PracticeTimeCard } from './practice-time/index.ts';
+import { MonthCard } from './month/index.ts';
 import { createIndexedDbProfileStore, type Profile, type ProfileStore } from './profile/index.ts';
 import { NotificationsPanel } from './push/NotificationsPanel.tsx';
 
@@ -63,6 +64,7 @@ export function App({ store: injected, practiceStore: injectedPractice }: AppPro
             <>
               <ProfileScreen profile={state.profile} practiceStore={practiceStore} />
               <PracticeTimeCard />
+              <MonthCard />
             </>
           )}
           {state.kind === 'load-failed' && (
