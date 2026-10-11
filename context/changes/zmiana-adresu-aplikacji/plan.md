@@ -61,7 +61,7 @@ legacy worker by a Vitest test that runs its source against a fake
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Move hosting to grajek.web.app with legacy redirect (A1 hosting-address) | 1-2 | — | yes | in-progress | — |
+| 1 | Move hosting to grajek.web.app with legacy redirect (A1 hosting-address) | 1-2 | — | yes | done | — |
 
 ## Critical Implementation Details
 - **App site config.** Move the current `hosting` object unchanged into the array with `"site": "grajek"` added; the `/api/**` rewrite stays before the `**` fallback. Order the array app first.
