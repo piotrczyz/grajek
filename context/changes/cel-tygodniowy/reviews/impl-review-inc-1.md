@@ -2,10 +2,10 @@
 # Implementation Review: Weekly goal with a spare day and current-week progress
 
 **Plan**: context/changes/cel-tygodniowy/plan.md   **Scope**: increment 1 (phases 1-3, full plan)   **Date**: 2026-10-11
-**Round**: 1   **Verdict**: APPROVED   **Findings**: 3
+**Round**: 1   **Verdict**: APPROVED   **Findings**: 6
 
 Diff base: `e4e6ed3` (feat/zapis-cwiczenia/1, the unmerged prerequisite stack), not `origin/main`.
-Note: two read-only evidence subagents were launched but their results did not arrive before hand-off; both passes (plan drift; safety/quality/patterns) were done directly on every non-test source file in the diff (`weeklyGoal.ts`, `weeklyGoalStore.ts`, `copy.ts`, `index.ts`, `WeeklyGoalCard.tsx`, `ProfileScreen.tsx`, `profileStore.ts`) plus `e2e/weekly-goal.spec.ts` and the `App.test.tsx` addition.
+Both passes were done directly on every non-test source file in the diff (`weeklyGoal.ts`, `weeklyGoalStore.ts`, `copy.ts`, `index.ts`, `WeeklyGoalCard.tsx`, `ProfileScreen.tsx`, `profileStore.ts`) plus `e2e/weekly-goal.spec.ts` and the `App.test.tsx` addition, then cross-checked against two read-only evidence subagents (plan drift: all items MATCH except the copy adaptations in F1, nothing MISSING, no out-of-plan files; safety/patterns: no CRITICAL, barrel imports verified, three minor items recorded as F4-F6).
 
 ## Verdicts
 | Dimension | Verdict |
@@ -51,7 +51,7 @@ Note: two read-only evidence subagents were launched but their results did not a
 - **Impact**: LOW
 - **Dimension**: Plan Adherence
 - **Location**: src/weekly-goal/copy.ts:17
-- **Detail**: The plan's copy contract names `SAVE` "Zapisz"; the implementation uses `SAVE_GOAL` "Ustaw cel" with a recorded reason: the logging panel shows its own "Zapisz" on the same screen, so two identical buttons would be ambiguous (and collide in role queries). The change is an improvement and is consistently covered by the App test and e2e.
+- **Detail**: The plan's copy contract names `SAVE` "Zapisz" (and `progressLabel` as plain "dni"; the code says "0 z 1 dnia" for a goal of 1, which is the correct Polish form); the implementation uses `SAVE_GOAL` "Ustaw cel" with a recorded reason: the logging panel shows its own "Zapisz" on the same screen, so two identical buttons would be ambiguous (and collide in role queries). The change is an improvement and is consistently covered by the App test and e2e.
 - **Fix**: none needed.
 - **Decision**: ACCEPT — deliberate, documented adaptation; raised as an `adaptation` guard.
 
@@ -72,3 +72,30 @@ Note: two read-only evidence subagents were launched but their results did not a
 - **Detail**: On a save failure `offerHidden` stays true until re-mount; the goal is unchanged.
 - **Fix**: none.
 - **Decision**: ACCEPT — matches the plan ("A failed past-week load or save just hides the block").
+
+### F4 — Late raise-answer save can override a just-opened chooser
+- **Severity**: OBSERVATION
+- **Impact**: LOW
+- **Dimension**: Safety & Quality
+- **Location**: src/weekly-goal/WeeklyGoalCard.tsx:142-153
+- **Detail**: `answer()` applies `setState({kind:'progress'})` when the save resolves without checking that the card is still in `progress`. Tapping "Zmień" inside the few-millisecond IndexedDB write window would close the chooser again. No data loss; the window is far shorter than a child's second tap.
+- **Fix**: optional hardening later: apply the result only while the state is still `progress`.
+- **Decision**: ACCEPT — negligible window, no data effect; not worth a fix round.
+
+### F5 — Radio options are six tab stops without arrow-key navigation
+- **Severity**: OBSERVATION
+- **Impact**: LOW
+- **Dimension**: Pattern Consistency
+- **Location**: src/weekly-goal/WeeklyGoalCard.tsx:309-328
+- **Detail**: `button role="radio"` with correct `aria-checked`, but no roving tabindex. Identical to the existing instrument chooser (`CreateProfileScreen.tsx:75-85`), touch-first app.
+- **Fix**: none in this change; a repo-wide a11y pass could adopt roving tabindex.
+- **Decision**: ACCEPT — consistent with the established pattern.
+
+### F6 — Store stamps weeks with its own clock, the card with the `now` prop
+- **Severity**: OBSERVATION
+- **Impact**: LOW
+- **Dimension**: Safety & Quality
+- **Location**: src/weekly-goal/weeklyGoalStore.ts:60,79; src/weekly-goal/WeeklyGoalCard.tsx:156
+- **Detail**: Only if the app stays open across Monday midnight without a visibility change can `since`/`raiseDeclinedWeek` land in a different week than the card's `currentWeek`; the worst effect is one offer shown a week early or late. The store's real clock is the more correct value for persistence. Likewise the old week's count can flash for one IndexedDB read after a week change (existing `ProfileScreen` behaviour).
+- **Fix**: none.
+- **Decision**: ACCEPT — edge case with no harmful outcome.
