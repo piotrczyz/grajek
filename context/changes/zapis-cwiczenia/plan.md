@@ -271,10 +271,10 @@ Shows this week's Dni z muzyką on the home screen and proves the whole flow off
 
 ### Phase 4: Current-week view and end-to-end check
 #### Automated
-- [x] 4.1 `pnpm test` passes, including week view and same-day-once tests
-- [x] 4.2 `pnpm test:e2e` passes, including the offline log-and-reload test
-- [x] 4.3 `pnpm build` succeeds
-- [x] 4.4 `pnpm typecheck` passes
-- [x] 4.5 `pnpm lint` passes
+- [x] 4.1 `pnpm test` passes, including week view and same-day-once tests — 7842e7d
+- [x] 4.2 `pnpm test:e2e` passes, including the offline log-and-reload test — 7842e7d
+- [x] 4.3 `pnpm build` succeeds — 7842e7d
+- [x] 4.4 `pnpm typecheck` passes — 7842e7d
+- [x] 4.5 `pnpm lint` passes — 7842e7d
 #### Manual
 - [ ] 4.6 In airplane mode on a phone, a logged session shows today highlighted in the week and empty days look neutral, not red
