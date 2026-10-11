@@ -34,17 +34,48 @@ on port 4173, because the service worker exists only in the production build.
 The app is a static site; there is no server. It is published on **Firebase
 Hosting**, project `grajek-app`, at https://grajek-app.web.app.
 
-1. Run `pnpm build` (static output in `dist/`).
-2. Once per machine, log in: `npx firebase-tools login`.
-3. Deploy: `npx firebase-tools deploy --only hosting`.
+Publishing happens only in GitHub Actions (`.github/workflows/ci.yml`); there is
+no local deploy. Both deploys run only after all checks (lint, typecheck, unit
+tests, build, e2e) pass, and they publish the exact `dist/` those checks built:
 
-`firebase-tools` is not a project dependency; `npx` fetches it on demand.
+- **Pull requests** from a branch of this repository get a Firebase preview
+  channel. The link is posted as a comment on the PR and updated on later
+  pushes; a preview channel expires after 7 days. PRs from forks run the checks
+  but get no preview.
+- **Every push to `main`** (a merge) deploys the live site.
+
 `.firebaserc` selects the `grajek-app` project, and `firebase.json` serves `dist/`
-with an SPA rewrite to `index.html` and the cache headers listed below. CI only
-checks and builds; it does not deploy.
+with an SPA rewrite to `index.html` and the cache headers listed below.
 
 After the first online visit the service worker precaches the whole app; a new
 version is fetched in the background and takes over on the next launch.
+
+### One-time setup
+
+The deploy jobs need the repository secret `FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP`
+(the JSON key of a service account that may deploy to Hosting). Create it in one
+of two ways:
+
+**(a) With the Firebase CLI.** Run `npx firebase-tools init hosting:github` in
+this repository, pick project `grajek-app` and enter the repository
+`piotrczyz/grajek`. It creates the service account and stores its key as the
+secret `FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP`. Answer "no" when it asks to set up
+a build script or to deploy on merge/PR, or delete the generated
+`.github/workflows/firebase-hosting-*.yml` files before committing: `ci.yml`
+already deploys, and those workflows would deploy a second time without the
+checks.
+
+**(b) By hand.**
+
+1. In the Google Cloud console, open project `grajek-app`, go to **IAM & Admin >
+   Service Accounts** and create a service account with the role
+   **Firebase Hosting Admin**.
+2. On that account, open **Keys > Add key > Create new key**, choose JSON and
+   download it as `key.json`.
+3. Store it as the secret:
+   `gh secret set FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP -R piotrczyz/grajek < key.json`
+   (or paste it under **Settings > Secrets and variables > Actions** on GitHub).
+4. Delete the local `key.json`.
 
 ### Other static hosts
 
