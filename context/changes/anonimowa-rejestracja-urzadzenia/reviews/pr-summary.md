@@ -10,4 +10,4 @@
 - Zgoda rodziców i RODO dla anonimowego identyfikatora urządzenia: bez tej odpowiedzi nie publikujemy funkcji dla użytkowników.
 - Włączenie planu Blaze i publikacja pozostają po Twojej stronie; niczego nie zmienialiśmy w chmurze.
 
-**Status:** Jeszcze nie gotowe: poprawiamy jedną drobną rzecz po stronie serwera, potem prosimy o sprawdzenie.
+**Status:** Gotowe do scalenia, gdy sprawdzisz podgląd.

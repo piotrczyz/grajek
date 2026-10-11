@@ -2,7 +2,7 @@
 # Implementation Review: Anonymous device registration for notifications
 
 **Plan**: context/changes/anonimowa-rejestracja-urzadzenia/plan.md   **Scope**: increment 1 (phases 1-4, full plan)   **Date**: 2026-10-11
-**Round**: 1   **Verdict**: NEEDS_ATTENTION   **Findings**: 9
+**Round**: 2   **Verdict**: APPROVED   **Findings**: 9
 
 Diff reviewed: `f20ecf5..HEAD` (F-01 base, not on main; no git remote).
 
@@ -11,7 +11,7 @@ Diff reviewed: `f20ecf5..HEAD` (F-01 base, not on main; no git remote).
 |---|---|
 | Plan Adherence | PASS |
 | Scope Discipline | PASS |
-| Safety & Quality | WARNING |
+| Safety & Quality | PASS |
 | Architecture | PASS |
 | Pattern Consistency | PASS |
 | Success Criteria | WARNING |
@@ -41,7 +41,7 @@ Out-of-plan files (soft guard, all justified support files): `functions/tsconfig
 - **Location**: functions/src/index.ts:46 (with functions/src/devices/handler.ts:106,139)
 - **Detail**: `onError: (error) => logger.error('devices api error', error)` logs the raw error. For a `WebPushError` (thrown by `push-sender.ts:39` on any non-404/410 status) Node's inspect prints its own properties: `endpoint` (the per-device push URL), the push service `headers` and `body`. The plan and ADR 0001 keep device data to the `devices/{id}` doc, which `DELETE` removes; a copy in logs outlives "turn off" and is a second store outside the planned whitelist. The log sender already logs only the host (`push-sender.ts:62`), which is the right pattern.
 - **Fix**: In `onError`, log only `name`, `message` without the endpoint, `statusCode` and the endpoint host (never the full error object), and add a unit test that the logged value contains no endpoint path.
-- **Decision**: FIXED (e0c32fc) — one unambiguous fix; data-minimisation is a stated client constraint (ADR 0001). Evidence: `reviews/fix-r1.md`.
+- **Decision**: FIXED (e0c32fc) — verified r2; one unambiguous fix; data-minimisation is a stated client constraint (ADR 0001). Evidence: `reviews/fix-r1.md`.
 
 ### F2 — Criterion 4.1 (emulator suite) checked without ever running
 - **Severity**: WARNING
@@ -114,3 +114,10 @@ Out-of-plan files (soft guard, all justified support files): `functions/tsconfig
 - **Detail**: After a VAPID key rotation an old subscription would be re-PUT and sends would fail. `pushsubscriptionchange` is on the plan's NOT-doing list.
 - **Fix**: Compare `subscription.options.applicationServerKey` when S-08 handles re-registration.
 - **Decision**: ACCEPT — out of this increment's scope per plan.
+
+## Round 2
+Re-review of fix commit e0c32fc (evidence: `reviews/fix-r1.md`, baseline 45 → 48, red-first recorded).
+- F1: `onError` now logs `toLoggableError(error)` (`functions/src/index.ts:47`), which keeps only `name`, URL-redacted `message`, `statusCode` and `endpointHost` (`functions/src/devices/push-sender.ts:73-113`). Three new tests assert that no endpoint path survives. Verified.
+- Re-run (phase 1 criteria + build): `pnpm --dir functions build` 0, `typecheck` 0, `test` 48/48; root `pnpm lint` 0, `pnpm typecheck` 0, `pnpm build` 0.
+- Regression sweep: the fix touched only `functions/src/devices/push-sender.ts`, `functions/src/index.ts`, `functions/test/push-sender.test.ts` (increment-owned); no ACCEPT finding touched.
+- Verdict APPROVED: the one remaining warning (F2) is a recorded trade-off; build, typecheck and lint all ran and passed. 4.1 stays SKIPPED: a green CI `functions` job (or a local JDK 21 run, Manual 4.8) is required before merge.

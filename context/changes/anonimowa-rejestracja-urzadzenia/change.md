@@ -1,7 +1,7 @@
 ---
 change_id: anonimowa-rejestracja-urzadzenia
 title: Anonymous device registration for notifications
-status: implemented
+status: impl_reviewed
 created: 2026-10-11
 updated: 2026-10-11
 archived_at: null
