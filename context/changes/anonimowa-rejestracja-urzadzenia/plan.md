@@ -529,9 +529,9 @@ manual handover (VAPID keys, billing, deploy, real-device check, RODO).
 
 ### Phase 4: Emulator suite, CI and docs
 #### Automated
-- [x] 4.1 `pnpm --dir functions test:emulators` passes where a JDK 21 is available (CI `functions` job)
-- [x] 4.2 `.github/workflows/ci.yml` defines the `functions` job with `setup-java` 21 and runs `test:emulators`
-- [x] 4.3 `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass at the root
+- [x] 4.1 `pnpm --dir functions test:emulators` passes where a JDK 21 is available (CI `functions` job) — eecb043
+- [x] 4.2 `.github/workflows/ci.yml` defines the `functions` job with `setup-java` 21 and runs `test:emulators` — eecb043
+- [x] 4.3 `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass at the root — eecb043
 #### Manual
 - [ ] 4.4 Billing (Blaze) linked on `grajek-app` and Firestore database created in `europe-central2` by the user
 - [ ] 4.5 Secrets/params set and `firebase deploy --only functions,firestore,hosting` run by the user; `/api/devices/{id}` reachable on https://grajek-app.web.app
