@@ -28,7 +28,7 @@ PWA, data primarily on the device, a possible native app later.
 
 ## Infrastructure & Deploy
 - Packaging: static build (`dist/`), served by any static host over HTTPS (PWA requirement)
-- Deploy target: Firebase Hosting, project `grajek-app` (https://grajek-app.web.app), config in `firebase.json` / `.firebaserc`
+- Deploy target: Firebase Hosting, project `grajek-app`, https://grajek.web.app (site `grajek`; legacy site `grajek-app` redirects), config in `firebase.json` / `.firebaserc`
 
 ## Testing
 - E2E: Playwright (offline reload, manifest/installability checks)

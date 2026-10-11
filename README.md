@@ -36,20 +36,31 @@ on port 4173, because the service worker exists only in the production build.
 
 The app is a static site plus one small Cloud Function for notifications (see
 [Notifications backend](#notifications-backend) for its go-live steps). It is
-published on **Firebase Hosting**, project `grajek-app`, at https://grajek-app.web.app.
+published on **Firebase Hosting** at https://grajek.web.app (Hosting site `grajek`
+in project `grajek-app`).
+
+The old address https://grajek-app.web.app (the project's default site `grajek-app`)
+only redirects (301) to the same path on https://grajek.web.app, so old links keep
+working. Its one file, `hosting/legacy/sw.js`, replaces the service worker an
+earlier visit installed there: it clears that origin's caches, unregisters itself and
+sends open windows to the new address. An app added to the home screen from the old
+address, and push reminders turned on there, are tied to the old origin: add the app
+again from https://grajek.web.app and turn reminders on again.
 
 Publishing happens only in GitHub Actions (`.github/workflows/ci.yml`); there is
 no local deploy. Both deploys run only after all checks (lint, typecheck, unit
 tests, build, e2e) pass, and they publish the exact `dist/` those checks built:
 
 - **Pull requests** from a branch of this repository get a Firebase preview
-  channel. The link is posted as a comment on the PR and updated on later
+  channel on site `grajek`. The link is posted as a comment on the PR and updated on later
   pushes; a preview channel expires after 7 days. PRs from forks run the checks
   but get no preview.
-- **Every push to `main`** (a merge) deploys the live site.
+- **Every push to `main`** (a merge) deploys the live site and the redirect on
+  the old address.
 
 `.firebaserc` selects the `grajek-app` project, and `firebase.json` serves `dist/`
-with an SPA rewrite to `index.html` and the cache headers listed below. CI also
+on site `grajek` with an SPA rewrite to `index.html` and the cache headers listed
+below, and `hosting/legacy/` with the redirect on site `grajek-app`. CI also
 runs the notification backend tests on the emulators; it does not deploy the
 Cloud Function (see [Notifications backend](#notifications-backend)).
 
@@ -160,7 +171,7 @@ The agent that built this did not deploy anything or change any cloud setting.
 4. Put the public key and a contact in `functions/.env.grajek-app`:
    `VAPID_PUBLIC_KEY=...` and `VAPID_SUBJECT=mailto:you@example.com` (or answer the prompt on the first deploy).
 5. Build the app with the public key: `VITE_VAPID_PUBLIC_KEY=... pnpm build`.
-6. `npx firebase-tools deploy --only functions,firestore,hosting`.
+6. `npx firebase-tools deploy --only functions,firestore,hosting` (`hosting` covers both sites, the app and the redirect).
 7. Check on a real Android phone (Chrome, app installed) and an iPhone with iOS 16.4+
    (app added to the home screen): "Włącz przypomnienia", then "Wyślij próbne
    powiadomienie" with the app closed; tapping the notification opens Grajek.

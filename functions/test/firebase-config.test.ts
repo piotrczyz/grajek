@@ -11,14 +11,17 @@ interface Rewrite {
 }
 
 const firebaseJson = JSON.parse(readFileSync(root('firebase.json'), 'utf8')) as {
-  hosting: { rewrites: Rewrite[]; headers: Array<{ source: string }> };
+  hosting: Array<{ site: string; rewrites: Rewrite[]; headers: Array<{ source: string }> }>;
   functions: Array<{ source: string; runtime: string }>;
   firestore: { rules: string; indexes: string };
   emulators: Record<string, unknown>;
 };
 
+// The app (and its /api/** rewrite) is served from Hosting site `grajek`.
+const appHosting = firebaseJson.hosting.find((h) => h.site === 'grajek');
+
 describe('firebase.json', () => {
-  const rewrites = firebaseJson.hosting.rewrites;
+  const rewrites = appHosting?.rewrites ?? [];
 
   it('routes /api/** to the api function in europe-central2 before the SPA catch-all', () => {
     const api = rewrites.findIndex((r) => r.source === '/api/**');
@@ -31,7 +34,7 @@ describe('firebase.json', () => {
   });
 
   it('serves the push service worker script without caching', () => {
-    expect(firebaseJson.hosting.headers.map((h) => h.source)).toContain('/push-sw.js');
+    expect((appHosting?.headers ?? []).map((h) => h.source)).toContain('/push-sw.js');
   });
 
   it('wires the functions source, Firestore files and emulators', () => {

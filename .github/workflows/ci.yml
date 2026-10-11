@@ -133,6 +133,8 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP }}
           projectId: grajek-app
+          # Preview channels only on the app site, not on the redirect site.
+          target: grajek
 
   # Live site on every push to main, after the checks pass.
   deploy-live:
@@ -154,4 +156,6 @@ jobs:
         with:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP }}
           projectId: grajek-app
+          # No target: deploys both hosting configs in firebase.json, the app
+          # (site grajek) and the redirect from the old address (site grajek-app).
           channelId: live

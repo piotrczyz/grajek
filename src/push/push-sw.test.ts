@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 // The raw text of the plain-JS worker script, exactly as it is served.
 import source from '../../public/push-sw.js?raw';
 
-const SCOPE = 'https://grajek-app.web.app/';
+const SCOPE = 'https://grajek.web.app/';
 
 type Listener = (event: Record<string, unknown>) => void;
 
