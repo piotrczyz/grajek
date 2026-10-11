@@ -59,7 +59,7 @@ Manual rows 1.6, 1.7, 1.8 and 2.5 are unchecked. They need the first live deploy
   - treats an empty capture as no match, which is what the emulator does;
   - accepts two rules instead of `toHaveLength(1)`;
   - still asserts that `/` → `https://grajek.web.app/` and that `/sw.js` is not redirected.
-- **Decision**: FIX — the increment does not deliver "301 for every path" for the root, and there is one unambiguous fix.
+- **Decision**: FIXED (c55f722) — the increment does not deliver "301 for every path" for the root, and there is one unambiguous fix.
 
 ### F2 — Out-of-plan edit to the functions config test; criterion 2.3 ticked although its command fails
 - **Severity**: WARNING
