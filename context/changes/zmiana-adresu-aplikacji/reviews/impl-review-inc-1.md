@@ -2,12 +2,12 @@
 # Implementation Review: Move the app to grajek.web.app
 
 **Plan**: context/changes/zmiana-adresu-aplikacji/plan.md   **Scope**: increment 1 (phases 1-2)   **Date**: 2026-10-11
-**Round**: 1   **Verdict**: REJECTED   **Findings**: 3
+**Round**: 2   **Verdict**: APPROVED   **Findings**: 3
 
 ## Verdicts
 | Dimension | Verdict |
 |---|---|
-| Plan Adherence | FAIL |
+| Plan Adherence | PASS |
 | Scope Discipline | WARNING |
 | Safety & Quality | PASS |
 | Architecture | PASS |
@@ -59,7 +59,7 @@ Manual rows 1.6, 1.7, 1.8 and 2.5 are unchecked. They need the first live deploy
   - treats an empty capture as no match, which is what the emulator does;
   - accepts two rules instead of `toHaveLength(1)`;
   - still asserts that `/` → `https://grajek.web.app/` and that `/sw.js` is not redirected.
-- **Decision**: FIXED (c55f722) — the increment does not deliver "301 for every path" for the root, and there is one unambiguous fix.
+- **Decision**: FIXED (c55f722) — verified r2: the `^/$` rule comes first, the test evaluates rules in order, the emulator returns 301 on `/`.
 
 ### F2 — Out-of-plan edit to the functions config test; criterion 2.3 ticked although its command fails
 - **Severity**: WARNING
@@ -78,6 +78,18 @@ Manual rows 1.6, 1.7, 1.8 and 2.5 are unchecked. They need the first live deploy
 - **Detail**: `test:emulators` (Firestore emulator) could not run because there is no JDK. The plan accepts CI's `functions` job as the proof. The risk the plan named (firebase-tools must accept the two-site config under `demo-grajek` with no targets) was checked locally with the Hosting-only emulator; see the probe above.
 - **Fix**: None. CI's `functions` job confirms it before merge.
 - **Decision**: ACCEPT — the plan explicitly allows this, and the risk it guarded against is covered.
+
+## Round 2
+Re-review of fix commit c55f722, which covers F1 only. F2 and F3 are untouched and the fix stays inside the increment's files: `firebase.json` and `src/hosting/firebase-config.test.ts`.
+- **Test.** The rules are now evaluated in order, first match wins, and an empty capture counts as no match. `fix-r1.md` records the red-first run: with the old `firebase.json`, 2 tests fail, including `/`.
+- **Phase 1 checks re-run:** `pnpm test` 441/441; lint, typecheck and build exit 0; `CI=1 pnpm test:e2e` 15 passed; `pnpm --dir functions test` 106/106; the JSON parse passes and `.firebaserc` is unchanged. These match the baseline in `fix-r1.md`.
+- **Hosting emulator, old site on :5005:**
+  - `/` → 301 `https://grajek.web.app/`
+  - `/?utm=x` → 301 `https://grajek.web.app/?utm=x`
+  - `/index.html` and `/some/path?q=1` → 301, path kept
+  - `/sw.js` → 200
+  - `/sw.json` and `/a/sw.js` → 301
+- **Verdict:** APPROVED. F2 (WARNING, ACCEPT) is the only open warning, and F3 is an accepted observation.
 
 ## Notes on the rest of the diff
 - `hosting/legacy/sw.js`: skip-waiting, cache purge, unregister and window navigation each still run when an earlier step fails, and there is no fetch handler. This matches the established self-destroying-worker pattern, and the tests cover the failure paths.

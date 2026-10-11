@@ -9,4 +9,4 @@
 - Po publikacji otwórz https://grajek-app.web.app i dowolną podstronę. W obu przypadkach powinieneś trafić pod ten sam adres na https://grajek.web.app.
 - Po publikacji włącz przypomnienia pod nowym adresem i wyślij próbne powiadomienie.
 
-**Status:** Jeszcze nie gotowe. Wejście na sam główny adres starej strony nie przekierowuje na nową. Poprawka jest w toku.
+**Status:** Gotowe do scalenia, gdy sprawdzisz podgląd.
