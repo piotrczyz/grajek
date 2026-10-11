@@ -11,10 +11,10 @@ describe('openDb', () => {
     expect(DB_NAME).toBe('grajek');
   });
 
-  it('opens a fresh database at version 1 with the shipped migrations', async () => {
+  it('opens a fresh database at version 2 with the shipped migrations', async () => {
     const db = await openDb({ name: uniqueName() });
-    expect(db.version).toBe(1);
-    expect(Array.from(db.objectStoreNames)).toEqual([]);
+    expect(db.version).toBe(2);
+    expect(Array.from(db.objectStoreNames).sort()).toEqual(['instruments', 'profile']);
     db.close();
   });
 
@@ -59,10 +59,28 @@ describe('openDb', () => {
 });
 
 describe('shipped migrations', () => {
-  it('has exactly one migration that creates no object store', async () => {
-    expect(migrations).toHaveLength(1);
+  it('has two migrations: an empty v1 and v2 creating the profile stores', async () => {
+    expect(migrations).toHaveLength(2);
     const db = await openDb({ name: uniqueName(), migrations });
-    expect(db.objectStoreNames.length).toBe(0);
+    expect(db.version).toBe(2);
+    expect(Array.from(db.objectStoreNames).sort()).toEqual(['instruments', 'profile']);
+    const tx = db.transaction(['profile', 'instruments']);
+    expect(tx.objectStore('profile').keyPath).toBeNull();
+    expect(tx.objectStore('instruments').keyPath).toBe('id');
+    await tx.done;
     db.close();
+  });
+
+  it('upgrades a version-1 database to version 2', async () => {
+    const name = uniqueName();
+    const v1 = await openDb({ name, migrations: migrations.slice(0, 1) });
+    expect(v1.version).toBe(1);
+    expect(v1.objectStoreNames.length).toBe(0);
+    v1.close();
+
+    const v2 = await openDb({ name });
+    expect(v2.version).toBe(2);
+    expect(Array.from(v2.objectStoreNames).sort()).toEqual(['instruments', 'profile']);
+    v2.close();
   });
 });
