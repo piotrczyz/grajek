@@ -1,10 +1,10 @@
 ---
 change_id: ci-deploy-firebase
 title: Deploy to Firebase Hosting from GitHub Actions (PR previews and live on main)
-status: impl_reviewed
+status: archived
 created: 2026-10-11
 updated: 2026-10-11
-archived_at: null
+archived_at: 2026-10-11T16:06:14Z
 ---
 
 ## Notes
