@@ -101,7 +101,7 @@ effect and the `LogPractice` props, and leaves the `WeekView` /
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Several instruments with per-instrument and combined stats | 1-4 | — | yes | pending | — |
+| 1 | Several instruments with per-instrument and combined stats | 1-4 | — | yes | in-progress | — |
 
 ## Critical Implementation Details
 
