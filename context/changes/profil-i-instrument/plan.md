@@ -156,9 +156,9 @@ Prove in a real browser that the Profile survives a reload, online and offline.
 
 ### Phase 1: Profile storage
 #### Automated
-- [ ] 1.1 `pnpm test` passes, including the new profile store tests and the updated storage tests
-- [ ] 1.2 `pnpm typecheck` passes
-- [ ] 1.3 `pnpm lint` passes
+- [x] 1.1 `pnpm test` passes, including the new profile store tests and the updated storage tests
+- [x] 1.2 `pnpm typecheck` passes
+- [x] 1.3 `pnpm lint` passes
 
 ### Phase 2: Create and view profile screen
 #### Automated
