@@ -157,7 +157,7 @@ has no consumer without the client. The four phases fit rs-core §8.
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Anonymous push registration and test notification | 1-4 | — | yes | in-progress | — |
+| 1 | Anonymous push registration and test notification | 1-4 | — | yes | done | — |
 
 ## Critical Implementation Details
 - **Rewrite order.** `firebase.json` `hosting.rewrites` must list
