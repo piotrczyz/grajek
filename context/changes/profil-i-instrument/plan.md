@@ -156,16 +156,16 @@ Prove in a real browser that the Profile survives a reload, online and offline.
 
 ### Phase 1: Profile storage
 #### Automated
-- [x] 1.1 `pnpm test` passes, including the new profile store tests and the updated storage tests
-- [x] 1.2 `pnpm typecheck` passes
-- [x] 1.3 `pnpm lint` passes
+- [x] 1.1 `pnpm test` passes, including the new profile store tests and the updated storage tests — 078ffca
+- [x] 1.2 `pnpm typecheck` passes — 078ffca
+- [x] 1.3 `pnpm lint` passes — 078ffca
 
 ### Phase 2: Create and view profile screen
 #### Automated
-- [ ] 2.1 `pnpm test` passes, including the new App flow tests
-- [ ] 2.2 `pnpm typecheck` passes
-- [ ] 2.3 `pnpm lint` passes
-- [ ] 2.4 `pnpm build` succeeds
+- [x] 2.1 `pnpm test` passes, including the new App flow tests
+- [x] 2.2 `pnpm typecheck` passes
+- [x] 2.3 `pnpm lint` passes
+- [x] 2.4 `pnpm build` succeeds
 #### Manual
 - [ ] 2.5 On a phone-sized viewport the create screen fits without horizontal scrolling and instrument buttons are easy to tap
 
