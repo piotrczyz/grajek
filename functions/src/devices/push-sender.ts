@@ -69,3 +69,45 @@ export function createLogSender(log: (line: string) => void = () => {}): LogSend
 export function shouldUseLogSender(env: Record<string, string | undefined>): boolean {
   return env.FUNCTIONS_EMULATOR === 'true' && env.PUSH_SENDER === 'log';
 }
+
+export interface LoggableError {
+  name: string;
+  message: string;
+  statusCode?: number;
+  endpointHost?: string;
+}
+
+/** Replaces every URL in `text` with its origin, so no per-device path survives. */
+function redactUrls(text: string): string {
+  return text.replace(/https?:\/\/[^\s"'<>]+/g, (match) => {
+    try {
+      return new URL(match).origin;
+    } catch {
+      return '[url]';
+    }
+  });
+}
+
+/**
+ * The only shape of an error that may reach the logs (ADR 0001: device data
+ * lives in `devices/{id}` only). Never the raw error: a `WebPushError` carries
+ * the full device endpoint, the push service headers and the response body.
+ */
+export function toLoggableError(error: unknown): LoggableError {
+  if (!(error instanceof Error)) {
+    return { name: 'NonError', message: redactUrls(String(error)) };
+  }
+  const result: LoggableError = { name: error.name, message: redactUrls(error.message) };
+  const { statusCode, endpoint } = error as { statusCode?: unknown; endpoint?: unknown };
+  if (typeof statusCode === 'number') {
+    result.statusCode = statusCode;
+  }
+  if (typeof endpoint === 'string') {
+    try {
+      result.endpointHost = new URL(endpoint).host;
+    } catch {
+      // Not a URL: drop it rather than log it.
+    }
+  }
+  return result;
+}

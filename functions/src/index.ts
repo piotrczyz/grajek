@@ -15,6 +15,7 @@ import {
   createLogSender,
   createWebPushSender,
   shouldUseLogSender,
+  toLoggableError,
   type PushSender,
 } from './devices/push-sender.js';
 import { createFirestoreRepository } from './devices/repository.js';
@@ -43,7 +44,7 @@ const handler = createDevicesHandler({
   repo: createFirestoreRepository(getFirestore()),
   sender,
   now: () => new Date(),
-  onError: (error) => logger.error('devices api error', error),
+  onError: (error) => logger.error('devices api error', toLoggableError(error)),
 });
 
 export const api = onRequest(

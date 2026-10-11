@@ -4,6 +4,7 @@ import {
   createLogSender,
   createWebPushSender,
   shouldUseLogSender,
+  toLoggableError,
 } from '../src/devices/push-sender.js';
 import { TEST_PAYLOAD } from '../src/devices/handler.js';
 
@@ -62,5 +63,30 @@ describe('log sender', () => {
     expect(shouldUseLogSender({ PUSH_SENDER: 'log' })).toBe(false);
     expect(shouldUseLogSender({ FUNCTIONS_EMULATOR: 'false', PUSH_SENDER: 'log' })).toBe(false);
     expect(shouldUseLogSender({ FUNCTIONS_EMULATOR: 'true' })).toBe(false);
+  });
+});
+
+describe('toLoggableError', () => {
+  it('keeps only name, message, status and endpoint host of a push error', () => {
+    const logged = toLoggableError(pushError(500));
+    expect(logged).toEqual({
+      name: 'WebPushError',
+      message: 'push failed',
+      statusCode: 500,
+      endpointHost: 'fcm.googleapis.com',
+    });
+    expect(JSON.stringify(logged)).not.toContain('/fcm/send/abc123');
+  });
+
+  it('strips URL paths from the message of any error', () => {
+    const logged = toLoggableError(new Error(`request to ${SUBSCRIPTION.endpoint} failed`));
+    expect(logged).toEqual({ name: 'Error', message: 'request to https://fcm.googleapis.com failed' });
+  });
+
+  it('handles values that are not errors', () => {
+    expect(toLoggableError(`boom ${SUBSCRIPTION.endpoint}`)).toEqual({
+      name: 'NonError',
+      message: 'boom https://fcm.googleapis.com',
+    });
   });
 });
