@@ -1,353 +1,360 @@
 # Offline-capable installable app skeleton — Implementation Plan
 
 ## Overview
-Delivers roadmap foundation F-01: the first code in the Grajek repository. A
-React + TypeScript + Vite single-page PWA that a pupil can add to the home
-screen on Android and iOS and open without internet, showing a Polish,
-child-friendly welcome screen "Grajek". It also lays down the minimal on-device
-storage contract (IndexedDB, no product data) and a host-agnostic static build
-(`dist/`), so S-01 and later slices build features rather than plumbing.
+Roadmap foundation F-01: the first code in the Grajek repo. A Uczeń can add the
+app to the home screen of an Android or iOS phone and open it without internet,
+landing on a Polish, child-readable welcome screen "Grajek". The change also lays
+the minimal on-device storage contract (IndexedDB open + versioned migrations +
+persistence request, no product data) and the host-agnostic static build that
+later slices (S-01 onward) build on.
 
 ## Current State Analysis
-- Greenfield: the repository holds only `context/` documents; no `package.json`,
-  lockfile, source or test setup (`git ls-files` at 6b5ccb7; roadmap
-  `## Baseline` lists frontend/data/deploy as absent).
-- The stack is declared, not built: `context/foundation/tech-stack.md`
-  (React SPA, Vite static output in `dist/`, `vite-plugin-pwa`, Tailwind,
-  IndexedDB behind a small storage contract, Vitest, Playwright, pnpm,
-  commands `pnpm build|test|test:e2e|lint|typecheck`).
-- The only Open Stack Question (deploy target, tech-stack.md
-  `## Open Stack Questions` 1) is explicitly not needed for building; this
-  change keeps the build host-agnostic and does not depend on it.
-- Product constraints that shape the skeleton: PRD NFR Offline, Urządzenia
-  (Android + iOS, installable, portrait, mobile-first), Czytelność dla dzieci
-  7–13 (large touch targets, little text, Polish, encouraging tone),
-  Prywatność (no analytics, no third-party trackers) — `context/prd/prd.md:103-106`.
-- ADR 0001 (`context/discovery/decisions/0001-serwer-powiadomien-z-minimalnymi-danymi.md`)
-  commits the product to push notifications later; these need a service worker
-  we can extend, which shapes the service-worker strategy below.
-- Local tooling: Node 24.19, pnpm 12.9.1.
+- Greenfield: the repo holds only `context/` documents; no manifest, lockfile or
+  source (`git ls-files` at `6b5ccb7`; `context/foundation/tech-stack.md`
+  "Evidence: greenfield").
+- Stack is declared, not installed: React + TypeScript (strict) + Vite +
+  `vite-plugin-pwa`, Tailwind, IndexedDB, Vitest, Playwright, pnpm
+  (`context/foundation/tech-stack.md` Frontend / Data & Storage / Testing).
+- Commands the plan must make real: `pnpm install --frozen-lockfile`,
+  `pnpm build`, `pnpm test`, `pnpm test:e2e`, `pnpm lint && pnpm typecheck`
+  (`tech-stack.md` `## Commands`).
+- Deploy target is an Open Stack Question owned by the client
+  (`tech-stack.md` `## Open Stack Questions` #1; roadmap Open Roadmap Question #4).
+  This change does not depend on it: output stays a static `dist/`.
+- Product constraints that reach the skeleton: no third-party trackers or
+  requests (PRD NFR Prywatność), works offline (NFR Offline), Android + iOS,
+  installable, portrait, mobile-first (NFR Urządzenia), large touch targets,
+  little text, Polish, encouraging tone (NFR Czytelność dla dzieci 7–13).
 
 ## Desired End State
-- `pnpm install --frozen-lockfile && pnpm build` produces a static `dist/`
-  (HTML, JS, CSS, icons, `manifest.webmanifest`, service worker) that any HTTPS
-  static host can serve.
-- Opening the built app shows a single welcome screen: the name "Grajek", a
-  short encouraging Polish line, a friendly music illustration; large type,
-  high contrast, portrait-first, `<html lang="pl">`.
-- Android/Chromium reports the app as installable (manifest with name, icons
-  192/512 + maskable, `display: standalone`, `start_url`, `scope`,
-  `lang: pl`); iOS Safari gets an `apple-touch-icon` (180×180) and the
-  `apple-mobile-web-app-*` meta tags so "Add to Home Screen" yields a named,
-  iconed, standalone app.
-- After the first online visit, the app reloads and renders with the network
-  offline (precached app shell, navigation fallback to `index.html`).
-- `src/storage/` exposes a small, platform-neutral storage contract with an
-  IndexedDB implementation (versioned database, upgrade hook for later slices,
-  only a `meta` store) and an in-memory implementation, unit-tested.
-- `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e` all pass.
+- `pnpm build` produces `dist/` with `index.html`, hashed assets, a web app
+  manifest, icons and a service worker that precaches the whole app shell.
+- Served over HTTPS (or `localhost`) from any static host, under any path, the
+  app is installable on Android (Chrome install criteria met: manifest with
+  name, icons 192/512 incl. maskable, `display: standalone`, `start_url`, SW)
+  and can be added to the iOS home screen with its own icon and title
+  (`apple-touch-icon`, iOS web-app meta tags).
+- After the first online visit, reloading with the network off still shows the
+  welcome screen: heading "Grajek", one short encouraging Polish sentence, an
+  app mark; `<html lang="pl">`; large type and high contrast.
+- `src/storage/` exposes `openDb()`, the migration list and
+  `requestPersistentStorage()`, unit-tested under Vitest with `fake-indexeddb`.
+- Lint, typecheck, unit and e2e suites pass; README documents how to build and
+  publish the static output.
 
 ### Key discoveries
-- No code to conform to; conventions come from `context/foundation/tech-stack.md`
-  (`## Commands`, `## Decisions`).
-- Glossary (`context/discovery/glossary.md`) fixes the Polish domain words for
-  later slices (Uczeń, Profil, Ćwiczenie); the skeleton uses none of them in
-  data, only "Grajek" in copy.
-- iOS installs PWAs only via Safari "Add to Home Screen" and reads
-  `apple-touch-icon` / `apple-mobile-web-app-*` rather than manifest icons on
-  older versions — hence both sets (roadmap F-01 Risk).
+- No code exists to reuse or conflict with (greenfield, `tech-stack.md` header).
+- The "native later" path named in `context/discovery/discovery-notes.md`
+  `## Forward: tech-stack` is Capacitor / React Native; Capacitor runs the same
+  web code (IndexedDB included), so no backend-swappable storage layer is needed
+  now (Consult, see brief).
+- iOS evicts storage of non-installed sites; PRD Open Question #2 is about data
+  loss, so asking for persistent storage belongs in the foundation
+  (`context/prd/prd.md` Open Questions #2).
 
 ## What we're NOT doing
-- No product feature: no Profil, instrument, Ćwiczenie, calendar, navigation,
-  settings (S-01 onward).
-- No product data in storage: only the contract, the `meta` store and its
-  schema version.
-- No deploy target, domain, hosting config files for a specific provider, or
-  CI workflow (deploy target is an open client question; the repo has no
-  remote yet).
-- No push notifications, notification permission prompt or anonymous device
-  registration (F-02 / S-08); the service worker is merely kept extensible.
-- No iOS launch (splash) images, no in-app "install" prompt/button, no update
-  prompt UI, no dark mode, no i18n framework (Polish only, hard-coded copy).
-- No analytics, web fonts from a CDN or any third-party request (NFR Prywatność).
-- No native packaging (Capacitor/React Native); only kept possible.
+- No product feature: no Profil, Ćwiczenie, Cel tygodniowy, navigation or
+  routing (S-01..S-09).
+- No product object stores or entity types in IndexedDB; no generic key-value
+  or collection abstraction; no export/import (PRD Open Question #2, client's
+  call).
+- No in-app install prompt or install instructions screen.
+- No push notifications, no server, no F-02 work.
+- No deploy target, domain or hosting configuration; no deploy job in CI.
+- No analytics, external fonts, CDNs or any third-party request.
+- No final brand artwork: the icon is a simple placeholder mark generated from
+  one SVG source; replacing it later only swaps the source file.
+- No WebKit run in Playwright (see Testing Strategy); iOS is checked manually.
 
 ## Implementation Approach
-Hand-scaffold a Vite React-TS project (not an interactive `create-vite` run)
-so every file is intentional: strict TypeScript, Tailwind v4 via its Vite
-plugin, ESLint flat config, Vitest (jsdom) for unit/component tests and
-Playwright (Chromium, mobile viewport) against `vite preview` of the
-production build for PWA behaviour — the service worker only exists in the
-production build, so E2E must not run against the dev server.
+A single-package Vite + React + TypeScript SPA at the repo root, managed with
+pnpm. `vite-plugin-pwa` (generateSW, Workbox) produces the manifest and a
+service worker that precaches every build asset and serves `index.html` as the
+navigation fallback; `registerType: 'autoUpdate'` because the shell holds no
+user state that an update could disrupt. Vite `base: './'` with manifest
+`start_url` / `scope` relative (`.`/`./`) keeps the build host- and
+path-agnostic, so the open deploy-target question never blocks it. Icons are
+generated once from `public/` SVG source with `@vite-pwa/assets-generator`
+(minimal 2023 preset: 64/192/512, maskable 512, apple-touch 180) and committed,
+so builds need no image tooling. iOS support comes from explicit `<head>` tags
+(apple-touch-icon, `apple-mobile-web-app-title`, `mobile-web-app-capable` /
+`apple-mobile-web-app-capable`, status-bar style, `viewport-fit=cover`) because
+Safari ignores most of the manifest. Tailwind v4 via its Vite plugin with the
+system font stack (no font download, offline and privacy-safe).
 
-Service worker: `vite-plugin-pwa` in `injectManifest` mode with a small
-`src/sw.ts` (Workbox precache of the build + navigation fallback to
-`index.html`, `autoUpdate` registration). Chosen over `generateSW` because
-ADR 0001 requires push handling in the same worker later; with
-`injectManifest` F-02/S-08 add a `push` listener to our own file instead of
-migrating the strategy. Auto-update without a prompt suits 7–13 year olds
-(no technical dialog); a new version takes over on the next launch.
+Storage: `openDb()` wraps the `idb` library over one database `grajek`; its
+version equals the length of an ordered migration list, and the upgrade
+callback runs every migration from `oldVersion` up. Migration 1 is an
+intentional no-op ("initial"), so later slices add stores by appending a
+migration. `requestPersistentStorage()` calls `navigator.storage.persist()`
+best-effort, returns a boolean, never throws, and is invoked once at app start.
+Alternatives rejected: a KV `AppStorage` interface or collection registry (would
+be bypassed by week/month queries in S-02/S-04 and guesses entity shapes),
+raw IndexedDB without `idb` (more hand-written promise code for no gain).
 
-Icons: one source SVG (`public/icon.svg`) and PNGs generated by
-`@vite-pwa/assets-generator` (minimal-2023 preset: 64/192/512, maskable 512,
-apple-touch 180), committed to `public/` so the build needs no generation step;
-a `generate-pwa-assets` script regenerates them.
+Testing: Vitest (jsdom) for the welcome screen and storage; Playwright against
+`vite preview` of the production build (the SW exists only there) on a mobile
+Chromium profile for installability and offline reload.
 
-Storage: a platform-neutral `KeyValueStore`-style contract (async
-get/set/remove for JSON-serialisable values within named stores) plus
-`openAppStorage()` returning the IndexedDB implementation (via `idb`, ~1 kB
-promise wrapper) and `createMemoryStorage()` for tests and as a fallback when
-IndexedDB is unavailable. Later slices add stores through numbered upgrade
-steps; a native app later can implement the same contract over SQLite or
-Preferences, which is why components never touch IndexedDB directly. A
-best-effort `requestPersistence()` (`navigator.storage.persist()`) is part of
-the contract because browser eviction is the main data-loss risk (roadmap
-Open Question 2); the welcome screen does not call it yet.
-
-Publication: `pnpm build` → `dist/`; base path defaults to `/` and is
-overridable at build time (`BASE_PATH`), with manifest `start_url`/`scope`
-derived from it, so a sub-path host stays possible without code changes.
-README documents serving requirements (HTTPS, SPA fallback to `index.html`,
-no long-term caching of `sw.js`/`index.html`).
-
-Alternatives rejected: `generateSW` (would need migration for push);
-raw IndexedDB API (more error-prone boilerplate for no gain); localStorage
-(synchronous, small quota, string-only, evicted the same way); Playwright
-WebKit project (service-worker/offline emulation in Playwright WebKit is not
-reliable on Windows; iOS is covered by a Manual criterion).
+Alternatives for the layout: a pnpm workspace (`apps/web`) was rejected as
+premature; F-02 can add a `server/` package later without moving the app.
 
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Installable offline PWA skeleton with welcome screen and storage contract | 1-3 | — | yes | pending | — |
+| 1 | Offline app skeleton (area A1 offline-app-skeleton) | 1-4 | — | yes | pending | — |
 
 ## Critical Implementation Details
 
-### Testing the offline reload
-- Run E2E against `pnpm build && pnpm preview --port 4173 --strictPort`
-  (Playwright `webServer`), never `pnpm dev`.
-- Wait until the service worker controls the page
-  (`navigator.serviceWorker.ready` and then `navigator.serviceWorker.controller`
-  non-null, reloading once if needed) before `context.setOffline(true)`;
-  otherwise the reload hits the network and the test is flaky.
-- Installability: in Chromium use a CDP session and
-  `Page.getInstallabilityErrors`; an empty list is the pass condition.
-- Playwright browsers are not installed by `pnpm install`: run
-  `pnpm exec playwright install chromium` once per machine (document in README).
+### Timing & lifecycle
+- Offline e2e must wait until the service worker controls the page
+  (`navigator.serviceWorker.ready` and `navigator.serviceWorker.controller`
+  non-null, reload once if needed) before switching the context offline;
+  otherwise the test is flaky.
+- `sw.js`, `registerSW.js`, `manifest.webmanifest` and `index.html` must not be
+  served with long-lived cache headers; README states this for whichever host
+  is chosen.
 
-### UX spec for the welcome screen
-- Copy (Polish, exact): heading `Grajek`; line `Cześć! Tu zapiszesz swoje granie.`;
-  smaller line `Działa też bez internetu.` Nothing else interactive.
-- Body text ≥ 20 px, heading ≥ 48 px, contrast ≥ 4.5:1, content fits a
-  360×640 portrait viewport without scrolling, respects safe areas
-  (`viewport-fit=cover` + padding with `env(safe-area-inset-*)`).
-- System font stack only; illustration is inline SVG (no network request).
+### UX spec (welcome screen)
+- One screen, portrait, centred: the app mark, heading "Grajek" (very large),
+  one sentence "Cześć! Tu zapiszesz swoje ćwiczenia na instrumencie."
+  (gender-neutral, encouraging), no buttons, no links, nothing scrollable.
+- Base font size at least 18 px, heading at least 40 px, text/background
+  contrast at least WCAG AA; respects safe-area insets.
+- `theme_color` / `background_color` match the screen's background so the
+  Android splash and iOS status bar blend in.
 
-## Phase 1: Toolchain and welcome screen
+## Phase 1: Project scaffold and welcome screen
 ### Overview
-A buildable, linted, typed React app rendering the Polish welcome screen,
-with Vitest set up and a component test.
+A buildable, linted, tested React + TS + Vite + Tailwind app showing the
+welcome screen (not yet a PWA).
 
 ### Required changes
-#### 1. Project manifest and tooling
-- **File**: `package.json`, `pnpm-lock.yaml`, `.gitignore`, `.nvmrc`
-- **Goal**: Declare the project and its commands exactly as tech-stack.md
-  `## Commands` lists them.
-- **Contract**: scripts `dev`, `build` (`tsc -b && vite build`), `preview`,
-  `test` (`vitest run`), `test:e2e` (`playwright test`), `lint` (`eslint .`),
-  `typecheck` (`tsc -b --noEmit` or equivalent), `generate-pwa-assets`
-  (added in Phase 2); `"type": "module"`; `engines.node >=20`;
-  `packageManager` pinned to the local pnpm; `.gitignore` covers
-  `node_modules`, `dist`, `dev-dist`, `coverage`, `test-results`,
-  `playwright-report`.
+#### 1. Package and tooling
+- **File**: `package.json`, `pnpm-lock.yaml`, `.npmrc` (only if needed), `.gitignore`, `.nvmrc`
+- **Goal**: declare the toolchain and the scripts named in `tech-stack.md`.
+- **Contract**: scripts `dev`, `build` (typecheck-free `vite build`), `preview`,
+  `test` (`vitest run`), `test:e2e` (Playwright, added in Phase 3),
+  `lint` (ESLint), `typecheck` (`tsc -b` / `tsc --noEmit`); `engines.node >= 20`;
+  `packageManager` set to the local pnpm; `.gitignore` covers `node_modules`,
+  `dist`, `dev-dist`, `test-results`, `playwright-report`, `coverage`.
 
-#### 2. TypeScript, Vite, ESLint, Vitest config
-- **File**: `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`,
-  `vite.config.ts`, `eslint.config.js`, `src/vite-env.d.ts`, `src/test/setup.ts`
-- **Goal**: Strict TS for app and config code; Vite with the React and
-  Tailwind plugins; ESLint flat config (typescript-eslint, react-hooks,
-  react-refresh); Vitest configured inside `vite.config.ts` (jsdom,
-  `@testing-library/jest-dom` setup, `e2e/` excluded).
-- **Contract**: `strict: true`; Vitest `environment: 'jsdom'`,
-  `include: ['src/**/*.test.{ts,tsx}']`.
+#### 2. TypeScript, Vite, lint config
+- **File**: `tsconfig.json` (+ `tsconfig.node.json` if split), `vite.config.ts`, `eslint.config.js`
+- **Goal**: strict TS, React plugin, Tailwind Vite plugin, `base: './'`;
+  ESLint flat config with typescript-eslint and react-hooks rules.
+- **Contract**: `strict: true`; Vitest config (jsdom environment, setup file)
+  lives in `vite.config.ts` or `vitest.config.ts`.
 
-#### 3. HTML entry and app shell
-- **File**: `index.html`, `src/main.tsx`, `src/index.css`
-- **Goal**: Polish document (`<html lang="pl">`, `<title>Grajek</title>`,
-  `viewport` with `viewport-fit=cover`, `theme-color`), Tailwind import and
-  base styles (system font stack, background colour, safe-area padding).
+#### 3. Entry and welcome screen
+- **File**: `index.html`, `src/main.tsx`, `src/App.tsx`, `src/index.css`
+- **Goal**: render the welcome screen per the UX spec; `<html lang="pl">`,
+  Polish `<title>Grajek</title>`, mobile viewport with `viewport-fit=cover`.
+- **Contract**: `App` renders a heading with accessible name "Grajek" and the
+  greeting sentence; Tailwind imported in `src/index.css`; system font stack.
 
-#### 4. Welcome screen
-- **File**: `src/App.tsx`, `src/components/WelcomeScreen.tsx`,
-  `src/components/WelcomeScreen.test.tsx`
-- **Goal**: The single screen per the UX spec above, with an inline SVG
-  music illustration marked decorative (`aria-hidden`).
-- **Contract**: heading role `heading` with name `Grajek`; copy exactly as in
-  the UX spec.
+#### 4. Unit test setup and welcome test
+- **File**: `src/test/setup.ts`, `src/App.test.tsx`
+- **Goal**: Testing Library + jest-dom matchers; prove the screen content.
+- **Contract**: test asserts the heading "Grajek" and the Polish greeting.
 
 ### Success criteria
 #### Automated
 - `pnpm install --frozen-lockfile` succeeds on a clean checkout
-- `pnpm typecheck` and `pnpm lint` pass with no errors
-- `pnpm test` passes, including a test that the welcome screen renders the heading "Grajek" and the Polish greeting
+- `pnpm lint` and `pnpm typecheck` pass
+- `pnpm test` passes, including the welcome screen test
 - `pnpm build` produces `dist/index.html` containing `lang="pl"`
 #### Manual
-- On a 360×640 portrait viewport the welcome screen fits without scrolling and reads as large and friendly for a 7-year-old
+- Welcome screen in a 390x844 mobile viewport is centred, readable for a child and has no scrolling
 
-## Phase 2: PWA, offline and static publication
+## Phase 2: On-device storage contract
 ### Overview
-Make the build installable on Android and iOS and fully usable offline, prove
-it with Playwright against the production preview, and document publication.
+The minimal IndexedDB contract later slices build on, with no product data.
+
+### Required changes
+#### 1. Storage module
+- **File**: `src/storage/db.ts`, `src/storage/migrations.ts`, `src/storage/persist.ts`, `src/storage/index.ts`
+- **Goal**: one place that opens the `grajek` database and evolves its schema
+  through ordered migrations; best-effort persistent storage request.
+- **Contract**:
+  - `DB_NAME = 'grajek'`.
+  - `type Migration = (db, tx) => void`; `migrations: readonly Migration[]`
+    where index 0 is migration to version 1 (no-op "initial").
+  - `openDb(options?: { name?: string; migrations?: readonly Migration[] }): Promise<IDBPDatabase>`
+    opens at version `migrations.length` and runs migrations
+    `oldVersion .. newVersion-1` in order inside the upgrade transaction.
+    Overrides exist for tests only.
+  - `requestPersistentStorage(): Promise<boolean>` returns `true` only when the
+    browser grants persistence; `false` when the API is missing, denied or
+    throws.
+  - Module docblock states the rule for later slices: append a migration, never
+    edit or reorder an existing one.
+
+#### 2. App start hook-up
+- **File**: `src/main.tsx`
+- **Goal**: call `requestPersistentStorage()` once at start, fire-and-forget;
+  do not open the DB yet (nothing to store).
+- **Contract**: failure never blocks rendering.
+
+#### 3. Tests
+- **File**: `src/storage/db.test.ts`, `src/storage/persist.test.ts`
+- **Goal**: prove the contract with `fake-indexeddb` (dev dependency).
+- **Contract**: tests cover opening a fresh DB at version 1; an injected
+  two-migration list run on a fresh DB creates both effects in order; re-opening
+  a version-1 DB with a longer list runs only the new migration; the shipped
+  `migrations` list has length 1 and creates no object store;
+  `requestPersistentStorage` returns `true`/`false`/`false` for granted, denied
+  and missing `navigator.storage`.
+
+### Success criteria
+#### Automated
+- `pnpm test` passes including the storage contract tests under fake-indexeddb
+- `pnpm lint` and `pnpm typecheck` pass
+#### Manual
+- None
+
+## Phase 3: Installable offline PWA
+### Overview
+Manifest, icons, iOS tags and a precaching service worker; proven by Playwright.
 
 ### Required changes
 #### 1. Icons
-- **File**: `public/icon.svg`, `public/pwa-64x64.png`, `public/pwa-192x192.png`,
-  `public/pwa-512x512.png`, `public/maskable-icon-512x512.png`,
-  `public/apple-touch-icon-180x180.png`, `public/favicon.ico`,
-  `pwa-assets.config.ts`
-- **Goal**: A simple, friendly music-note icon on a solid background (safe
-  zone respected for maskable), generated from the SVG by
-  `@vite-pwa/assets-generator` (`minimal2023Preset`) and committed.
+- **File**: `public/icon.svg` (source), `public/favicon.ico` or `public/favicon.svg`, `public/pwa-64x64.png`, `public/pwa-192x192.png`, `public/pwa-512x512.png`, `public/maskable-icon-512x512.png`, `public/apple-touch-icon-180x180.png`, `pwa-assets.config.ts`
+- **Goal**: a simple placeholder mark (music note on the theme colour) and
+  every size Android and iOS need; generated with `@vite-pwa/assets-generator`
+  (dev dependency, script `generate-pwa-assets`) and committed.
+- **Contract**: PNGs exist at the listed sizes; maskable icon keeps the mark in
+  the safe zone.
 
-#### 2. Manifest, iOS tags and service worker registration
-- **File**: `vite.config.ts`, `index.html`, `src/sw.ts`, `src/main.tsx`,
-  `tsconfig.app.json` (WebWorker lib for `sw.ts` if needed)
-- **Goal**: `vite-plugin-pwa` in `injectManifest` mode with
-  `registerType: 'autoUpdate'` and `injectRegister: 'auto'` (or
-  `virtual:pwa-register` called from `main.tsx`); `src/sw.ts` precaches the
-  injected manifest, cleans outdated caches, claims clients and serves
-  `index.html` for navigation requests; `index.html` gets
-  `<link rel="apple-touch-icon" href="apple-touch-icon-180x180.png">`,
-  `<link rel="icon">`, `apple-mobile-web-app-capable`,
-  `mobile-web-app-capable`, `apple-mobile-web-app-title` = `Grajek`,
-  `apple-mobile-web-app-status-bar-style`.
-- **Contract**: manifest `name: "Grajek"`, `short_name: "Grajek"`,
-  `lang: "pl"`, `description` in Polish, `display: "standalone"`,
-  `orientation: "portrait"`, `start_url` and `scope` = the base path,
-  `theme_color`/`background_color` matching the CSS, icons 64/192/512 + a
-  512 `purpose: "maskable"`; precache globs include `html, js, css, svg, png,
-  ico, webmanifest`; `base` = `process.env.BASE_PATH ?? '/'`.
+#### 2. PWA plugin and manifest
+- **File**: `vite.config.ts`
+- **Goal**: `vite-plugin-pwa` with generateSW, `registerType: 'autoUpdate'`,
+  precache of all `js,css,html,svg,png,ico,webmanifest`, navigate fallback to
+  `index.html`, no runtime caching of external origins.
+- **Contract**: manifest `name: "Grajek"`, `short_name: "Grajek"`, `lang: "pl"`,
+  Polish `description`, `display: "standalone"`, `orientation: "portrait"`,
+  relative `start_url` and `scope`, `theme_color` and `background_color`,
+  icons 192, 512 and 512 maskable.
 
-#### 3. E2E suite against the production preview
-- **File**: `playwright.config.ts`, `e2e/pwa.spec.ts`, `tsconfig.node.json`
-  (include e2e/config if needed)
-- **Goal**: One Chromium project with a mobile device profile (e.g. Pixel 7);
-  `webServer` runs `pnpm build && pnpm preview --port 4173 --strictPort`.
-  Tests: manifest is linked and has the contract fields and reachable icons;
-  iOS link/meta tags are present and `apple-touch-icon` returns 200;
-  Chromium reports no installability errors; the service worker takes
-  control; with the context offline a reload still shows "Grajek" and the
-  Polish greeting.
+#### 3. SW registration and iOS head tags
+- **File**: `src/main.tsx` (registration via `virtual:pwa-register`), `index.html`, `src/vite-env.d.ts`
+- **Goal**: register the SW in production; iOS home-screen support.
+- **Contract**: `index.html` has `link rel="apple-touch-icon"` (180), `link rel="icon"`,
+  `meta name="theme-color"`, `apple-mobile-web-app-capable` and
+  `mobile-web-app-capable` = `yes`, `apple-mobile-web-app-title` = `Grajek`,
+  `apple-mobile-web-app-status-bar-style`; manifest link injected by the plugin.
 
-#### 4. Publication docs
-- **File**: `README.md`
-- **Goal**: English README (project one-liner, prerequisites incl.
-  `pnpm exec playwright install chromium`, the commands, and a
-  "Publishing" section: `pnpm build` → upload `dist/` to any HTTPS static
-  host, SPA fallback to `index.html`, `sw.js` and `index.html` served with
-  `Cache-Control: no-cache`, `BASE_PATH` for sub-path hosting; deploy target
-  still open per tech-stack.md).
+#### 4. Playwright e2e
+- **File**: `playwright.config.ts`, `e2e/offline.spec.ts`, `e2e/installability.spec.ts`, `package.json` (script `test:e2e`, dev dependency)
+- **Goal**: prove offline reload and install metadata on the production build.
+- **Contract**: `webServer` runs `pnpm build && pnpm preview` on a fixed port;
+  one project on a mobile Chromium device profile (e.g. Pixel 7).
+  `offline.spec`: first visit, wait for SW control, `context.setOffline(true)`,
+  reload, heading "Grajek" visible. `installability.spec`: manifest link
+  resolves; manifest has the contract fields and every listed icon URL returns
+  200 with an image content type; `apple-touch-icon` link resolves; `html[lang=pl]`.
 
 ### Success criteria
 #### Automated
-- `pnpm build` emits `dist/manifest.webmanifest`, `dist/sw.js` and all icons referenced by the manifest
-- `pnpm test:e2e` passes: manifest fields and icons, iOS meta tags and apple-touch-icon, no Chromium installability errors
-- `pnpm test:e2e` passes: after the service worker takes control, an offline reload still shows the welcome screen
-- `pnpm lint` and `pnpm typecheck` pass including `src/sw.ts`, `playwright.config.ts` and `e2e/`
+- `pnpm build` emits `dist/sw.js` and `dist/manifest.webmanifest`
+- `pnpm test:e2e` passes: offline reload shows the welcome screen
+- `pnpm test:e2e` passes: manifest, icons and iOS head tags are served correctly
+- `pnpm lint`, `pnpm typecheck` and `pnpm test` still pass
 #### Manual
-- On an Android phone (Chrome) the app can be installed to the home screen and opens offline as a standalone "Grajek" app with its icon
-- On an iPhone (Safari, "Add to Home Screen") the app appears as "Grajek" with its icon, opens standalone and shows the welcome screen in airplane mode
+- On an Android phone (Chrome, HTTPS host) the app installs to the home screen and opens offline in standalone mode
+- On an iPhone (Safari, HTTPS host) "Add to Home Screen" shows the Grajek icon and title, and the app opens offline
+- Chrome DevTools Lighthouse / Application panel reports the app as installable with no manifest errors
 
-## Phase 3: On-device storage contract
+## Phase 4: Static publication and CI
 ### Overview
-The minimal, platform-neutral storage contract later slices use for Profil
-and Ćwiczenie data, with IndexedDB and in-memory implementations and unit
-tests. No product data, no UI wiring.
+Make the publication method explicit and keep it checked on every push.
 
 ### Required changes
-#### 1. Contract
-- **File**: `src/storage/types.ts`, `src/storage/index.ts`
-- **Goal**: Define the interface components and later slices depend on,
-  independent of IndexedDB so a native implementation can replace it.
-- **Contract**: `AppStorage` with `get<T>(store, key): Promise<T | undefined>`,
-  `set<T>(store, key, value): Promise<void>`, `remove(store, key): Promise<void>`,
-  `keys(store): Promise<string[]>`, `close(): void`; store names typed as a
-  union (`'meta'` only for now); values must be structured-cloneable plain data;
-  `openAppStorage(): Promise<AppStorage>` (IndexedDB, falls back to memory when
-  `indexedDB` is unavailable), `createMemoryStorage(): AppStorage`,
-  `requestPersistence(): Promise<boolean>` (best-effort, `false` when
-  unsupported).
+#### 1. README
+- **File**: `README.md`
+- **Goal**: English developer README (rs-core §5 for
+  repo prose) covering prerequisites (Node 20+, pnpm), the commands from
+  `tech-stack.md`, and how to publish: upload `dist/` to any static HTTPS host
+  under any path; no-cache headers for `index.html`, `sw.js`, `registerSW.js`,
+  `manifest.webmanifest`; long-cache for hashed `assets/`; HTTPS required; the
+  deploy target is still the client's open decision.
+- **Contract**: commands in README match `package.json` scripts.
 
-#### 2. IndexedDB implementation
-- **File**: `src/storage/indexeddb.ts`, `package.json` (add `idb`)
-- **Goal**: Database `grajek`, `DB_VERSION = 1`; an ordered list of upgrade
-  steps keyed by version (step 1 creates the `meta` store and writes
-  `schemaVersion`), so later slices append steps without touching earlier
-  ones.
-- **Contract**: exported `DB_NAME`, `DB_VERSION`; upgrade steps run in order
-  from `oldVersion + 1` to `DB_VERSION`.
-
-#### 3. Memory implementation and tests
-- **File**: `src/storage/memory.ts`, `src/storage/storage.test.ts`,
-  `package.json` (add dev dependency `fake-indexeddb`)
-- **Goal**: Same behaviour as IndexedDB for the contract; a shared test suite
-  runs against both implementations (IndexedDB via `fake-indexeddb/auto`).
-- **Contract**: tests cover set/get round trip of an object, missing key →
-  `undefined`, remove, keys, persistence across close and reopen (IndexedDB),
-  `meta.schemaVersion === DB_VERSION` after open, fallback to memory when
-  `indexedDB` is undefined, and `requestPersistence()` resolving `false`
-  without `navigator.storage`.
+#### 2. CI workflow
+- **File**: `.github/workflows/ci.yml`
+- **Goal**: GitHub Actions (tech-stack default) running install (frozen
+  lockfile), lint, typecheck, unit tests, build and Playwright (chromium) on
+  push and pull request; no deploy job.
+- **Contract**: Node 20+, pnpm via `pnpm/action-setup`, uploads the Playwright
+  report on failure.
 
 ### Success criteria
 #### Automated
-- `pnpm test` passes the storage contract suite against both the IndexedDB (fake-indexeddb) and the memory implementation
-- `pnpm typecheck`, `pnpm lint` and `pnpm build` pass with the storage module included
-- `pnpm test:e2e` still passes (storage adds no regressions to installability or offline reload)
+- `.github/workflows/ci.yml` is valid YAML and runs the same scripts as `package.json`
+- Full local run passes: `pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`
+#### Manual
+- README publication steps are enough for someone to serve `dist/` from a static host under a sub-path
 
 ## Testing Strategy
-- Unit/component (Vitest, jsdom): welcome screen copy and heading; storage
-  contract suite run against both implementations with `fake-indexeddb`.
-- E2E (Playwright, Chromium mobile profile, production preview): manifest,
-  icons, iOS tags, CDP installability, service-worker control, offline reload.
-- Manual: real Android and iPhone install + airplane-mode launch (Playwright
-  cannot emulate the iOS home-screen install).
+- **Unit (Vitest, jsdom):** welcome screen content; storage contract with
+  `fake-indexeddb` (fresh open, ordered migrations, incremental upgrade,
+  shipped list creates no store, persistence request outcomes).
+- **E2E (Playwright, mobile Chromium, production build via `vite preview`):**
+  offline reload after SW activation; manifest fields, icons and iOS head tags.
+  WebKit is not run: Playwright's WebKit does not reproduce iOS home-screen
+  behaviour and its SW support on Windows runners is unreliable, so iOS stays a
+  Manual criterion on a real device.
+- **Manual:** real-device install and offline open on Android and iOS once a
+  HTTPS host exists (deploy target is the client's open decision).
 
 ## Performance Notes
-- Keep the initial bundle small (React + one screen + Tailwind output); no
-  web fonts or images other than the inline SVG and icons, so the first offline
-  launch is effectively instant (PRD NFR Szybkość).
+- The shell is tiny; keep it free of extra runtime dependencies (React,
+  react-dom, idb, the PWA register helper only) so first paint is immediate
+  (PRD NFR Szybkość).
+
+## Migration Notes
+- None: the database starts at version 1 with no stores; there is no existing
+  data to migrate.
 
 ## References
-- Roadmap slice F-01: `context/foundation/roadmap.md` (`### F-01`)
+- Roadmap slice F-01: `context/foundation/roadmap.md` (Foundations, F-01)
 - Stack: `context/foundation/tech-stack.md`
-- PRD NFRs: `context/prd/prd.md:102-107`
-- ADR 0001 (push later → extensible service worker):
-  `context/discovery/decisions/0001-serwer-powiadomien-z-minimalnymi-danymi.md`
-- Product shape: `context/discovery/discovery-notes.md` `## Forward: tech-stack`
+- PRD NFRs: `context/prd/prd.md` (Non-Functional Requirements, Open Questions)
+- Forward tech-stack note: `context/discovery/discovery-notes.md`
+- ADRs: `context/discovery/decisions/0001-serwer-powiadomien-z-minimalnymi-danymi.md`, `0002-grywalizacja-bez-waluty-i-rankingow.md`
+- Brief: `context/changes/szkielet-aplikacji-offline/plan-brief.md`
 
 ## Progress
 
-### Phase 1: Toolchain and welcome screen
+### Phase 1: Project scaffold and welcome screen
 #### Automated
 - [ ] 1.1 `pnpm install --frozen-lockfile` succeeds on a clean checkout
-- [ ] 1.2 `pnpm typecheck` and `pnpm lint` pass with no errors
-- [ ] 1.3 `pnpm test` passes, including a test that the welcome screen renders the heading "Grajek" and the Polish greeting
+- [ ] 1.2 `pnpm lint` and `pnpm typecheck` pass
+- [ ] 1.3 `pnpm test` passes, including the welcome screen test
 - [ ] 1.4 `pnpm build` produces `dist/index.html` containing `lang="pl"`
 #### Manual
-- [ ] 1.5 On a 360×640 portrait viewport the welcome screen fits without scrolling and reads as large and friendly for a 7-year-old
+- [ ] 1.5 Welcome screen in a 390x844 mobile viewport is centred, readable for a child and has no scrolling
 
-### Phase 2: PWA, offline and static publication
+### Phase 2: On-device storage contract
 #### Automated
-- [ ] 2.1 `pnpm build` emits `dist/manifest.webmanifest`, `dist/sw.js` and all icons referenced by the manifest
-- [ ] 2.2 `pnpm test:e2e` passes: manifest fields and icons, iOS meta tags and apple-touch-icon, no Chromium installability errors
-- [ ] 2.3 `pnpm test:e2e` passes: after the service worker takes control, an offline reload still shows the welcome screen
-- [ ] 2.4 `pnpm lint` and `pnpm typecheck` pass including `src/sw.ts`, `playwright.config.ts` and `e2e/`
+- [ ] 2.1 `pnpm test` passes including the storage contract tests under fake-indexeddb
+- [ ] 2.2 `pnpm lint` and `pnpm typecheck` pass
 #### Manual
-- [ ] 2.5 On an Android phone (Chrome) the app can be installed to the home screen and opens offline as a standalone "Grajek" app with its icon
-- [ ] 2.6 On an iPhone (Safari, "Add to Home Screen") the app appears as "Grajek" with its icon, opens standalone and shows the welcome screen in airplane mode
 
-### Phase 3: On-device storage contract
+### Phase 3: Installable offline PWA
 #### Automated
-- [ ] 3.1 `pnpm test` passes the storage contract suite against both the IndexedDB (fake-indexeddb) and the memory implementation
-- [ ] 3.2 `pnpm typecheck`, `pnpm lint` and `pnpm build` pass with the storage module included
-- [ ] 3.3 `pnpm test:e2e` still passes (storage adds no regressions to installability or offline reload)
+- [ ] 3.1 `pnpm build` emits `dist/sw.js` and `dist/manifest.webmanifest`
+- [ ] 3.2 `pnpm test:e2e` passes: offline reload shows the welcome screen
+- [ ] 3.3 `pnpm test:e2e` passes: manifest, icons and iOS head tags are served correctly
+- [ ] 3.4 `pnpm lint`, `pnpm typecheck` and `pnpm test` still pass
+#### Manual
+- [ ] 3.5 On an Android phone (Chrome, HTTPS host) the app installs to the home screen and opens offline in standalone mode
+- [ ] 3.6 On an iPhone (Safari, HTTPS host) "Add to Home Screen" shows the Grajek icon and title, and the app opens offline
+- [ ] 3.7 Chrome DevTools Lighthouse / Application panel reports the app as installable with no manifest errors
+
+### Phase 4: Static publication and CI
+#### Automated
+- [ ] 4.1 `.github/workflows/ci.yml` is valid YAML and runs the same scripts as `package.json`
+- [ ] 4.2 Full local run passes: `pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`
+#### Manual
+- [ ] 4.3 README publication steps are enough for someone to serve `dist/` from a static host under a sub-path
