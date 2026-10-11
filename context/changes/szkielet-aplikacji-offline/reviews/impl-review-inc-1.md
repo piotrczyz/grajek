@@ -61,7 +61,7 @@ Manual rows, diff evidence (all stay pending for the human):
 - **Location**: repo root (no `firebase.json`, no `.firebaserc`); `.gitignore:1-9`
 - **Detail**: The client chose Firebase Hosting, project `grajek-app`, as the publication method of F-01. The repo has no hosting configuration, so the cache rules the plan requires (plan.md Critical Implementation Details: no long-lived cache for `sw.js`, `registerSW.js`, `manifest.webmanifest`, `index.html`) are not enforced on the chosen host. Note: the build emits `workbox-<hash>.js` next to `sw.js` (outside `assets/`), and no `registerSW.js` (`injectRegister: false`); both must be covered by the no-cache rule.
 - **Fix**: Add `firebase.json` with `hosting.public: "dist"`, `ignore` of `firebase.json`/`**/.*`/`**/node_modules/**`, rewrite `{"source":"**","destination":"/index.html"}`, headers `Cache-Control: no-cache` for `/index.html`, `/sw.js`, `/registerSW.js`, `/workbox-*.js`, `/manifest.webmanifest` (plus `Content-Type: application/manifest+json` on the manifest), and `public, max-age=31536000, immutable` only for `/assets/**`; add `.firebaserc` `{"projects":{"default":"grajek-app"}}`; add `.firebase/` and `firebase-debug.log` to `.gitignore`; no deploy, no CI deploy job, no `firebase-tools` dependency; re-run `pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`.
-- **Decision**: FIX — client requirement (Source: Issue), one unambiguous fix.
+- **Decision**: FIXED (d1bcb4b)
 
 ### F2 — README publication section does not name the chosen host
 - **Severity**: WARNING
@@ -70,7 +70,7 @@ Manual rows, diff evidence (all stay pending for the human):
 - **Location**: `README.md:32-52`
 - **Detail**: README says "The deploy target is still an open decision of the client". It is now Firebase Hosting (`grajek-app`, https://grajek-app.web.app). Not a one-edit prose fix (new steps and a reference to F1's config), so it goes with F1.
 - **Fix**: Rewrite the Publishing section: chosen host Firebase Hosting, project `grajek-app`, URL https://grajek-app.web.app; steps `pnpm build` then `npx firebase-tools deploy --only hosting` (one-time `npx firebase-tools login`; `firebase-tools` not added as a dependency); cache headers live in `firebase.json`; keep the host-agnostic notes (relative paths, any sub-path, HTTPS, the no-cache list incl. `workbox-*.js`, long cache for `assets/`) as a subsection for other static hosts.
-- **Decision**: FIX — client requirement; README must match the config added by F1.
+- **Decision**: FIXED (d1bcb4b)
 
 ### F3 — tech-stack.md out of date (deploy target, Node version, F-02 note)
 - **Severity**: WARNING
@@ -79,7 +79,7 @@ Manual rows, diff evidence (all stay pending for the human):
 - **Location**: `context/foundation/tech-stack.md:5` (`updated`), `:15` (Node 20+), `:25` (PostgreSQL for F-02), `:31` (Deploy target TODO), `:51-52` (Open Stack Question 1)
 - **Detail**: The foundation still lists the deploy target as open and Node 20+, while the client decided Firebase Hosting and the toolchain needs Node >=22.12 (`package.json:17`, `.nvmrc`). `context/` is outside the reviewer's prose-fix exception.
 - **Fix**: Edit in place: bump `updated:`; Languages: "Node >=22.12 for tooling (`.nvmrc` pins 24)"; Deploy target: "Firebase Hosting, project `grajek-app` (https://grajek-app.web.app), config in `firebase.json` / `.firebaserc`"; remove Open Stack Question 1 (leave "None." under the heading if empty); add a Decisions row "Deploy target = Firebase Hosting | Client (Issue) | chosen by the client for F-01 publication"; under Data & Storage add a note, explicitly not a decision, that F-02 planning should consider the Firebase ecosystem (FCM for push, Cloud Functions / Firestore) instead of PostgreSQL.
-- **Decision**: FIX — client requirement plus a factual correction after the Node adaptation.
+- **Decision**: FIXED (d1bcb4b)
 
 ### O1 — `tsconfig.app.json` outside the planned file list
 - **Severity**: OBSERVATION
