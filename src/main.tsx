@@ -4,9 +4,14 @@ import { App } from './App.tsx';
 import './index.css';
 import { registerAppUpdates } from './pwa/index.ts';
 import { requestPersistentStorage } from './storage/index.ts';
+import { createIndexedDbPracticeStore } from './practice/index.ts';
+import { startReminderSync, withReminderSync } from './reminder/index.ts';
 
 // Best effort, fire-and-forget: never blocks or breaks rendering.
 void requestPersistentStorage();
+
+// Sends the reminder state now and whenever the network comes back (S-08).
+startReminderSync();
 
 // The service worker precaches the app shell so it opens offline. It exists only
 // in the production build. registerAppUpdates also asks for a new version on every
@@ -23,6 +28,6 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <App practiceStore={withReminderSync(createIndexedDbPracticeStore())} />
   </StrictMode>,
 );

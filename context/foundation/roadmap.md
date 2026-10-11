@@ -31,10 +31,10 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 | S-02 | zapis-cwiczenia | Uczeń może zapisać Ćwiczenie w ok. 10 s i zobaczyć je w bieżącym tygodniu | S-01 | FR-005, FR-006, US-01 | done |
 | S-03 | cel-tygodniowy | Uczeń może wybrać Cel tygodniowy i widzieć postęp tygodnia | S-02 | FR-002, US-01 | done |
 | S-04 | widok-miesiaca | Uczeń może zobaczyć miesiąc i łączny dorobek Dni z muzyką | S-02 | FR-006 | done |
-| S-05 | odznaki-za-wysilek | Uczeń dostaje niezapowiedziane Odznaki i widzi ich kolekcję | S-02 | FR-007 | proposed |
+| S-05 | odznaki-za-wysilek | Uczeń dostaje niezapowiedziane Odznaki i widzi ich kolekcję | S-02 | FR-007 | done |
 | S-06 | karta-postepu | Uczeń może udostępnić Kartę postępu | S-02 | FR-008 | done |
 | S-07 | pora-cwiczen | Uczeń może ustalić Porę ćwiczeń, także różną w różne dni | S-01 | FR-003 | done |
-| S-08 | przypomnienie-o-porze | Uczeń dostaje najwyżej jedno łagodne przypomnienie dziennie | F-02, S-02, S-07 | FR-004 | proposed |
+| S-08 | przypomnienie-o-porze | Uczeń dostaje najwyżej jedno łagodne przypomnienie dziennie | F-02, S-02, S-07 | FR-004 | done |
 | S-09 | kilka-instrumentow | Uczeń może mieć kilka instrumentów ze statystykami osobno i razem | S-02 | FR-009 | done |
 
 ## Streams
@@ -135,7 +135,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - **Blockers:** —
 - **Unknowns:** katalog Odznak i progi — Owner: rs-plan dla tej zmiany — Block: no
 - **Risk:** zbyt częste odznaki tracą wartość, zbyt rzadkie nie motywują.
-- **Status:** proposed
+- **Status:** done
 
 ### S-06: Karta postępu
 - **Outcome:** Uczeń może udostępnić obrazek Karty postępu przez systemowe udostępnianie (np. do komunikatora rodziny), bez danych osobowych i liczb do porównań.
@@ -168,7 +168,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - **Blockers:** —
 - **Unknowns:** czy anonimowe dane wymagają zgody rodzica (RODO) — Owner: użytkownik — Block: no (blokuje publikację, nie budowę)
 - **Risk:** przypomnienie odebrane jako „goniący rodzic” zamiast dopingu.
-- **Status:** proposed
+- **Status:** done
 
 ### S-09: Kilka instrumentów
 - **Outcome:** Uczeń może dodać kolejne instrumenty, wybrać instrument przy zapisie (domyślnie ostatnio używany) i widzieć statystyki osobno i razem.
@@ -228,3 +228,5 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - S-06 Karta postępu (`karta-postepu`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-karta-postepu` (review r1 APPROVED; manual checks on Android and iPhone and the card legibility check pending on device).
 - S-03 Cel tygodniowy (`cel-tygodniowy`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-cel-tygodniowy` (review r1 APPROVED; manual checks pending on device: plan 2.5 i 3.6).
 - S-09 Kilka instrumentów (`kilka-instrumentow`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-kilka-instrumentow` (review r1 APPROVED; manual checks on a phone pending: plan rows 3.4 and 4.5).
+- S-05 Odznaki za wysiłek (`odznaki-za-wysilek`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-odznaki-za-wysilek` (review r1 APPROVED; manual check of the badge announcement on a phone pending, plan row 3.5).
+- S-08 Przypomnienie o porze (`przypomnienie-o-porze`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-przypomnienie-o-porze` (review r1 APPROVED; manual checks pending on device: plan rows 4.6 and 4.7; CI emulator test 2.3 pending).
