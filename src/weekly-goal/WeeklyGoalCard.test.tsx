@@ -18,6 +18,7 @@ const practiceStore: PracticeStore = {
   add: () => Promise.reject(new Error('not used')),
   listWeek: () => Promise.resolve([]),
   lastDuration: () => Promise.resolve(null),
+  lastPractice: () => Promise.resolve(null),
 };
 
 const renderCard = (store: WeeklyGoalStore, musicDayCount = 0) =>
@@ -164,6 +165,7 @@ describe('WeeklyGoalCard raise offer', () => {
       );
     },
     lastDuration: () => Promise.resolve(null),
+    lastPractice: () => Promise.resolve(null),
   });
 
   const reachedThree = (days: number) =>
