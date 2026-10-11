@@ -30,7 +30,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 | S-01 | profil-i-instrument | Uczeń może utworzyć Profil i dodać instrument | F-01 | FR-001 | done |
 | S-02 | zapis-cwiczenia | Uczeń może zapisać Ćwiczenie w ok. 10 s i zobaczyć je w bieżącym tygodniu | S-01 | FR-005, FR-006, US-01 | done |
 | S-03 | cel-tygodniowy | Uczeń może wybrać Cel tygodniowy i widzieć postęp tygodnia | S-02 | FR-002, US-01 | proposed |
-| S-04 | widok-miesiaca | Uczeń może zobaczyć miesiąc i łączny dorobek Dni z muzyką | S-02 | FR-006 | proposed |
+| S-04 | widok-miesiaca | Uczeń może zobaczyć miesiąc i łączny dorobek Dni z muzyką | S-02 | FR-006 | done |
 | S-05 | odznaki-za-wysilek | Uczeń dostaje niezapowiedziane Odznaki i widzi ich kolekcję | S-02 | FR-007 | proposed |
 | S-06 | karta-postepu | Uczeń może udostępnić Kartę postępu | S-02 | FR-008 | proposed |
 | S-07 | pora-cwiczen | Uczeń może ustalić Porę ćwiczeń, także różną w różne dni | S-01 | FR-003 | done |
@@ -124,7 +124,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** widok może zachęcać do przeglądania zamiast wyjścia z aplikacji.
-- **Status:** proposed
+- **Status:** done
 
 ### S-05: Odznaki za wysiłek
 - **Outcome:** Uczeń dostaje niezapowiedziane Odznaki za wysiłek i widzi kolekcję zdobytych (bez listy do zdobycia).
@@ -224,3 +224,4 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - S-07 Pora ćwiczeń (`pora-cwiczen`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-pora-cwiczen` (review r1 APPROVED; manual check of the time picker on a phone pending).
 - S-02 Zapis Ćwiczenia z widokiem tygodnia (`zapis-cwiczenia`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-zapis-cwiczenia` (review r2 APPROVED; manual checks pending on device).
 - F-02 — anonimowa-rejestracja-urzadzenia — archived 2026-10-11
+- S-04 Widok miesiąca i łączny dorobek (`widok-miesiaca`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-widok-miesiaca` (review r1 APPROVED; manual check of the month card on a phone pending, plan row 2.5).
