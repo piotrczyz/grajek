@@ -136,6 +136,7 @@ describe('withReminderSync', () => {
       add: vi.fn(async () => practice),
       listWeek: vi.fn(async () => []),
       lastDuration: vi.fn(async () => null),
+      lastPractice: vi.fn(async () => null),
     };
     const sync = vi.fn(async () => 'sent');
     const wrapped = withReminderSync(store, sync);
@@ -151,6 +152,7 @@ describe('withReminderSync', () => {
       add: vi.fn(async () => Promise.reject(error)),
       listWeek: vi.fn(async () => []),
       lastDuration: vi.fn(async () => null),
+      lastPractice: vi.fn(async () => null),
     };
     const sync = vi.fn(async () => 'sent');
     await expect(withReminderSync(store, sync).add({ instrumentId: '', durationMinutes: 15 })).rejects.toBe(error);
