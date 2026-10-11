@@ -337,16 +337,16 @@ Make the publication method explicit and keep it checked on every push.
 
 ### Phase 2: On-device storage contract
 #### Automated
-- [x] 2.1 `pnpm test` passes including the storage contract tests under fake-indexeddb
-- [x] 2.2 `pnpm lint` and `pnpm typecheck` pass
+- [x] 2.1 `pnpm test` passes including the storage contract tests under fake-indexeddb — cea0c42
+- [x] 2.2 `pnpm lint` and `pnpm typecheck` pass — cea0c42
 #### Manual
 
 ### Phase 3: Installable offline PWA
 #### Automated
-- [ ] 3.1 `pnpm build` emits `dist/sw.js` and `dist/manifest.webmanifest`
-- [ ] 3.2 `pnpm test:e2e` passes: offline reload shows the welcome screen
-- [ ] 3.3 `pnpm test:e2e` passes: manifest, icons and iOS head tags are served correctly
-- [ ] 3.4 `pnpm lint`, `pnpm typecheck` and `pnpm test` still pass
+- [x] 3.1 `pnpm build` emits `dist/sw.js` and `dist/manifest.webmanifest`
+- [x] 3.2 `pnpm test:e2e` passes: offline reload shows the welcome screen
+- [x] 3.3 `pnpm test:e2e` passes: manifest, icons and iOS head tags are served correctly
+- [x] 3.4 `pnpm lint`, `pnpm typecheck` and `pnpm test` still pass
 #### Manual
 - [ ] 3.5 On an Android phone (Chrome, HTTPS host) the app installs to the home screen and opens offline in standalone mode
 - [ ] 3.6 On an iPhone (Safari, HTTPS host) "Add to Home Screen" shows the Grajek icon and title, and the app opens offline
