@@ -118,6 +118,6 @@ Out-of-plan files (soft guard, all justified support files): `functions/tsconfig
 ## Round 2
 Re-review of fix commit e0c32fc (evidence: `reviews/fix-r1.md`, baseline 45 → 48, red-first recorded).
 - F1: `onError` now logs `toLoggableError(error)` (`functions/src/index.ts:47`), which keeps only `name`, URL-redacted `message`, `statusCode` and `endpointHost` (`functions/src/devices/push-sender.ts:73-113`). Three new tests assert that no endpoint path survives. Verified.
-- Re-run (phase 1 criteria + build): `pnpm --dir functions build` 0, `typecheck` 0, `test` 48/48; root `pnpm lint` 0, `pnpm typecheck` 0, `pnpm build` 0.
+- Re-run (phase 1 criteria + build): `pnpm --dir functions build` 0, `typecheck` 0, `test` 48/48; root `pnpm lint` 0, `pnpm typecheck` 0. Root `pnpm build` not re-run: the fix changed no root files (round 1: PASS).
 - Regression sweep: the fix touched only `functions/src/devices/push-sender.ts`, `functions/src/index.ts`, `functions/test/push-sender.test.ts` (increment-owned); no ACCEPT finding touched.
 - Verdict APPROVED: the one remaining warning (F2) is a recorded trade-off; build, typecheck and lint all ran and passed. 4.1 stays SKIPPED: a green CI `functions` job (or a local JDK 21 run, Manual 4.8) is required before merge.
