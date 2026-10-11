@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { LOG_BUTTON, SAVED_MESSAGE } from '../practice/copy.ts';
 import { LogPractice } from '../practice/LogPractice.tsx';
 import { DEFAULT_DURATION, type PracticeStore } from '../practice/practiceStore.ts';
+import { dayKey, weekDays } from '../practice/week.ts';
+import { WeekView } from '../practice/WeekView.tsx';
 import { instrumentIcon } from './instruments.ts';
 import type { Profile } from './profileStore.ts';
 
@@ -10,11 +12,38 @@ interface ProfileScreenProps {
   practiceStore: PracticeStore;
 }
 
-/** The home screen: greeting, instrument, and logging a practice session. */
+/** The home screen: greeting, instrument, logging a practice session and the current week. */
 export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
   const [logging, setLogging] = useState(false);
   const [saved, setSaved] = useState(false);
   const [lastDuration, setLastDuration] = useState(DEFAULT_DURATION);
+  const [now, setNow] = useState(() => new Date());
+  const [musicDays, setMusicDays] = useState<ReadonlySet<string>>(() => new Set());
+  const [savedCount, setSavedCount] = useState(0);
+
+  // A PWA left open overnight shows the new day (and week) when it is visible again.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') setNow(new Date());
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    practiceStore.listWeek(now).then(
+      (practices) => {
+        if (active) setMusicDays(new Set(practices.map((practice) => practice.day)));
+      },
+      () => {
+        // Leave the week neutral; the next save or visit loads it again.
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [practiceStore, now, savedCount]);
 
   useEffect(() => {
     let active = true;
@@ -49,6 +78,7 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
             setLastDuration(practice.durationMinutes);
             setLogging(false);
             setSaved(true);
+            setSavedCount((n) => n + 1);
           }}
           onCancel={() => setLogging(false)}
         />
@@ -69,6 +99,7 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
           </p>
         </>
       )}
+      <WeekView days={weekDays(now)} musicDays={musicDays} today={dayKey(now)} />
     </>
   );
 }

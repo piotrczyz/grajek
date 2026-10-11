@@ -13,3 +13,4 @@ export {
   type PracticeStore,
 } from './practiceStore.ts';
 export { dayKey, weekDays, WEEKDAY_LABELS, type WeekdayLabel } from './week.ts';
+export { WeekView } from './WeekView.tsx';

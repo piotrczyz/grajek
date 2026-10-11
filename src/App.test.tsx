@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { App, GREETING } from './App.tsx';
 import { createIndexedDbPracticeStore } from './practice/index.ts';
@@ -207,5 +207,36 @@ describe('logging a practice session', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Anuluj' }));
     expect(screen.getByRole('button', { name: 'Zagrałem!' })).toBeInTheDocument();
     await expect(practiceStore.listWeek()).resolves.toEqual([]);
+  });
+});
+
+describe('current-week view on the home screen', () => {
+  const practiceOn = (name: string) => createIndexedDbPracticeStore(() => openDb({ name }));
+  const musicDays = () =>
+    within(screen.getByRole('list', { name: 'Ten tydzień' }))
+      .getAllByRole('listitem')
+      .filter((item) => item.getAttribute('aria-label')?.includes('Dzień z muzyką'));
+
+  it('highlights today after a save, and a second save the same day keeps one music day', async () => {
+    const name = uniqueName();
+    await storeOn(name).create({ name: 'Ola', instrumentName: 'Gitara' });
+    render(<App store={storeOn(name)} practiceStore={practiceOn(name)} />);
+    await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
+
+    const today = () => screen.getByRole('listitem', { name: /\(dziś\)$/ });
+    expect(today()).not.toHaveAccessibleName(/Dzień z muzyką/);
+    expect(musicDays()).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await waitFor(() => expect(today()).toHaveAccessibleName(/: Dzień z muzyką \(dziś\)$/));
+    expect(musicDays()).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    fireEvent.click(screen.getByRole('radio', { name: '5 min' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await screen.findByText('Super! Zapisane.');
+    await waitFor(() => expect(musicDays()).toHaveLength(1));
+    expect(today()).toHaveAccessibleName(/: Dzień z muzyką \(dziś\)$/);
   });
 });

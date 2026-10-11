@@ -263,18 +263,18 @@ Shows this week's Dni z muzyką on the home screen and proves the whole flow off
 
 ### Phase 3: Logging flow on the home screen
 #### Automated
-- [x] 3.1 `pnpm test` passes, including the 3-tap save test and the optional-fields test
-- [x] 3.2 `pnpm typecheck` passes
-- [x] 3.3 `pnpm lint` passes
+- [x] 3.1 `pnpm test` passes, including the 3-tap save test and the optional-fields test — 8b4734c
+- [x] 3.2 `pnpm typecheck` passes — 8b4734c
+- [x] 3.3 `pnpm lint` passes — 8b4734c
 #### Manual
 - [ ] 3.4 On a phone, logging a session from the home screen takes about 10 seconds and the buttons are easy to hit for a child
 
 ### Phase 4: Current-week view and end-to-end check
 #### Automated
-- [ ] 4.1 `pnpm test` passes, including week view and same-day-once tests
-- [ ] 4.2 `pnpm test:e2e` passes, including the offline log-and-reload test
-- [ ] 4.3 `pnpm build` succeeds
-- [ ] 4.4 `pnpm typecheck` passes
-- [ ] 4.5 `pnpm lint` passes
+- [x] 4.1 `pnpm test` passes, including week view and same-day-once tests
+- [x] 4.2 `pnpm test:e2e` passes, including the offline log-and-reload test
+- [x] 4.3 `pnpm build` succeeds
+- [x] 4.4 `pnpm typecheck` passes
+- [x] 4.5 `pnpm lint` passes
 #### Manual
 - [ ] 4.6 In airplane mode on a phone, a logged session shows today highlighted in the week and empty days look neutral, not red
