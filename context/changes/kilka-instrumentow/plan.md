@@ -306,15 +306,15 @@ with one instrument row read as a one-instrument list.
 
 ### Phase 2: Per-instrument and combined stats (read-only)
 #### Automated
-- [x] 2.1 `pnpm test src/instruments` passes
-- [x] 2.2 `pnpm typecheck` passes
+- [x] 2.1 `pnpm test src/instruments` passes — d79242d
+- [x] 2.2 `pnpm typecheck` passes — d79242d
 #### Manual
 
 ### Phase 3: Instrument choice when logging
 #### Automated
-- [ ] 3.1 `pnpm test src/practice/LogPractice.test.tsx src/App.test.tsx` passes, including the one-instrument "no picker" and two-instrument "default preselected" cases
-- [ ] 3.2 Regression test: sessions on two instruments on the same day count as one Dzień z muzyką in the week view
-- [ ] 3.3 `pnpm typecheck` passes
+- [x] 3.1 `pnpm test src/practice/LogPractice.test.tsx src/App.test.tsx` passes, including the one-instrument "no picker" and two-instrument "default preselected" cases
+- [x] 3.2 Regression test: sessions on two instruments on the same day count as one Dzień z muzyką in the week view
+- [x] 3.3 `pnpm typecheck` passes
 #### Manual
 - [ ] 3.4 On a phone with two instruments, logging with the preselected instrument still takes at most 3 taps and about 10 seconds
 

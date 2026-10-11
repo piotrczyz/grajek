@@ -3,6 +3,7 @@ import { RETRY_MESSAGE } from '../profile/copy.ts';
 
 export const LOG_BUTTON = 'Zagrałem!';
 export const PANEL_HEADING = 'Ile grałeś?';
+export const INSTRUMENT_LABEL = 'Na czym grałeś?';
 export const minutesLabel = (minutes: number) => `${minutes} min`;
 export const MORE_TOGGLE = 'Dodaj więcej';
 export const NOTE_LABEL = 'Nad czym pracowałem?';

@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import {
   CANCEL_BUTTON,
   EMOJI_LABEL,
+  INSTRUMENT_LABEL,
   minutesLabel,
   MORE_TOGGLE,
   NOTE_LABEL,
@@ -16,10 +17,15 @@ import {
   type Practice,
   type PracticeStore,
 } from './practiceStore.ts';
+import { instrumentIcon } from '../profile/instruments.ts';
+import type { Instrument } from '../profile/profileStore.ts';
 
 interface LogPracticeProps {
   store: PracticeStore;
-  instrumentId: string;
+  /** The Profile's instruments; the choice is shown only when there are several. */
+  instruments: readonly Instrument[];
+  /** Preselected instrument (the last used one). */
+  initialInstrumentId: string;
   initialDuration: number;
   onSaved(practice: Practice): void;
   onCancel(): void;
@@ -33,13 +39,24 @@ const chipClass = (selected: boolean) =>
 
 /**
  * In-place panel to log one practice session: pick a duration and save.
+ * With several instruments the panel also offers them, preselected to the last
+ * used one, so saving right away still takes no extra tap.
  * The note and emoji are optional and stay collapsed until "Dodaj więcej".
  */
-export function LogPractice({ store, instrumentId, initialDuration, onSaved, onCancel }: LogPracticeProps) {
+export function LogPractice({
+  store,
+  instruments,
+  initialInstrumentId,
+  initialDuration,
+  onSaved,
+  onCancel,
+}: LogPracticeProps) {
   const headingId = useId();
+  const instrumentLabelId = useId();
   const emojiLabelId = useId();
   const noteId = useId();
   const moreId = useId();
+  const [instrumentId, setInstrumentId] = useState(initialInstrumentId);
   const [duration, setDuration] = useState(initialDuration);
   const [expanded, setExpanded] = useState(false);
   const [note, setNote] = useState('');
@@ -70,6 +87,28 @@ export function LogPractice({ store, instrumentId, initialDuration, onSaved, onC
       <h2 id={headingId} className="text-3xl font-extrabold">
         {PANEL_HEADING}
       </h2>
+      {instruments.length > 1 && (
+        <div className="flex flex-col gap-2">
+          <p id={instrumentLabelId} className="text-xl font-semibold">
+            {INSTRUMENT_LABEL}
+          </p>
+          <div role="radiogroup" aria-labelledby={instrumentLabelId} className="grid grid-cols-2 gap-2">
+            {instruments.map((instrument) => (
+              <button
+                key={instrument.id}
+                type="button"
+                role="radio"
+                aria-checked={instrumentId === instrument.id}
+                onClick={() => setInstrumentId(instrument.id)}
+                className={`${chipClass(instrumentId === instrument.id)} gap-2 break-words`}
+              >
+                <span aria-hidden="true">{instrumentIcon(instrument.name)}</span>
+                <span>{instrument.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div role="radiogroup" aria-labelledby={headingId} className="grid grid-cols-4 gap-2">
         {DURATION_CHOICES.map((minutes) => (
           <button

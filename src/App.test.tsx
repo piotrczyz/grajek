@@ -179,12 +179,12 @@ describe('logging a practice session', () => {
     await practiceOn(name).add({ instrumentId: profile.instrument.id, durationMinutes: 45 });
 
     const practiceStore = practiceOn(name);
-    const lastDuration = vi.spyOn(practiceStore, 'lastDuration');
+    const lastPractice = vi.spyOn(practiceStore, 'lastPractice');
     render(<App store={storeOn(name)} practiceStore={practiceStore} />);
     await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
-    await waitFor(() => expect(lastDuration).toHaveBeenCalled());
+    await waitFor(() => expect(lastPractice).toHaveBeenCalled());
     await act(async () => {
-      await lastDuration.mock.results[0].value;
+      await lastPractice.mock.results[0].value;
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
@@ -264,6 +264,83 @@ describe('current-week view on the home screen', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('several instruments on the home screen', () => {
+  const practiceOn = (name: string) => createIndexedDbPracticeStore((onClose) => openDb({ name, onClose }));
+
+  async function seedTwoInstruments() {
+    const name = uniqueName();
+    const profile = await storeOn(name).create({ name: 'Ola', instrumentName: 'Gitara' });
+    const piano = await storeOn(name).addInstrument('Pianino');
+    return { name, guitar: profile.instrument, piano };
+  }
+
+  async function renderAndWaitForLastPractice(name: string) {
+    const practiceStore = practiceOn(name);
+    const lastPractice = vi.spyOn(practiceStore, 'lastPractice');
+    render(<App store={storeOn(name)} practiceStore={practiceStore} />);
+    await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
+    await waitFor(() => expect(lastPractice).toHaveBeenCalled());
+    await act(async () => {
+      await lastPractice.mock.results[0].value;
+    });
+    return practiceStore;
+  }
+
+  it('counts sessions on two instruments on the same day as one Dzień z muzyką', async () => {
+    const { name, guitar, piano } = await seedTwoInstruments();
+    await practiceOn(name).add({ instrumentId: guitar.id, durationMinutes: 15 });
+    await practiceOn(name).add({ instrumentId: piano.id, durationMinutes: 20 });
+
+    render(<App store={storeOn(name)} practiceStore={practiceOn(name)} />);
+    await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
+
+    const week = () =>
+      within(screen.getByRole('list', { name: 'Ten tydzień' }))
+        .getAllByRole('listitem')
+        .filter((item) => item.getAttribute('aria-label')?.includes('Dzień z muzyką'));
+    await waitFor(() => expect(week()).toHaveLength(1));
+    expect(week()[0]).toBe(screen.getByRole('listitem', { name: /: Dzień z muzyką \(dziś\)$/ }));
+  });
+
+  it('shows the last used instrument in the header after reload and preselects it', async () => {
+    const { name, piano } = await seedTwoInstruments();
+    await practiceOn(name).add({ instrumentId: piano.id, durationMinutes: 30 });
+
+    await renderAndWaitForLastPractice(name);
+    expect(screen.getByText('Pianino')).toBeInTheDocument();
+    expect(screen.queryByText('Gitara')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    expect(screen.getByRole('radio', { name: 'Pianino' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: '30 min' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('preselects the oldest instrument before the first session and switches to the one just used', async () => {
+    const { name, guitar } = await seedTwoInstruments();
+    const practiceStore = await renderAndWaitForLastPractice(name);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    expect(screen.getByRole('radio', { name: 'Gitara' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(screen.getByRole('radio', { name: 'Pianino' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await screen.findByText('Super! Zapisane.');
+
+    expect(screen.getByText('Pianino')).toBeInTheDocument();
+    const week = await practiceStore.listWeek();
+    expect(week.map((practice) => practice.instrumentId)).not.toContain(guitar.id);
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    expect(screen.getByRole('radio', { name: 'Pianino' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('shows no instrument choice when the profile has one instrument', async () => {
+    const name = uniqueName();
+    await storeOn(name).create({ name: 'Ola', instrumentName: 'Gitara' });
+    await renderAndWaitForLastPractice(name);
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    expect(screen.queryByRole('radiogroup', { name: 'Na czym grałeś?' })).not.toBeInTheDocument();
   });
 });
 
