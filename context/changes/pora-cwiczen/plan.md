@@ -43,7 +43,7 @@ The editor is an inline state of the card (display ↔ edit) rather than a new A
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Practice time: storage, editor and home-screen display | 1-4 | — | yes | in-progress | — |
+| 1 | Practice time: storage, editor and home-screen display | 1-4 | — | yes | done | — |
 
 ## Critical Implementation Details
 
