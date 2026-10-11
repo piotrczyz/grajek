@@ -200,10 +200,10 @@ The no-pressure suggestion after 3 reached weeks, and an offline e2e proof of th
 
 ### Phase 3: Gentle raise offer and end-to-end check
 #### Automated
-- [x] 3.1 `pnpm test` passes, including the raise offer accept, decline and not-offered tests
-- [x] 3.2 `pnpm test:e2e` passes, including the weekly-goal offline reload test
-- [x] 3.3 `pnpm build` succeeds
-- [x] 3.4 `pnpm typecheck` passes
-- [x] 3.5 `pnpm lint` passes
+- [x] 3.1 `pnpm test` passes, including the raise offer accept, decline and not-offered tests — d122947
+- [x] 3.2 `pnpm test:e2e` passes, including the weekly-goal offline reload test — d122947
+- [x] 3.3 `pnpm build` succeeds — d122947
+- [x] 3.4 `pnpm typecheck` passes — d122947
+- [x] 3.5 `pnpm lint` passes — d122947
 #### Manual
 - [ ] 3.6 On a phone, the raise offer reads as an invitation, not pressure, and "Zostaję przy N" is as easy to tap as "Tak, spróbuję"
