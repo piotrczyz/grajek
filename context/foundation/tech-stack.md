@@ -35,7 +35,7 @@ PWA, data primarily on the device, a possible native app later.
 - Unit (JS/TS): Vitest
 
 ## CI/CD
-- GitHub Actions (default; no remote configured yet)
+- GitHub Actions (`.github/workflows/ci.yml`): runs the checks, then deploys `dist/` to Firebase Hosting (a preview channel per same-repo PR, live on every push to `main`)
 
 ## Issue Tracker
 - GitHub Issues (default)
