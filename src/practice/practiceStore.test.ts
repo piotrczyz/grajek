@@ -9,8 +9,9 @@ const uniqueName = () => `grajek-practice-test-${Date.now()}-${(counter += 1)}`;
 /** A store on a fresh database whose clock is set by `at(...)`. */
 function storeWithClock() {
   let current = new Date(2026, 9, 7, 17, 0); // Wednesday
+  const name = uniqueName();
   const store = createIndexedDbPracticeStore(
-    () => openDb({ name: uniqueName() }),
+    (onClose) => openDb({ name, onClose }),
     () => current,
   );
   const at = (date: Date) => {

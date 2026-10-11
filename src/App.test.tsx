@@ -135,7 +135,7 @@ describe('returning student', () => {
 });
 
 describe('logging a practice session', () => {
-  const practiceOn = (name: string) => createIndexedDbPracticeStore(() => openDb({ name }));
+  const practiceOn = (name: string) => createIndexedDbPracticeStore((onClose) => openDb({ name, onClose }));
 
   async function renderHome() {
     const name = uniqueName();
@@ -211,7 +211,7 @@ describe('logging a practice session', () => {
 });
 
 describe('current-week view on the home screen', () => {
-  const practiceOn = (name: string) => createIndexedDbPracticeStore(() => openDb({ name }));
+  const practiceOn = (name: string) => createIndexedDbPracticeStore((onClose) => openDb({ name, onClose }));
   const musicDays = () =>
     within(screen.getByRole('list', { name: 'Ten tydzień' }))
       .getAllByRole('listitem')

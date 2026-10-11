@@ -1,13 +1,12 @@
 /**
  * Practice sessions (Ćwiczenie) logged by the student (Uczeń) on this device.
  *
- * Stored in the `practices` IndexedDB store (migration v3), one record per
+ * Stored in the `practices` IndexedDB store (migration v4), one record per
  * session. `day` is the local calendar date at save time, so a past Dzień z
  * muzyką never moves when the device's time zone changes. Nothing here ever
  * leaves the device.
  */
-import type { IDBPDatabase } from 'idb';
-import { createConnection, openDb } from '../storage/index.ts';
+import { createConnection, type OpenConnection } from '../storage/index.ts';
 import { dayKey, weekDays } from './week.ts';
 
 export interface Practice {
@@ -89,9 +88,10 @@ const PRACTICES_STORE = 'practices';
 const BY_DAY = 'byDay';
 
 export function createIndexedDbPracticeStore(
-  open: () => Promise<IDBPDatabase<unknown>> = () => openDb(),
+  open?: OpenConnection,
   now: () => Date = () => new Date(),
 ): PracticeStore {
+  // Opens lazily, retries after a failed open, reopens after a version change.
   const db = createConnection(open);
 
   return {
