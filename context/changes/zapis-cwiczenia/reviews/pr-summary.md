@@ -6,4 +6,4 @@
 - Na telefonie zapisz Ćwiczenie z ekranu głównego. Czy zajmuje to około 10 sekund i czy przyciski są wygodne dla dziecka?
 - Włącz tryb samolotowy, zapisz Ćwiczenie i odśwież stronę. Dzisiejszy dzień powinien zostać wyróżniony, a puste dni wyglądać neutralnie (bez czerwieni).
 
-**Status:** Gotowe do scalenia po sprawdzeniu podglądu.
+**Status:** Jeszcze nie gotowe: dopracowujemy jeden szczegół. Jeśli aplikacja zostanie otwarta przez północ, dzisiejszy dzień ma się od razu wyróżnić po zapisie.

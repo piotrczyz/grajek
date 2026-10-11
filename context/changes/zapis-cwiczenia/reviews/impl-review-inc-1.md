@@ -2,7 +2,7 @@
 # Implementation Review: Log a practice session with the current-week view
 
 **Plan**: context/changes/zapis-cwiczenia/plan.md   **Scope**: increment 1 (phases 1-4, full plan)   **Date**: 2026-10-11
-**Round**: 1   **Verdict**: APPROVED   **Findings**: 4
+**Round**: 1   **Verdict**: NEEDS_ATTENTION   **Findings**: 8
 
 Review base: `246ca4d` (F-01 + S-01 in the stack), diff `246ca4d..HEAD` (7 commits).
 
@@ -11,7 +11,7 @@ Review base: `246ca4d` (F-01 + S-01 in the stack), diff `246ca4d..HEAD` (7 commi
 |---|---|
 | Plan Adherence | PASS |
 | Scope Discipline | PASS |
-| Safety & Quality | PASS |
+| Safety & Quality | WARNING |
 | Architecture | PASS |
 | Pattern Consistency | PASS |
 | Success Criteria | PASS |
@@ -28,6 +28,9 @@ Every planned item checks out as MATCH, each with `file:line` evidence. There is
 - 3-tap flow, collapsed optional fields, disabled-while-saving and the failure alert: `src/practice/LogPractice.tsx`. Week view semantics (a list named "Ten tydzień", per-day labels, "(dziś)", empty days neutral): `src/practice/WeekView.tsx`. Visibility rollover and reload after save: `src/profile/ProfileScreen.tsx`.
 - Additions within planned files: constants such as `DEFAULT_DURATION`, `DURATION_MIN` and `DURATION_MAX`, an `instrument-empty` validation reason, extra copy constants, and extra tests. None are out of scope.
 
+## Verdict rationale
+All Automated criteria pass. One WARNING (F0) carries a FIX decision, so the increment goes back for a short fix round before it can be approved and archived. Evidence came from two read-only subagents (plan drift, safety and patterns) plus a direct read of the storage, domain and UI files.
+
 ## Success criteria (run locally in this worktree)
 | Criterion | Command | Result |
 |---|---|---|
@@ -42,6 +45,19 @@ Every planned item checks out as MATCH, each with `file:line` evidence. There is
 Architecture gate: `context/architecture/model.c4` does not exist, so the gate did not run. Single workspace package, so no cross-package exports to check. Not bug mode.
 
 ## Findings
+### F0: A save after midnight in a session left open shows "Zapisane" but no highlighted day
+- **Severity**: WARNING
+- **Impact**: LOW
+- **Dimension**: Safety & Quality
+- **Location**: src/profile/ProfileScreen.tsx:24 (`now` set at mount), :35-46 (week load keyed on `now`), :78-83 (`onSaved`)
+- **Detail**: `now` refreshes only on `visibilitychange`. `add()` stamps `day` from its own clock. Suppose the app stays in the foreground across midnight and the student then logs a session:
+  - In the same week, the music highlight lands on the cell after the "(dziś)" ring, because the ring is stale.
+  - Across Sunday to Monday, `listWeek(oldNow)` does not include the new day, so the save is confirmed but no day is highlighted.
+
+  This breaks the Phase 4 contract "after `onSaved`, today's cell becomes a Dzień z muzyką without a reload" and the plan's "Today rollover" intent.
+- **Fix**: In `onSaved`, also call `setNow(new Date())`, so the week and "today" are recomputed at save time. Add an App test with an injected clock/practice store that crosses Sunday→Monday between mount and save, and assert that today's item is labelled Dzień z muzyką.
+- **Decision**: FIX. A one-line, unambiguous fix to a planned contract.
+
 ### F1: Panel opened before the last duration loads preselects 15
 - **Severity**: OBSERVATION
 - **Impact**: LOW
@@ -77,3 +93,30 @@ Architecture gate: `context/architecture/model.c4` does not exist, so the gate d
 - **Detail**: The version equals the list length. Whichever of F-02 / S-07 merges after this change must rebase, append after v3 and update the version assertions. This is recorded in the plan's Migration Notes and the brief ("Parallel migrations").
 - **Fix**: None in this increment. Respect the merge order.
 - **Decision**: ACCEPT. A recorded Orchestrator decision; flagged here so the merge order is not missed.
+
+### F5: "Anuluj" stays enabled while a save is in flight
+- **Severity**: OBSERVATION
+- **Impact**: LOW
+- **Dimension**: Safety & Quality
+- **Location**: src/practice/LogPractice.tsx:149
+- **Detail**: Cancelling during the few milliseconds of `store.add` closes the panel. A successful save still confirms, and a failed one is silent, but nothing was saved in that case.
+- **Fix**: Optional. Add `disabled={saving}` on the cancel button. The F0 fix round may include it at no extra cost.
+- **Decision**: ACCEPT. The window is negligible and no data is lost or corrupted.
+
+### F6: Focus is lost when the panel opens and closes; the radiogroups have no arrow-key navigation
+- **Severity**: OBSERVATION
+- **Impact**: MEDIUM
+- **Dimension**: Pattern Consistency
+- **Location**: src/profile/ProfileScreen.tsx:72-95, src/practice/LogPractice.tsx:73-86, :117-130
+- **Detail**: Mounting and unmounting the panel drops focus to `<body>`. The `role="radio"` buttons are tab stops without roving tabindex, which is the same pattern as `CreateProfileScreen`. The emoji group can be un-selected.
+- **Fix**: Handle keyboard and screen-reader access app-wide in its own change.
+- **Decision**: ACCEPT. Consistent with the existing S-01 pattern and not in the plan's scope. The target is touch.
+
+### F7: `crypto.randomUUID` requires a secure context
+- **Severity**: OBSERVATION
+- **Impact**: LOW
+- **Dimension**: Safety & Quality
+- **Location**: src/practice/practiceStore.ts:102
+- **Detail**: Unavailable over plain-http LAN dev URLs.
+- **Fix**: None.
+- **Decision**: DISMISS. The app is an HTTPS PWA: its service worker already requires a secure context. The unit and e2e suites pass (`localhost` is secure).

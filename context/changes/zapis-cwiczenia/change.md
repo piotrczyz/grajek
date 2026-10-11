@@ -1,7 +1,7 @@
 ---
 change_id: zapis-cwiczenia
 title: Log a practice session in about 10 seconds with the current-week view
-status: impl_reviewed
+status: implemented
 created: 2026-10-11
 updated: 2026-10-11
 archived_at: null
