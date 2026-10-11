@@ -162,15 +162,15 @@ Prove in a real browser that the Profile survives a reload, online and offline.
 
 ### Phase 2: Create and view profile screen
 #### Automated
-- [x] 2.1 `pnpm test` passes, including the new App flow tests
-- [x] 2.2 `pnpm typecheck` passes
-- [x] 2.3 `pnpm lint` passes
-- [x] 2.4 `pnpm build` succeeds
+- [x] 2.1 `pnpm test` passes, including the new App flow tests — d5df7bf
+- [x] 2.2 `pnpm typecheck` passes — d5df7bf
+- [x] 2.3 `pnpm lint` passes — d5df7bf
+- [x] 2.4 `pnpm build` succeeds — d5df7bf
 #### Manual
 - [ ] 2.5 On a phone-sized viewport the create screen fits without horizontal scrolling and instrument buttons are easy to tap
 
 ### Phase 3: Persistence end to end
 #### Automated
-- [ ] 3.1 `pnpm test:e2e` passes, including `e2e/profile.spec.ts` and the unchanged `e2e/offline.spec.ts`
+- [x] 3.1 `pnpm test:e2e` passes, including `e2e/profile.spec.ts` and the unchanged `e2e/offline.spec.ts`
 #### Manual
 - [ ] 3.2 On a real phone with the installed app: create a Profile, close the app fully, reopen it, the Profile is shown
