@@ -144,9 +144,9 @@ None. Read-only use of the existing `practices` store via `PracticeStore.listWee
 
 ### Phase 1: Card model and Polish copy
 #### Automated
-- [ ] 1.1 `pnpm test src/progress-card/cardModel.test.ts` passes: headline plural for 1, 2, 4, 5, 7 days; week row of 7 Monday-first entries marks exactly the music days; music days outside the week are not counted; preset and "Inny" instruments get the right icon.
-- [ ] 1.2 A test asserts the model contains no profile name (the builder's input type has no name, and the serialized model built for a profile named "Ola" does not contain "Ola").
-- [ ] 1.3 `pnpm typecheck` and `pnpm lint` pass.
+- [x] 1.1 `pnpm test src/progress-card/cardModel.test.ts` passes: headline plural for 1, 2, 4, 5, 7 days; week row of 7 Monday-first entries marks exactly the music days; music days outside the week are not counted; preset and "Inny" instruments get the right icon.
+- [x] 1.2 A test asserts the model contains no profile name (the builder's input type has no name, and the serialized model built for a profile named "Ola" does not contain "Ola").
+- [x] 1.3 `pnpm typecheck` and `pnpm lint` pass.
 #### Manual
 
 ### Phase 2: Canvas renderer and share service
