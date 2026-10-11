@@ -2,7 +2,7 @@
 # Implementation Review: Several instruments (S-09)
 
 **Plan**: context/changes/kilka-instrumentow/plan.md   **Scope**: full plan (increment 1, phases 1-4)   **Date**: 2026-10-11
-**Round**: 1   **Verdict**: APPROVED   **Findings**: 2
+**Round**: 1   **Verdict**: APPROVED   **Findings**: 3
 
 Diff base: `feat/karta-postepu/1...HEAD` (stacked increment; base not yet merged to main).
 
@@ -55,3 +55,14 @@ Every planned file is in the diff and matches its contract; no planned file is m
 - **Detail**: stats refresh on each opening, on retry and when an instrument is added, but not when a session is logged while the card stays open.
 - **Fix**: none; plan specifies "reads fresh at every opening", same as MonthCard.
 - **Decision**: ACCEPT — matches the planned MonthCard pattern (plan Phase 4 §1).
+
+### F3 — Add form shows the generic retry message for a refused add
+- **Severity**: OBSERVATION
+- **Impact**: LOW
+- **Dimension**: Safety & Quality
+- **Location**: src/instruments/AddInstrumentForm.tsx (`handleSubmit`, `saving` guard)
+- **Detail**: a `ProfileError('invalid')` (duplicate or limit reached via a second tab, or a same-tick double submit before `saving` re-renders) shows "Spróbuj jeszcze raz", which cannot succeed on retry. The store re-validates inside the transaction, so no duplicate or over-limit row can be written; the student can cancel. The UI validates against the same list first, so this needs a concurrent second tab or two submits within one tick.
+- **Fix**: none now; if needed later, close the form on `invalid` and use a ref for the in-flight flag.
+- **Decision**: ACCEPT — data integrity holds; the remaining effect is copy in a very rare path.
+
+Evidence note: two read-only evidence passes (plan drift; safety and patterns) found no CRITICAL or plan drift. Their other notes were judged non-issues: the "Razem" line shown briefly after an add while stats refetch uses combined totals, which do not depend on the instrument list; the radiogroups lack arrow-key navigation, the same as the existing chips in `CreateProfileScreen.tsx` and `LogPractice.tsx`.
