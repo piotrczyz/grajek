@@ -59,7 +59,7 @@ gain over `needs:` in one file).
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Firebase Hosting deploy pipeline (A1) | 1-2 | — | no | pending | — |
+| 1 | Firebase Hosting deploy pipeline (A1) | 1-2 | — | no | in-progress | — |
 
 ## Critical Implementation Details
 - **Job conditions.** `deploy-preview`: `github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository`. `deploy-live`: `github.event_name == 'push' && github.ref == 'refs/heads/main'`. Because `ci.yml` also runs on `push` for PR branches, only the `pull_request` run may deploy a preview.
