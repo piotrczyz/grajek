@@ -328,17 +328,17 @@ Make the publication method explicit and keep it checked on every push.
 
 ### Phase 1: Project scaffold and welcome screen
 #### Automated
-- [x] 1.1 `pnpm install --frozen-lockfile` succeeds on a clean checkout
-- [x] 1.2 `pnpm lint` and `pnpm typecheck` pass
-- [x] 1.3 `pnpm test` passes, including the welcome screen test
-- [x] 1.4 `pnpm build` produces `dist/index.html` containing `lang="pl"`
+- [x] 1.1 `pnpm install --frozen-lockfile` succeeds on a clean checkout — 507f6d9
+- [x] 1.2 `pnpm lint` and `pnpm typecheck` pass — 507f6d9
+- [x] 1.3 `pnpm test` passes, including the welcome screen test — 507f6d9
+- [x] 1.4 `pnpm build` produces `dist/index.html` containing `lang="pl"` — 507f6d9
 #### Manual
 - [ ] 1.5 Welcome screen in a 390x844 mobile viewport is centred, readable for a child and has no scrolling
 
 ### Phase 2: On-device storage contract
 #### Automated
-- [ ] 2.1 `pnpm test` passes including the storage contract tests under fake-indexeddb
-- [ ] 2.2 `pnpm lint` and `pnpm typecheck` pass
+- [x] 2.1 `pnpm test` passes including the storage contract tests under fake-indexeddb
+- [x] 2.2 `pnpm lint` and `pnpm typecheck` pass
 #### Manual
 
 ### Phase 3: Installable offline PWA
