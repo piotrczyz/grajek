@@ -202,4 +202,4 @@ Proves the practice time survives a reload online and offline in a real browser.
 
 ### Phase 4: End-to-end persistence
 #### Automated
-- [x] 4.1 `pnpm test:e2e` passes, including `e2e/practice-time.spec.ts`
+- [x] 4.1 `pnpm test:e2e` passes, including `e2e/practice-time.spec.ts` — 3101dbb
