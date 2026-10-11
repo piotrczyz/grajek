@@ -29,7 +29,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 | F-02 | anonimowa-rejestracja-urzadzenia | Urządzenie może zarejestrować się anonimowo do powiadomień | — | FR-004, NFR Prywatność, ADR 0001 | done |
 | S-01 | profil-i-instrument | Uczeń może utworzyć Profil i dodać instrument | F-01 | FR-001 | done |
 | S-02 | zapis-cwiczenia | Uczeń może zapisać Ćwiczenie w ok. 10 s i zobaczyć je w bieżącym tygodniu | S-01 | FR-005, FR-006, US-01 | done |
-| S-03 | cel-tygodniowy | Uczeń może wybrać Cel tygodniowy i widzieć postęp tygodnia | S-02 | FR-002, US-01 | proposed |
+| S-03 | cel-tygodniowy | Uczeń może wybrać Cel tygodniowy i widzieć postęp tygodnia | S-02 | FR-002, US-01 | done |
 | S-04 | widok-miesiaca | Uczeń może zobaczyć miesiąc i łączny dorobek Dni z muzyką | S-02 | FR-006 | done |
 | S-05 | odznaki-za-wysilek | Uczeń dostaje niezapowiedziane Odznaki i widzi ich kolekcję | S-02 | FR-007 | proposed |
 | S-06 | karta-postepu | Uczeń może udostępnić Kartę postępu | S-02 | FR-008 | done |
@@ -113,7 +113,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** propozycja podniesienia celu może być odebrana jako presja.
-- **Status:** proposed
+- **Status:** done
 
 ### S-04: Widok miesiąca i łączny dorobek
 - **Outcome:** Uczeń może zobaczyć miesiąc z Dniami z muzyką (puste dni neutralne) i łączny dorobek, który tylko rośnie.
@@ -226,3 +226,4 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - F-02 — anonimowa-rejestracja-urzadzenia — archived 2026-10-11
 - S-04 Widok miesiąca i łączny dorobek (`widok-miesiaca`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-widok-miesiaca` (review r1 APPROVED; manual check of the month card on a phone pending, plan row 2.5).
 - S-06 Karta postępu (`karta-postepu`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-karta-postepu` (review r1 APPROVED; manual checks on Android and iPhone and the card legibility check pending on device).
+- S-03 Cel tygodniowy (`cel-tygodniowy`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-cel-tygodniowy` (review r1 APPROVED; manual checks pending on device: plan 2.5 i 3.6).

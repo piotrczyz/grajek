@@ -5,6 +5,7 @@ import { DEFAULT_DURATION, type PracticeStore } from '../practice/practiceStore.
 import { dayKey, weekDays } from '../practice/week.ts';
 import { WeekView } from '../practice/WeekView.tsx';
 import { ShareCardButton } from '../progress-card/index.ts';
+import { WeeklyGoalCard } from '../weekly-goal/WeeklyGoalCard.tsx';
 import { instrumentIcon } from './instruments.ts';
 import type { Profile } from './profileStore.ts';
 
@@ -105,6 +106,7 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
       )}
       <WeekView days={weekDays(now)} musicDays={musicDays} today={dayKey(now)} />
       <ShareCardButton days={weekDays(now)} musicDays={musicDays} instrumentName={profile.instrument.name} />
+      <WeeklyGoalCard musicDayCount={musicDays.size} now={now} practiceStore={practiceStore} />
     </>
   );
 }

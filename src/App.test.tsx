@@ -292,3 +292,32 @@ describe('notifications panel', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('weekly goal on the home screen', () => {
+  const practiceOn = (name: string) => createIndexedDbPracticeStore((onClose) => openDb({ name, onClose }));
+  const goalStatus = () =>
+    within(screen.getByRole('region', { name: 'Cel tygodnia' })).getByRole('status');
+
+  it('shows the goal reached right after a save, and a second save the same day changes nothing', async () => {
+    const name = uniqueName();
+    await storeOn(name).create({ name: 'Ola', instrumentName: 'Gitara' });
+    render(<App store={storeOn(name)} practiceStore={practiceOn(name)} />);
+    await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
+
+    fireEvent.click(await screen.findByRole('radio', { name: /^1 dzień/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ustaw cel' }));
+    await waitFor(() => expect(goalStatus()).toHaveTextContent('0 z 1 dnia'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await waitFor(() => expect(goalStatus()).toHaveTextContent('Cel osiągnięty!'));
+    expect(goalStatus()).toHaveTextContent('W tym tygodniu: 1 dzień z muzyką');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    fireEvent.click(screen.getByRole('radio', { name: '5 min' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await screen.findByText('Super! Zapisane.');
+    await waitFor(() => expect(goalStatus()).toHaveTextContent('W tym tygodniu: 1 dzień z muzyką'));
+    expect(goalStatus()).toHaveTextContent('Cel osiągnięty!');
+  });
+});
