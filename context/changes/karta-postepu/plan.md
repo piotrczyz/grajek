@@ -37,7 +37,7 @@ Canvas 2D beat html2canvas / DOM-to-image (a new dependency, heavier, unreliable
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | A1 karta-postepu: share the Progress Card | 1-3 | — | yes | in-progress | — |
+| 1 | A1 karta-postepu: share the Progress Card | 1-3 | — | yes | done | — |
 
 ## Critical Implementation Details
 - **Share must start inside the tap.** `navigator.share` requires transient user activation and Safari is strict about it. The canvas draw is synchronous and `toBlob` is the only await; call `share` straight after it in the click handler, with no other awaits (no store reads) before it.
