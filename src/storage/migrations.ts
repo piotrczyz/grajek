@@ -18,4 +18,11 @@ export type Migration = (
 export const migrations: readonly Migration[] = [
   // v1 "initial": intentionally empty. The skeleton stores no product data yet.
   () => {},
+  // v2 "profile" (S-01): the student's single on-device Profile under the fixed
+  // key `current`, and their instruments. `instruments` holds one row until
+  // S-09 adds more; S-02 references a row by its `id`.
+  (db) => {
+    db.createObjectStore('profile');
+    db.createObjectStore('instruments', { keyPath: 'id' });
+  },
 ];
