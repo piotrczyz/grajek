@@ -1,9 +1,44 @@
-export const GREETING = 'Cześć! Tu zapiszesz swoje ćwiczenia na instrumencie.';
+import { useEffect, useState } from 'react';
+import { RETRY_MESSAGE } from './profile/copy.ts';
+import { CreateProfileScreen } from './profile/CreateProfileScreen.tsx';
+import { ProfileScreen } from './profile/ProfileScreen.tsx';
+import { createIndexedDbProfileStore, type Profile, type ProfileStore } from './profile/index.ts';
 
-export function App() {
+export { GREETING } from './profile/copy.ts';
+
+type ScreenState =
+  | { kind: 'loading' }
+  | { kind: 'load-failed' }
+  | { kind: 'create' }
+  | { kind: 'profile'; profile: Profile };
+
+interface AppProps {
+  store?: ProfileStore;
+}
+
+export function App({ store: injected }: AppProps = {}) {
+  const [store] = useState(() => injected ?? createIndexedDbProfileStore());
+  const [state, setState] = useState<ScreenState>({ kind: 'loading' });
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    store.load().then(
+      (profile) => {
+        if (active) setState(profile ? { kind: 'profile', profile } : { kind: 'create' });
+      },
+      () => {
+        if (active) setState({ kind: 'load-failed' });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [store, attempt]);
+
   return (
     <main
-      className="flex h-full flex-col items-center justify-center gap-6 px-6 text-center"
+      className="flex h-full flex-col items-center overflow-y-auto px-6 text-center"
       style={{
         paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
         paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
@@ -11,16 +46,34 @@ export function App() {
         paddingRight: 'max(1.5rem, env(safe-area-inset-right))',
       }}
     >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 64 64"
-        className="h-28 w-28 text-amber-300"
-        fill="currentColor"
-      >
-        <path d="M44 6v34.5A9 9 0 1 1 38 32V16L24 19v25.5A9 9 0 1 1 18 36V12z" />
-      </svg>
-      <h1 className="text-6xl font-extrabold tracking-tight">Grajek</h1>
-      <p className="max-w-xs text-2xl leading-snug font-medium">{GREETING}</p>
+      {state.kind !== 'loading' && (
+        <div className="m-auto flex w-full flex-col items-center gap-6">
+          {state.kind === 'create' && (
+            <CreateProfileScreen
+              store={store}
+              onCreated={(profile) => setState({ kind: 'profile', profile })}
+            />
+          )}
+          {state.kind === 'profile' && <ProfileScreen profile={state.profile} />}
+          {state.kind === 'load-failed' && (
+            <>
+              <p role="alert" className="max-w-xs text-2xl leading-snug font-semibold">
+                {RETRY_MESSAGE}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setState({ kind: 'loading' });
+                  setAttempt((n) => n + 1);
+                }}
+                className="min-h-14 rounded-2xl bg-amber-300 px-6 text-2xl font-extrabold text-blue-950"
+              >
+                Spróbuj jeszcze raz
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </main>
   );
 }
