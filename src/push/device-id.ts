@@ -1,6 +1,6 @@
 /**
  * The anonymous device registration kept on the phone (IndexedDB store
- * `device`, migration v2). The device id is random and is the only thing that
+ * `device`, migration v5). The device id is random and is the only thing that
  * identifies this phone to the notification server (ADR 0001).
  */
 import { openDb } from '../storage/index.ts';
