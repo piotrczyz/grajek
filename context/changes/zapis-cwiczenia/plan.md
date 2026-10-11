@@ -46,7 +46,7 @@ One area, one increment, four phases ordered by dependency: storage contract, th
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Practice logging with the current-week view | 1-4 | — | yes | in-progress | — |
+| 1 | Practice logging with the current-week view | 1-4 | — | yes | done | — |
 
 ## Critical Implementation Details
 - **Day key.** `day` is the local date at save time as `YYYY-MM-DD`, built from local date parts. A unit test must cover a time just after local midnight in a non-UTC zone, for example by running a test with `TZ=Europe/Warsaw` or by building the `Date` from local parts, and assert that the key is the local date.
