@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App, GREETING } from './App.tsx';
 import { createIndexedDbPracticeStore } from './practice/index.ts';
 import { createIndexedDbProfileStore, type ProfileStore } from './profile/index.ts';
@@ -262,5 +262,33 @@ describe('current-week view on the home screen', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('notifications panel', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('hides the notifications panel where push cannot work (jsdom, no VAPID key)', async () => {
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', '');
+    await renderFirstLaunch();
+    expect(screen.getByRole('heading', { level: 1, name: 'Grajek' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Powiadomienia' })).not.toBeInTheDocument();
+  });
+
+  it('mounts the notifications panel on the first-launch screen (install hint without PushManager)', async () => {
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'test-key');
+    vi.stubGlobal('navigator', {
+      userAgent: 'Mozilla/5.0 (Linux; Android 14)',
+      maxTouchPoints: 5,
+      serviceWorker: { ready: new Promise(() => {}) },
+    });
+    await renderFirstLaunch();
+    expect(screen.getByRole('heading', { level: 2, name: 'Powiadomienia' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Dodaj Grajka do ekranu początkowego, żeby dostawać przypomnienia.'),
+    ).toBeInTheDocument();
   });
 });

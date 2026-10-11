@@ -5,6 +5,7 @@ import { CreateProfileScreen } from './profile/CreateProfileScreen.tsx';
 import { ProfileScreen } from './profile/ProfileScreen.tsx';
 import { PracticeTimeCard } from './practice-time/index.ts';
 import { createIndexedDbProfileStore, type Profile, type ProfileStore } from './profile/index.ts';
+import { NotificationsPanel } from './push/NotificationsPanel.tsx';
 
 export { GREETING } from './profile/copy.ts';
 
@@ -81,6 +82,7 @@ export function App({ store: injected, practiceStore: injectedPractice }: AppPro
               </button>
             </>
           )}
+          <NotificationsPanel />
         </div>
       )}
     </main>

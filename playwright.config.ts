@@ -24,5 +24,12 @@ export default defineConfig({
     url: `http://localhost:${PORT}/`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      // Test-only public VAPID key (a well-known example key, no private key
+      // exists for it here) so the notifications panel renders in the build.
+      VITE_VAPID_PUBLIC_KEY:
+        process.env.VITE_VAPID_PUBLIC_KEY ??
+        'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U',
+    },
   },
 });

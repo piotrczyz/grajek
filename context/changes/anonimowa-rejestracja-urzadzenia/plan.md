@@ -515,15 +515,15 @@ manual handover (VAPID keys, billing, deploy, real-device check, RODO).
 
 ### Phase 2: Client registration module
 #### Automated
-- [x] 2.1 `pnpm test` passes including migration v2, device-id, push controller and `pushSupport` tests
-- [x] 2.2 `pnpm typecheck && pnpm lint` pass
-- [x] 2.3 `pnpm build` succeeds and `dist/sw.js` imports `push-sw.js`, `dist/push-sw.js` exists
+- [x] 2.1 `pnpm test` passes including migration v2, device-id, push controller and `pushSupport` tests — a8e1af2
+- [x] 2.2 `pnpm typecheck && pnpm lint` pass — a8e1af2
+- [x] 2.3 `pnpm build` succeeds and `dist/sw.js` imports `push-sw.js`, `dist/push-sw.js` exists — a8e1af2
 
 ### Phase 3: Notifications panel
 #### Automated
-- [ ] 3.1 `pnpm test` passes with panel state tests for each `pushSupport` value and each test-send result
-- [ ] 3.2 `pnpm test:e2e` passes including `e2e/notifications.spec.ts`; existing offline/installability specs still pass
-- [ ] 3.3 `pnpm typecheck && pnpm lint && pnpm build` pass
+- [x] 3.1 `pnpm test` passes with panel state tests for each `pushSupport` value and each test-send result
+- [x] 3.2 `pnpm test:e2e` passes including `e2e/notifications.spec.ts`; existing offline/installability specs still pass
+- [x] 3.3 `pnpm typecheck && pnpm lint && pnpm build` pass
 #### Manual
 - [ ] 3.4 On a phone, the panel reads clearly for a 7-13-year-old: large buttons, one short sentence per state
 
