@@ -238,5 +238,5 @@ None: no schema change. The `badges` key in the out-of-line `profile` store is a
 
 ### Phase 4: End-to-end check
 #### Automated
-- [x] 4.1 `pnpm test:e2e e2e/badges.spec.ts` passes
-- [x] 4.2 `pnpm test:e2e` passes (no regression in existing specs)
+- [x] 4.1 `pnpm test:e2e e2e/badges.spec.ts` passes — bad3069
+- [x] 4.2 `pnpm test:e2e` passes (no regression in existing specs) — bad3069
