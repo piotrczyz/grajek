@@ -172,9 +172,9 @@ deploy from CI (Manual criteria); nothing is deployed from this machine.
 
 ### Phase 2: CI deploy targets and references
 #### Automated
-- [x] 2.1 `git grep -n "grajek-app.web.app" -- . ':!context/archive' ':!context/changes'` lists only legacy-site references (`firebase.json`, `hosting/`, `src/hosting/`) and README lines that describe the redirect
-- [x] 2.2 `npx --yes js-yaml .github/workflows/ci.yml` parses; `deploy-preview` has `target: grajek`; `deploy-live` has `channelId: live` and no `target`; both keep `projectId: grajek-app`
-- [x] 2.3 `.firebaserc`, `functions/` and the secret name are unchanged (`git diff --quiet origin/main -- .firebaserc functions`; `grep -c FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP .github/workflows/ci.yml` prints 2)
-- [x] 2.4 `pnpm lint && pnpm typecheck && pnpm test` pass
+- [x] 2.1 `git grep -n "grajek-app.web.app" -- . ':!context/archive' ':!context/changes'` lists only legacy-site references (`firebase.json`, `hosting/`, `src/hosting/`) and README lines that describe the redirect — 0de3634
+- [x] 2.2 `npx --yes js-yaml .github/workflows/ci.yml` parses; `deploy-preview` has `target: grajek`; `deploy-live` has `channelId: live` and no `target`; both keep `projectId: grajek-app` — 0de3634
+- [x] 2.3 `.firebaserc`, `functions/` and the secret name are unchanged (`git diff --quiet origin/main -- .firebaserc functions`; `grep -c FIREBASE_SERVICE_ACCOUNT_GRAJEK_APP .github/workflows/ci.yml` prints 2) — 0de3634
+- [x] 2.4 `pnpm lint && pnpm typecheck && pnpm test` pass — 0de3634
 #### Manual
 - [ ] 2.5 On this change's PR, the preview comment links a `grajek--` channel URL on `web.app` that serves the app

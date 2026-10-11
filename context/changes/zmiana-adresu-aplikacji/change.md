@@ -1,7 +1,7 @@
 ---
 change_id: zmiana-adresu-aplikacji
 title: Move the app address from grajek-app.web.app to grajek.web.app
-status: implementing
+status: implemented
 created: 2026-10-11
 updated: 2026-10-11
 archived_at: null
