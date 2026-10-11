@@ -50,7 +50,7 @@ Alternatives rejected: a dedicated v6 `badges` store (cleaner separation, but a 
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Unannounced effort badges with retroactive award and collection | 1-4 | — | yes | in-progress | — |
+| 1 | Unannounced effort badges with retroactive award and collection | 1-4 | — | yes | done | — |
 
 ## Critical Implementation Details
 ### Badge catalog (settles roadmap Open Question 3; single source `catalog.ts`)
