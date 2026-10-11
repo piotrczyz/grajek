@@ -7,4 +7,6 @@
 - Na Androidzie (Chrome) aplikację da się zainstalować na ekranie głównym, a po wyłączeniu internetu nadal się otwiera.
 - Na iPhonie (Safari) „Dodaj do ekranu początkowego” pokazuje ikonę i nazwę Grajek, a aplikacja otwiera się bez internetu.
 
-**Status:** Jeszcze niegotowe: dopisujemy ustawienia publikacji pod wybrany przez Państwa hosting Firebase (projekt grajek-app), bez samego wdrożenia.
+Aplikacja jest przygotowana do publikacji na wybranym przez Państwa hostingu Firebase (projekt grajek-app, adres grajek-app.web.app). Samo wdrożenie nie zostało jeszcze wykonane.
+
+**Status:** Gotowe do scalenia po sprawdzeniu podglądu.

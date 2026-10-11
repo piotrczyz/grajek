@@ -2,7 +2,7 @@
 # Implementation Review: Offline-capable installable app skeleton
 
 **Plan**: context/changes/szkielet-aplikacji-offline/plan.md   **Scope**: increment 1 (phases 1-4, full plan)   **Date**: 2026-10-11
-**Round**: 1   **Verdict**: NEEDS_ATTENTION   **Findings**: 8
+**Round**: 2   **Verdict**: APPROVED   **Findings**: 9
 
 Base: `main` (no remote; `origin/main` absent). Diff `main...HEAD`: 43 files, of which
 ~25 code/config files (~700 changed lines excluding `pnpm-lock.yaml`), plus icons and
@@ -20,7 +20,7 @@ no deploy, no deploy job in CI. F1-F3 bring the increment in line with it.
 ## Verdicts
 | Dimension | Verdict |
 |---|---|
-| Plan Adherence | WARNING |
+| Plan Adherence | PASS |
 | Scope Discipline | PASS |
 | Safety & Quality | PASS |
 | Architecture | PASS |
@@ -61,7 +61,7 @@ Manual rows, diff evidence (all stay pending for the human):
 - **Location**: repo root (no `firebase.json`, no `.firebaserc`); `.gitignore:1-9`
 - **Detail**: The client chose Firebase Hosting, project `grajek-app`, as the publication method of F-01. The repo has no hosting configuration, so the cache rules the plan requires (plan.md Critical Implementation Details: no long-lived cache for `sw.js`, `registerSW.js`, `manifest.webmanifest`, `index.html`) are not enforced on the chosen host. Note: the build emits `workbox-<hash>.js` next to `sw.js` (outside `assets/`), and no `registerSW.js` (`injectRegister: false`); both must be covered by the no-cache rule.
 - **Fix**: Add `firebase.json` with `hosting.public: "dist"`, `ignore` of `firebase.json`/`**/.*`/`**/node_modules/**`, rewrite `{"source":"**","destination":"/index.html"}`, headers `Cache-Control: no-cache` for `/index.html`, `/sw.js`, `/registerSW.js`, `/workbox-*.js`, `/manifest.webmanifest` (plus `Content-Type: application/manifest+json` on the manifest), and `public, max-age=31536000, immutable` only for `/assets/**`; add `.firebaserc` `{"projects":{"default":"grajek-app"}}`; add `.firebase/` and `firebase-debug.log` to `.gitignore`; no deploy, no CI deploy job, no `firebase-tools` dependency; re-run `pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`.
-- **Decision**: FIXED (d1bcb4b)
+- **Decision**: FIXED (d1bcb4b) — verified r2
 
 ### F2 — README publication section does not name the chosen host
 - **Severity**: WARNING
@@ -70,7 +70,7 @@ Manual rows, diff evidence (all stay pending for the human):
 - **Location**: `README.md:32-52`
 - **Detail**: README says "The deploy target is still an open decision of the client". It is now Firebase Hosting (`grajek-app`, https://grajek-app.web.app). Not a one-edit prose fix (new steps and a reference to F1's config), so it goes with F1.
 - **Fix**: Rewrite the Publishing section: chosen host Firebase Hosting, project `grajek-app`, URL https://grajek-app.web.app; steps `pnpm build` then `npx firebase-tools deploy --only hosting` (one-time `npx firebase-tools login`; `firebase-tools` not added as a dependency); cache headers live in `firebase.json`; keep the host-agnostic notes (relative paths, any sub-path, HTTPS, the no-cache list incl. `workbox-*.js`, long cache for `assets/`) as a subsection for other static hosts.
-- **Decision**: FIXED (d1bcb4b)
+- **Decision**: FIXED (d1bcb4b) — verified r2
 
 ### F3 — tech-stack.md out of date (deploy target, Node version, F-02 note)
 - **Severity**: WARNING
@@ -79,7 +79,7 @@ Manual rows, diff evidence (all stay pending for the human):
 - **Location**: `context/foundation/tech-stack.md:5` (`updated`), `:15` (Node 20+), `:25` (PostgreSQL for F-02), `:31` (Deploy target TODO), `:51-52` (Open Stack Question 1)
 - **Detail**: The foundation still lists the deploy target as open and Node 20+, while the client decided Firebase Hosting and the toolchain needs Node >=22.12 (`package.json:17`, `.nvmrc`). `context/` is outside the reviewer's prose-fix exception.
 - **Fix**: Edit in place: bump `updated:`; Languages: "Node >=22.12 for tooling (`.nvmrc` pins 24)"; Deploy target: "Firebase Hosting, project `grajek-app` (https://grajek-app.web.app), config in `firebase.json` / `.firebaserc`"; remove Open Stack Question 1 (leave "None." under the heading if empty); add a Decisions row "Deploy target = Firebase Hosting | Client (Issue) | chosen by the client for F-01 publication"; under Data & Storage add a note, explicitly not a decision, that F-02 planning should consider the Firebase ecosystem (FCM for push, Cloud Functions / Firestore) instead of PostgreSQL.
-- **Decision**: FIXED (d1bcb4b)
+- **Decision**: FIXED (d1bcb4b) — verified r2
 
 ### O1 — `tsconfig.app.json` outside the planned file list
 - **Severity**: OBSERVATION
@@ -126,6 +126,15 @@ Manual rows, diff evidence (all stay pending for the human):
 - **Fix**: None now; the first push confirms it.
 - **Decision**: ACCEPT.
 
+### O6 — SPA-rewritten deep links get Firebase's default cache
+- **Severity**: OBSERVATION
+- **Impact**: LOW
+- **Dimension**: Safety & Quality
+- **Location**: `firebase.json:5-13`
+- **Detail**: No-cache covers `/` and `/index.html`; a deep link rewritten to `index.html` (e.g. `/profil`) would get Firebase's default `max-age=3600`. The app has no routes yet (routing is out of scope, S-01 onward), and once the service worker is installed it serves navigations from its precache, so there is no effect today.
+- **Fix**: When routes arrive, consider a catch-all no-cache header listed before `/assets/**`.
+- **Decision**: ACCEPT — no routes exist in this increment.
+
 ## Key decisions (review)
 | Decision | Choice | Source |
 |---|---|---|
@@ -133,3 +142,10 @@ Manual rows, diff evidence (all stay pending for the human):
 | Evidence subagents | Not spawned; code diff read in full by the reviewer | Auto |
 | Diff base | local `main` (no remote) | Auto |
 | Implementer adaptations | All accepted (O1-O4, TypeScript 6) | Auto |
+
+## Round 2
+Re-review of fix commit `d1bcb4b` (findings marked in `f20ecf5`), evidence `reviews/fix-r1.md` (full-suite baseline comparison: 11/11 unit, 3/3 e2e, build exit 0).
+- F1 verified: `firebase.json` (public `dist`, ignore list, rewrite `** -> /index.html`, no-cache for `/`, `/index.html`, `/sw.js`, `/registerSW.js`, `/workbox-*.js`, `/manifest.webmanifest` + manifest content type, immutable 1-year cache only for `/assets/**`), `.firebaserc` default `grajek-app`, `.gitignore` adds `.firebase/` and `firebase-debug.log`; no deploy, no CI deploy job, no `firebase-tools` dependency. The extra no-cache rule for `/` is correct (Firebase matches headers against the request path) and accepted.
+- F2 verified: README Publishing names Firebase Hosting `grajek-app` / https://grajek-app.web.app, `pnpm build` then `npx firebase-tools deploy --only hosting`, host-agnostic notes kept under "Other static hosts".
+- F3 verified: tech-stack.md Node >=22.12 (`.nvmrc` 24), deploy target Firebase Hosting, Open Stack Questions "None.", client Decisions row, F-02 Firebase-ecosystem note marked "not a decision"; `updated:` already today.
+- Re-run (phase 4 criteria + build): JSON parse of `firebase.json` / `.firebaserc` ok; `pnpm lint` exit 0; `pnpm typecheck` exit 0; `pnpm test` 11/11; `CI=1 pnpm test:e2e` (runs `pnpm build`) 3/3. Fix commit stayed inside increment-owned files; no ACCEPT finding touched. One new OBSERVATION (O6), accepted.
