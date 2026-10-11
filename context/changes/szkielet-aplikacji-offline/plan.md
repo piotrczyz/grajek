@@ -102,7 +102,7 @@ premature; F-02 can add a `server/` package later without moving the app.
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Offline app skeleton (area A1 offline-app-skeleton) | 1-4 | — | yes | pending | — |
+| 1 | Offline app skeleton (area A1 offline-app-skeleton) | 1-4 | — | yes | in-progress | — |
 
 ## Critical Implementation Details
 
