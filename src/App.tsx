@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { createIndexedDbPracticeStore, type PracticeStore } from './practice/index.ts';
 import { RETRY_MESSAGE } from './profile/copy.ts';
 import { CreateProfileScreen } from './profile/CreateProfileScreen.tsx';
 import { ProfileScreen } from './profile/ProfileScreen.tsx';
+import { PracticeTimeCard } from './practice-time/index.ts';
 import { createIndexedDbProfileStore, type Profile, type ProfileStore } from './profile/index.ts';
 
 export { GREETING } from './profile/copy.ts';
@@ -14,10 +16,12 @@ type ScreenState =
 
 interface AppProps {
   store?: ProfileStore;
+  practiceStore?: PracticeStore;
 }
 
-export function App({ store: injected }: AppProps = {}) {
+export function App({ store: injected, practiceStore: injectedPractice }: AppProps = {}) {
   const [store] = useState(() => injected ?? createIndexedDbProfileStore());
+  const [practiceStore] = useState(() => injectedPractice ?? createIndexedDbPracticeStore());
   const [state, setState] = useState<ScreenState>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
 
@@ -54,7 +58,12 @@ export function App({ store: injected }: AppProps = {}) {
               onCreated={(profile) => setState({ kind: 'profile', profile })}
             />
           )}
-          {state.kind === 'profile' && <ProfileScreen profile={state.profile} />}
+          {state.kind === 'profile' && (
+            <>
+              <ProfileScreen profile={state.profile} practiceStore={practiceStore} />
+              <PracticeTimeCard />
+            </>
+          )}
           {state.kind === 'load-failed' && (
             <>
               <p role="alert" className="max-w-xs text-2xl leading-snug font-semibold">

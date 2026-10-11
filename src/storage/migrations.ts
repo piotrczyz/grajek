@@ -7,6 +7,10 @@
  * length of this list.
  *
  * `migrations[i]` upgrades the database from version `i` to version `i + 1`.
+ *
+ * Migrations are additive only: never delete or rename an existing store or
+ * index. `openDb` relies on this to open a newer device database from an
+ * older (rolled-back) build without upgrading it.
  */
 import type { IDBPDatabase, IDBPTransaction } from 'idb';
 
@@ -24,5 +28,18 @@ export const migrations: readonly Migration[] = [
   (db) => {
     db.createObjectStore('profile');
     db.createObjectStore('instruments', { keyPath: 'id' });
+  },
+  // v3 "practice time" (S-07): the student's Pora ćwiczeń under the fixed key
+  // `current`. Kept apart from `profile` on purpose: S-08 (reminders) may read
+  // it and later send it off the device, and it holds no Profile data.
+  (db) => {
+    db.createObjectStore('practiceTime');
+  },
+  // v4 "practices" (S-02): one row per logged practice session (Ćwiczenie),
+  // keyed by `id`. `byDay` (non-unique) indexes the local calendar date
+  // `YYYY-MM-DD` so a week is one range query. Additive only, see above.
+  (db) => {
+    const practices = db.createObjectStore('practices', { keyPath: 'id' });
+    practices.createIndex('byDay', 'day', { unique: false });
   },
 ];

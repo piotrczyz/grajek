@@ -6,8 +6,7 @@
  * `instruments` store holds the Profile's instrument rows. Nothing here ever
  * leaves the device.
  */
-import type { IDBPDatabase } from 'idb';
-import { openDb } from '../storage/index.ts';
+import { createConnection, type OpenConnection } from '../storage/index.ts';
 
 export interface Instrument {
   id: string;
@@ -78,21 +77,9 @@ interface ProfileRecord {
   createdAt: string;
 }
 
-export function createIndexedDbProfileStore(
-  open: () => Promise<IDBPDatabase<unknown>> = () => openDb(),
-): ProfileStore {
-  let connection: Promise<IDBPDatabase<unknown>> | null = null;
-
-  const db = (): Promise<IDBPDatabase<unknown>> => {
-    if (!connection) {
-      connection = open().catch((error: unknown) => {
-        // Let the next call try again instead of caching the failure.
-        connection = null;
-        throw error;
-      });
-    }
-    return connection;
-  };
+export function createIndexedDbProfileStore(open?: OpenConnection): ProfileStore {
+  // Opens lazily, retries after a failed open, reopens after a version change.
+  const db = createConnection(open);
 
   return {
     async load() {
