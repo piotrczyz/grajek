@@ -151,17 +151,17 @@ None. Read-only use of the existing `practices` store via `PracticeStore.listWee
 
 ### Phase 2: Canvas renderer and share service
 #### Automated
-- [x] 2.1 `pnpm test src/progress-card/renderCard.test.ts` passes: with a fake 2D context, `drawCard` writes the headline, instrument name and title via `fillText`, draws 7 day cells and never writes a profile name; `renderCardPng` resolves the blob from an injected canvas and rejects when `getContext` returns null.
-- [x] 2.2 `pnpm test src/progress-card/shareCard.test.ts` passes: shares a `File` named `karta-postepu.png` of type `image/png` when `canShare` is true (`'shared'`); returns `'cancelled'` without downloading on `AbortError`; downloads when `share`/`canShare` is missing, `canShare` returns false, or `share` rejects with another error (`'downloaded'`).
-- [x] 2.3 `pnpm typecheck` and `pnpm lint` pass.
+- [x] 2.1 `pnpm test src/progress-card/renderCard.test.ts` passes: with a fake 2D context, `drawCard` writes the headline, instrument name and title via `fillText`, draws 7 day cells and never writes a profile name; `renderCardPng` resolves the blob from an injected canvas and rejects when `getContext` returns null. — 2e9fc0f
+- [x] 2.2 `pnpm test src/progress-card/shareCard.test.ts` passes: shares a `File` named `karta-postepu.png` of type `image/png` when `canShare` is true (`'shared'`); returns `'cancelled'` without downloading on `AbortError`; downloads when `share`/`canShare` is missing, `canShare` returns false, or `share` rejects with another error (`'downloaded'`). — 2e9fc0f
+- [x] 2.3 `pnpm typecheck` and `pnpm lint` pass. — 2e9fc0f
 #### Manual
 
 ### Phase 3: Share button on the home screen
 #### Automated
-- [ ] 3.1 `pnpm test` passes (full unit suite, including `ShareCardButton.test.tsx`: hidden with no music days; calls render then share with the week data; shows the download message on `'downloaded'`; shows the retry message when render rejects; disabled while busy).
-- [ ] 3.2 `pnpm test:e2e e2e/progress-card.spec.ts` passes on `mobile-chromium`.
-- [ ] 3.3 `pnpm build`, `pnpm typecheck` and `pnpm lint` pass.
-- [ ] 3.4 `git diff e4e6ed3 -- src/App.tsx src/storage package.json pnpm-lock.yaml` is empty (no App.tsx edit, no migration, no new dependency).
+- [x] 3.1 `pnpm test` passes (full unit suite, including `ShareCardButton.test.tsx`: hidden with no music days; calls render then share with the week data; shows the download message on `'downloaded'`; shows the retry message when render rejects; disabled while busy).
+- [x] 3.2 `pnpm test:e2e e2e/progress-card.spec.ts` passes on `mobile-chromium`.
+- [x] 3.3 `pnpm build`, `pnpm typecheck` and `pnpm lint` pass.
+- [x] 3.4 `git diff e4e6ed3 -- src/App.tsx src/storage package.json pnpm-lock.yaml` is empty (no App.tsx edit, no migration, no new dependency).
 #### Manual
 - [ ] 3.5 On an Android phone and an iPhone (installed PWA, airplane mode), tapping the button opens the system share sheet with the card image, and sending it to a messenger delivers the picture.
 - [ ] 3.6 The card is legible for a 7-year-old (large text, clear music-day highlights) and shows no name.
