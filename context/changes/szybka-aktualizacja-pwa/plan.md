@@ -208,9 +208,9 @@ iPhone resume path can only be eyeballed on a device after deploy (Manual 2.4).
 
 ### Phase 1: Update checks and reload gate
 #### Automated
-- [ ] 1.1 `pnpm test src/pwa` passes, covering the cases listed under Unit tests
-- [ ] 1.2 `pnpm lint && pnpm typecheck` pass
-- [ ] 1.3 `pnpm build` succeeds and `dist/sw.js` still contains `skipWaiting` and `clientsClaim`
+- [x] 1.1 `pnpm test src/pwa` passes, covering the cases listed under Unit tests
+- [x] 1.2 `pnpm lint && pnpm typecheck` pass
+- [x] 1.3 `pnpm build` succeeds and `dist/sw.js` still contains `skipWaiting` and `clientsClaim`
 
 ### Phase 2: Forms report unsaved work, update bar, e2e
 #### Automated
