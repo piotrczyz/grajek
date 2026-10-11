@@ -144,16 +144,16 @@ None. Read-only use of the existing `practices` store via `PracticeStore.listWee
 
 ### Phase 1: Card model and Polish copy
 #### Automated
-- [x] 1.1 `pnpm test src/progress-card/cardModel.test.ts` passes: headline plural for 1, 2, 4, 5, 7 days; week row of 7 Monday-first entries marks exactly the music days; music days outside the week are not counted; preset and "Inny" instruments get the right icon.
-- [x] 1.2 A test asserts the model contains no profile name (the builder's input type has no name, and the serialized model built for a profile named "Ola" does not contain "Ola").
-- [x] 1.3 `pnpm typecheck` and `pnpm lint` pass.
+- [x] 1.1 `pnpm test src/progress-card/cardModel.test.ts` passes: headline plural for 1, 2, 4, 5, 7 days; week row of 7 Monday-first entries marks exactly the music days; music days outside the week are not counted; preset and "Inny" instruments get the right icon. — 4a6328c
+- [x] 1.2 A test asserts the model contains no profile name (the builder's input type has no name, and the serialized model built for a profile named "Ola" does not contain "Ola"). — 4a6328c
+- [x] 1.3 `pnpm typecheck` and `pnpm lint` pass. — 4a6328c
 #### Manual
 
 ### Phase 2: Canvas renderer and share service
 #### Automated
-- [ ] 2.1 `pnpm test src/progress-card/renderCard.test.ts` passes: with a fake 2D context, `drawCard` writes the headline, instrument name and title via `fillText`, draws 7 day cells and never writes a profile name; `renderCardPng` resolves the blob from an injected canvas and rejects when `getContext` returns null.
-- [ ] 2.2 `pnpm test src/progress-card/shareCard.test.ts` passes: shares a `File` named `karta-postepu.png` of type `image/png` when `canShare` is true (`'shared'`); returns `'cancelled'` without downloading on `AbortError`; downloads when `share`/`canShare` is missing, `canShare` returns false, or `share` rejects with another error (`'downloaded'`).
-- [ ] 2.3 `pnpm typecheck` and `pnpm lint` pass.
+- [x] 2.1 `pnpm test src/progress-card/renderCard.test.ts` passes: with a fake 2D context, `drawCard` writes the headline, instrument name and title via `fillText`, draws 7 day cells and never writes a profile name; `renderCardPng` resolves the blob from an injected canvas and rejects when `getContext` returns null.
+- [x] 2.2 `pnpm test src/progress-card/shareCard.test.ts` passes: shares a `File` named `karta-postepu.png` of type `image/png` when `canShare` is true (`'shared'`); returns `'cancelled'` without downloading on `AbortError`; downloads when `share`/`canShare` is missing, `canShare` returns false, or `share` rejects with another error (`'downloaded'`).
+- [x] 2.3 `pnpm typecheck` and `pnpm lint` pass.
 #### Manual
 
 ### Phase 3: Share button on the home screen
