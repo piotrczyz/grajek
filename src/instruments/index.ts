@@ -7,3 +7,4 @@ export {
   type StatsPracticeRecord,
 } from './stats.ts';
 export { createIndexedDbStatsStore, type StatsStore } from './statsStore.ts';
+export { InstrumentsCard } from './InstrumentsCard.tsx';

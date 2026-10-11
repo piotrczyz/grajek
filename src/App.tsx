@@ -5,6 +5,7 @@ import { CreateProfileScreen } from './profile/CreateProfileScreen.tsx';
 import { ProfileScreen } from './profile/ProfileScreen.tsx';
 import { PracticeTimeCard } from './practice-time/index.ts';
 import { MonthCard } from './month/index.ts';
+import { InstrumentsCard } from './instruments/index.ts';
 import { createIndexedDbProfileStore, type Profile, type ProfileStore } from './profile/index.ts';
 import { NotificationsPanel } from './push/NotificationsPanel.tsx';
 
@@ -65,6 +66,20 @@ export function App({ store: injected, practiceStore: injectedPractice }: AppPro
               <ProfileScreen profile={state.profile} practiceStore={practiceStore} />
               <PracticeTimeCard />
               <MonthCard />
+              <InstrumentsCard
+                instruments={state.profile.instruments}
+                profileStore={store}
+                onAdded={(instrument) =>
+                  setState((current) =>
+                    current.kind === 'profile'
+                      ? {
+                          kind: 'profile',
+                          profile: { ...current.profile, instruments: [...current.profile.instruments, instrument] },
+                        }
+                      : current,
+                  )
+                }
+              />
             </>
           )}
           {state.kind === 'load-failed' && (

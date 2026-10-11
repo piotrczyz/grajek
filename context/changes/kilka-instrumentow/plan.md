@@ -312,17 +312,17 @@ with one instrument row read as a one-instrument list.
 
 ### Phase 3: Instrument choice when logging
 #### Automated
-- [x] 3.1 `pnpm test src/practice/LogPractice.test.tsx src/App.test.tsx` passes, including the one-instrument "no picker" and two-instrument "default preselected" cases
-- [x] 3.2 Regression test: sessions on two instruments on the same day count as one Dzień z muzyką in the week view
-- [x] 3.3 `pnpm typecheck` passes
+- [x] 3.1 `pnpm test src/practice/LogPractice.test.tsx src/App.test.tsx` passes, including the one-instrument "no picker" and two-instrument "default preselected" cases — bdddb5f
+- [x] 3.2 Regression test: sessions on two instruments on the same day count as one Dzień z muzyką in the week view — bdddb5f
+- [x] 3.3 `pnpm typecheck` passes — bdddb5f
 #### Manual
 - [ ] 3.4 On a phone with two instruments, logging with the preselected instrument still takes at most 3 taps and about 10 seconds
 
 ### Phase 4: "Moje instrumenty" card and wiring
 #### Automated
-- [ ] 4.1 `pnpm test` passes (full unit suite)
-- [ ] 4.2 `pnpm lint && pnpm typecheck` passes
-- [ ] 4.3 `pnpm build` succeeds
-- [ ] 4.4 `pnpm test:e2e e2e/instruments.spec.ts e2e/practice.spec.ts` passes
+- [x] 4.1 `pnpm test` passes (full unit suite)
+- [x] 4.2 `pnpm lint && pnpm typecheck` passes
+- [x] 4.3 `pnpm build` succeeds
+- [x] 4.4 `pnpm test:e2e e2e/instruments.spec.ts e2e/practice.spec.ts` passes
 #### Manual
 - [ ] 4.5 On a phone, the "Moje instrumenty" card is readable for a 7-year-old: large chips, per-instrument lines and the Razem line fit without horizontal scrolling
