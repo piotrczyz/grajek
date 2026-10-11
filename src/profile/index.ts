@@ -1,9 +1,12 @@
 export {
   createIndexedDbProfileStore,
+  MAX_INSTRUMENTS,
   NAME_MAX_LENGTH,
   ProfileError,
+  validateInstrumentName,
   validateProfileInput,
   type Instrument,
+  type InstrumentNameResult,
   type NewProfile,
   type Profile,
   type ProfileErrorCode,

@@ -1,7 +1,7 @@
 ---
 change_id: kilka-instrumentow
 title: Several instruments with per-instrument and combined stats
-status: planned
+status: implementing
 created: 2026-10-11
 updated: 2026-10-11
 archived_at: null

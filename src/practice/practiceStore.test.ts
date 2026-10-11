@@ -105,4 +105,27 @@ describe('PracticeStore', () => {
     // Latest by time of saving on the latest day: 19:00 → 30 minutes.
     await expect(store.lastDuration()).resolves.toBe(30);
   });
+
+  it('returns null as the last practice when nothing was logged', async () => {
+    const { store } = storeWithClock();
+    await expect(store.lastPractice()).resolves.toBeNull();
+  });
+
+  it('returns the session of the latest day as the last practice', async () => {
+    const { store, at } = storeWithClock();
+    at(new Date(2026, 9, 7, 20, 0));
+    await store.add({ instrumentId: 'piano', durationMinutes: 20 });
+    at(new Date(2026, 9, 8, 7, 0));
+    const latest = await store.add({ instrumentId: 'guitar', durationMinutes: 10 });
+    await expect(store.lastPractice()).resolves.toEqual(latest);
+  });
+
+  it('returns the latest saved session within the latest day as the last practice', async () => {
+    const { store, at } = storeWithClock();
+    at(new Date(2026, 9, 7, 19, 0));
+    const latest = await store.add({ instrumentId: 'guitar', durationMinutes: 30 });
+    at(new Date(2026, 9, 7, 8, 0));
+    await store.add({ instrumentId: 'piano', durationMinutes: 5 });
+    await expect(store.lastPractice()).resolves.toEqual(latest);
+  });
 });

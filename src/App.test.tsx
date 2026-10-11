@@ -82,6 +82,7 @@ describe('first launch', () => {
     const store: ProfileStore = {
       load: () => Promise.resolve(null),
       create: vi.fn(() => Promise.reject(new Error('quota'))),
+      addInstrument: vi.fn(),
     };
     await renderFirstLaunch(store);
     fireEvent.change(nameInput(), { target: { value: 'Ola' } });
@@ -112,6 +113,7 @@ describe('returning student', () => {
     const store: ProfileStore = {
       load: () => new Promise(() => {}),
       create: vi.fn(),
+      addInstrument: vi.fn(),
     };
     render(<App store={store} />);
     expect(screen.getByRole('main')).toBeEmptyDOMElement();
@@ -122,7 +124,7 @@ describe('returning student', () => {
       .fn<ProfileStore['load']>()
       .mockRejectedValueOnce(new Error('blocked'))
       .mockResolvedValue(null);
-    render(<App store={{ load, create: vi.fn() }} />);
+    render(<App store={{ load, create: vi.fn(), addInstrument: vi.fn() }} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Spróbuj jeszcze raz');
     fireEvent.click(screen.getByRole('button', { name: 'Spróbuj jeszcze raz' }));

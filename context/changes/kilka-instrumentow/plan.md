@@ -300,8 +300,8 @@ with one instrument row read as a one-instrument list.
 
 ### Phase 1: Data layer — instrument list, add, last practice
 #### Automated
-- [ ] 1.1 `pnpm test src/profile/profileStore.test.ts src/practice/practiceStore.test.ts` passes, including the new add/reject and lastPractice cases
-- [ ] 1.2 `pnpm typecheck` passes
+- [x] 1.1 `pnpm test src/profile/profileStore.test.ts src/practice/practiceStore.test.ts` passes, including the new add/reject and lastPractice cases
+- [x] 1.2 `pnpm typecheck` passes
 #### Manual
 
 ### Phase 2: Per-instrument and combined stats (read-only)

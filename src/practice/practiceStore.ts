@@ -32,6 +32,8 @@ export interface PracticeStore {
   add(input: NewPractice): Promise<Practice>;
   /** Sessions of the Monday-to-Sunday week containing `now`. */
   listWeek(now?: Date): Promise<Practice[]>;
+  /** The most recently saved session (latest day, then latest save), or `null` when there is none. */
+  lastPractice(): Promise<Practice | null>;
   /** Duration of the most recently saved session, or `null` when there is none. */
   lastDuration(): Promise<number | null>;
 }
@@ -94,6 +96,16 @@ export function createIndexedDbPracticeStore(
   // Opens lazily, retries after a failed open, reopens after a version change.
   const db = createConnection(open);
 
+  async function lastPractice(): Promise<Practice | null> {
+    const conn = await db();
+    // The latest day first, then the latest session within that day.
+    const cursor = await conn.transaction(PRACTICES_STORE).store.index(BY_DAY).openCursor(null, 'prev');
+    if (!cursor) return null;
+    const latestDay = (cursor.value as Practice).day;
+    const sameDay = (await conn.getAllFromIndex(PRACTICES_STORE, BY_DAY, latestDay)) as Practice[];
+    return sameDay.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
+  }
+
   return {
     async add(input) {
       const checked = validate(input);
@@ -114,15 +126,10 @@ export function createIndexedDbPracticeStore(
       return (await (await db()).getAllFromIndex(PRACTICES_STORE, BY_DAY, range)) as Practice[];
     },
 
+    lastPractice,
+
     async lastDuration() {
-      const conn = await db();
-      // The latest day first, then the latest session within that day.
-      const cursor = await conn.transaction(PRACTICES_STORE).store.index(BY_DAY).openCursor(null, 'prev');
-      if (!cursor) return null;
-      const latestDay = (cursor.value as Practice).day;
-      const sameDay = (await conn.getAllFromIndex(PRACTICES_STORE, BY_DAY, latestDay)) as Practice[];
-      const latest = sameDay.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
-      return latest.durationMinutes;
+      return (await lastPractice())?.durationMinutes ?? null;
     },
   };
 }

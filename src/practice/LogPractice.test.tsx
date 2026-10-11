@@ -8,6 +8,7 @@ function fakeStore(add: PracticeStore['add'] = (input: NewPractice) =>
   return {
     add: vi.fn(add),
     listWeek: vi.fn(() => Promise.resolve([])),
+    lastPractice: vi.fn(() => Promise.resolve(null)),
     lastDuration: vi.fn(() => Promise.resolve(null)),
   } satisfies PracticeStore;
 }
