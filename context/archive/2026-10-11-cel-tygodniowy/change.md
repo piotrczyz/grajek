@@ -1,10 +1,10 @@
 ---
 change_id: cel-tygodniowy
 title: Weekly goal with a spare day and current-week progress
-status: impl_reviewed
+status: archived
 created: 2026-10-11
 updated: 2026-10-11
-archived_at: null
+archived_at: 2026-10-11T16:38:08Z
 ---
 
 ## Notes
