@@ -229,14 +229,14 @@ None: no schema change. The `badges` key in the out-of-line `profile` store is a
 
 ### Phase 3: Badges block on the home screen
 #### Automated
-- [x] 3.1 `pnpm test` passes (full suite, including existing `App.test.tsx`)
-- [x] 3.2 `pnpm typecheck` passes
-- [x] 3.3 `pnpm lint` passes
-- [x] 3.4 `pnpm build` succeeds
+- [x] 3.1 `pnpm test` passes (full suite, including existing `App.test.tsx`) — 1370e86
+- [x] 3.2 `pnpm typecheck` passes — 1370e86
+- [x] 3.3 `pnpm lint` passes — 1370e86
+- [x] 3.4 `pnpm build` succeeds — 1370e86
 #### Manual
 - [ ] 3.5 On a phone, after saving a session the badge announcement is visible without scrolling and reads as praise for effort
 
 ### Phase 4: End-to-end check
 #### Automated
-- [ ] 4.1 `pnpm test:e2e e2e/badges.spec.ts` passes
-- [ ] 4.2 `pnpm test:e2e` passes (no regression in existing specs)
+- [x] 4.1 `pnpm test:e2e e2e/badges.spec.ts` passes
+- [x] 4.2 `pnpm test:e2e` passes (no regression in existing specs)
