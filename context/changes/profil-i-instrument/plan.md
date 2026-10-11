@@ -40,7 +40,7 @@ Alternatives rejected: a single record with an `instrument` string (S-02/S-09 wo
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Student profile: storage, create and view screen | 1-3 | — | yes | pending | — |
+| 1 | Student profile: storage, create and view screen | 1-3 | — | yes | in-progress | — |
 
 ## Critical Implementation Details
 - **Migration**: append to `migrations` only; never edit v1. Add a one-line comment on v2 that the `instruments` store holds one row until S-09 and is referenced by S-02.
