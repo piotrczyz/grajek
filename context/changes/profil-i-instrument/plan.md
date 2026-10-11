@@ -171,6 +171,6 @@ Prove in a real browser that the Profile survives a reload, online and offline.
 
 ### Phase 3: Persistence end to end
 #### Automated
-- [x] 3.1 `pnpm test:e2e` passes, including `e2e/profile.spec.ts` and the unchanged `e2e/offline.spec.ts`
+- [x] 3.1 `pnpm test:e2e` passes, including `e2e/profile.spec.ts` and the unchanged `e2e/offline.spec.ts` — 7e2d0b1
 #### Manual
 - [ ] 3.2 On a real phone with the installed app: create a Profile, close the app fully, reopen it, the Profile is shown
