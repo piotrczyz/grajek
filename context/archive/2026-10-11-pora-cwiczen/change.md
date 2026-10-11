@@ -1,10 +1,10 @@
 ---
 change_id: pora-cwiczen
 title: Student sets a practice time and place, optionally different on chosen weekdays
-status: impl_reviewed
+status: archived
 created: 2026-10-11
 updated: 2026-10-11
-archived_at: null
+archived_at: 2026-10-11T16:06:27Z
 ---
 
 ## Notes
