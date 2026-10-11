@@ -5,6 +5,10 @@
  * `profile` store holds one record under the fixed key `current`, the
  * `instruments` store holds the Profile's instrument rows. Nothing here ever
  * leaves the device.
+ *
+ * The `profile` store also holds the weekly goal (Cel tygodniowy) under the
+ * fixed key `weeklyGoal`, owned by `src/weekly-goal/`; this module never reads
+ * or writes that key.
  */
 import { createConnection, type OpenConnection } from '../storage/index.ts';
 

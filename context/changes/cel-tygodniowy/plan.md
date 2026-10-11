@@ -183,10 +183,10 @@ The no-pressure suggestion after 3 reached weeks, and an offline e2e proof of th
 
 ### Phase 1: Goal rules and persistence
 #### Automated
-- [ ] 1.1 `pnpm test` passes, including the weekly-goal rules and store tests (options 1..6 only, reached, raise rule, coexistence with the Profile)
-- [ ] 1.2 `pnpm typecheck` passes
-- [ ] 1.3 `pnpm lint` passes
-- [ ] 1.4 `git diff --name-only` for the change touches no file under `src/storage/`
+- [x] 1.1 `pnpm test` passes, including the weekly-goal rules and store tests (options 1..6 only, reached, raise rule, coexistence with the Profile)
+- [x] 1.2 `pnpm typecheck` passes
+- [x] 1.3 `pnpm lint` passes
+- [x] 1.4 `git diff --name-only` for the change touches no file under `src/storage/`
 #### Manual
 
 ### Phase 2: Goal card on the home screen
