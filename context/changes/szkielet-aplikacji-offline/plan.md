@@ -354,7 +354,7 @@ Make the publication method explicit and keep it checked on every push.
 
 ### Phase 4: Static publication and CI
 #### Automated
-- [x] 4.1 `.github/workflows/ci.yml` is valid YAML and runs the same scripts as `package.json`
-- [x] 4.2 Full local run passes: `pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`
+- [x] 4.1 `.github/workflows/ci.yml` is valid YAML and runs the same scripts as `package.json` — 7e2d9a3
+- [x] 4.2 Full local run passes: `pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e` — 7e2d9a3
 #### Manual
 - [ ] 4.3 README publication steps are enough for someone to serve `dist/` from a static host under a sub-path
