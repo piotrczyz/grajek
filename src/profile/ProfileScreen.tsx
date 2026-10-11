@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { BadgesCard } from '../badges/index.ts';
 import { LOG_BUTTON, SAVED_MESSAGE } from '../practice/copy.ts';
 import { LogPractice } from '../practice/LogPractice.tsx';
 import { DEFAULT_DURATION, type PracticeStore } from '../practice/practiceStore.ts';
@@ -117,6 +118,7 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
           </p>
         </>
       )}
+      <BadgesCard savedCount={savedCount} />
       <WeekView days={weekDays(now)} musicDays={musicDays} today={dayKey(now)} />
       <ShareCardButton days={weekDays(now)} musicDays={musicDays} instrumentName={instrument.name} />
       <WeeklyGoalCard musicDayCount={musicDays.size} now={now} practiceStore={practiceStore} />
