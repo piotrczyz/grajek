@@ -56,3 +56,46 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Checks the notification backend only. Emulators run offline under the
+    # demo- project id; CI never deploys and holds no Firebase credentials.
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+
+      # Version comes from "packageManager" in functions/package.json.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: functions/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: functions/pnpm-lock.yaml
+
+      # The Firestore emulator needs a JDK (21 for current firebase-tools).
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Emulator tests (Functions + Firestore, project demo-grajek)
+        run: pnpm test:emulators

@@ -11,7 +11,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:emulators": "pnpm build && node scripts/ensure-secret-local.mjs && firebase emulators:exec --only functions,firestore --project demo-grajek \"vitest run -c vitest.emulator.config.ts\"",
+    "emulators": "pnpm build && node scripts/ensure-secret-local.mjs && firebase emulators:start --only functions,firestore,hosting --project demo-grajek"
   },
   "dependencies": {
     "firebase-admin": "^14.5.0",

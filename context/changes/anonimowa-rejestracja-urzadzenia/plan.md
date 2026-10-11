@@ -521,17 +521,17 @@ manual handover (VAPID keys, billing, deploy, real-device check, RODO).
 
 ### Phase 3: Notifications panel
 #### Automated
-- [x] 3.1 `pnpm test` passes with panel state tests for each `pushSupport` value and each test-send result
-- [x] 3.2 `pnpm test:e2e` passes including `e2e/notifications.spec.ts`; existing offline/installability specs still pass
-- [x] 3.3 `pnpm typecheck && pnpm lint && pnpm build` pass
+- [x] 3.1 `pnpm test` passes with panel state tests for each `pushSupport` value and each test-send result — 150a716
+- [x] 3.2 `pnpm test:e2e` passes including `e2e/notifications.spec.ts`; existing offline/installability specs still pass — 150a716
+- [x] 3.3 `pnpm typecheck && pnpm lint && pnpm build` pass — 150a716
 #### Manual
 - [ ] 3.4 On a phone, the panel reads clearly for a 7-13-year-old: large buttons, one short sentence per state
 
 ### Phase 4: Emulator suite, CI and docs
 #### Automated
-- [ ] 4.1 `pnpm --dir functions test:emulators` passes where a JDK 21 is available (CI `functions` job)
-- [ ] 4.2 `.github/workflows/ci.yml` defines the `functions` job with `setup-java` 21 and runs `test:emulators`
-- [ ] 4.3 `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass at the root
+- [x] 4.1 `pnpm --dir functions test:emulators` passes where a JDK 21 is available (CI `functions` job)
+- [x] 4.2 `.github/workflows/ci.yml` defines the `functions` job with `setup-java` 21 and runs `test:emulators`
+- [x] 4.3 `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass at the root
 #### Manual
 - [ ] 4.4 Billing (Blaze) linked on `grajek-app` and Firestore database created in `europe-central2` by the user
 - [ ] 4.5 Secrets/params set and `firebase deploy --only functions,firestore,hosting` run by the user; `/api/devices/{id}` reachable on https://grajek-app.web.app
