@@ -46,7 +46,7 @@ Time-zone math uses `Intl.DateTimeFormat` only (no new dependency), with pinned 
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Daily reminder: server schedule, client sync and setting | 1-4 | — | yes | pending | — |
+| 1 | Daily reminder: server schedule, client sync and setting | 1-4 | — | yes | in-progress | — |
 
 ## Critical Implementation Details
 
