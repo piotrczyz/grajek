@@ -203,7 +203,6 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 2. **Utrata danych przy czyszczeniu przeglądarki lub zmianie telefonu.** Czy potrzebny jest eksport/import kopii (np. plik)? — Owner: użytkownik. Block: no.
 3. **Katalog Odznak i progi** (np. 5 h, 10 Dni z muzyką, powrót po przerwie). — Owner: rs-plan dla S-05. Block: no.
 4. **Gdzie i pod jaką nazwą publikujemy aplikację** (repozytorium na GitHubie, domena)? Repozytorium istnieje dziś tylko lokalnie. — Owner: użytkownik. Block: no (potrzebne przed pierwszą publikacją po F-01).
-- S-03 Cel tygodniowy (`cel-tygodniowy`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-cel-tygodniowy` (review r1 APPROVED; manual checks pending on device: plan 2.5 i 3.6).
 
 ## Parked
 
@@ -227,3 +226,4 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - F-02 — anonimowa-rejestracja-urzadzenia — archived 2026-10-11
 - S-04 Widok miesiąca i łączny dorobek (`widok-miesiaca`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-widok-miesiaca` (review r1 APPROVED; manual check of the month card on a phone pending, plan row 2.5).
 - S-06 Karta postępu (`karta-postepu`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-karta-postepu` (review r1 APPROVED; manual checks on Android and iPhone and the card legibility check pending on device).
+- S-03 Cel tygodniowy (`cel-tygodniowy`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-cel-tygodniowy` (review r1 APPROVED; manual checks pending on device: plan 2.5 i 3.6).
