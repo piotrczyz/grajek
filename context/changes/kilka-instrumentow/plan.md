@@ -320,9 +320,9 @@ with one instrument row read as a one-instrument list.
 
 ### Phase 4: "Moje instrumenty" card and wiring
 #### Automated
-- [x] 4.1 `pnpm test` passes (full unit suite)
-- [x] 4.2 `pnpm lint && pnpm typecheck` passes
-- [x] 4.3 `pnpm build` succeeds
-- [x] 4.4 `pnpm test:e2e e2e/instruments.spec.ts e2e/practice.spec.ts` passes
+- [x] 4.1 `pnpm test` passes (full unit suite) — 82f9eb4
+- [x] 4.2 `pnpm lint && pnpm typecheck` passes — 82f9eb4
+- [x] 4.3 `pnpm build` succeeds — 82f9eb4
+- [x] 4.4 `pnpm test:e2e e2e/instruments.spec.ts e2e/practice.spec.ts` passes — 82f9eb4
 #### Manual
 - [ ] 4.5 On a phone, the "Moje instrumenty" card is readable for a 7-year-old: large chips, per-instrument lines and the Razem line fit without horizontal scrolling
