@@ -1,7 +1,7 @@
 ---
 change_id: odznaki-za-wysilek
 title: Unannounced effort badges and the earned-badges collection
-status: planned
+status: implementing
 created: 2026-10-11
 updated: 2026-10-11
 archived_at: null

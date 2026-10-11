@@ -217,9 +217,9 @@ None: no schema change. The `badges` key in the out-of-line `profile` store is a
 
 ### Phase 1: Catalog and award rules
 #### Automated
-- [ ] 1.1 `pnpm test src/badges` passes (catalog, rules, copy tests)
-- [ ] 1.2 `pnpm typecheck` passes
-- [ ] 1.3 `pnpm lint` passes
+- [x] 1.1 `pnpm test src/badges` passes (catalog, rules, copy tests)
+- [x] 1.2 `pnpm typecheck` passes
+- [x] 1.3 `pnpm lint` passes
 
 ### Phase 2: Persistence and atomic award
 #### Automated
