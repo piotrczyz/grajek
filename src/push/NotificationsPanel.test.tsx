@@ -13,6 +13,9 @@ const push = vi.hoisted(() => ({
 }));
 
 vi.mock('./push.ts', () => push);
+vi.mock('../reminder/ReminderDays.tsx', () => ({
+  ReminderDays: () => <div data-testid="reminder-days" />,
+}));
 
 function registered(value: boolean) {
   push.getRegistrationState.mockResolvedValue({
@@ -42,6 +45,17 @@ describe('NotificationsPanel states', () => {
     expect(await screen.findByRole('button', { name: TEXT.test })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: TEXT.disable })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: TEXT.enable })).not.toBeInTheDocument();
+  });
+
+  it('registered: shows the reminder days setting; not registered: hides it', async () => {
+    registered(true);
+    const { unmount } = render(<NotificationsPanel />);
+    expect(await screen.findByTestId('reminder-days')).toBeInTheDocument();
+    unmount();
+    registered(false);
+    render(<NotificationsPanel />);
+    await screen.findByRole('button', { name: TEXT.enable });
+    expect(screen.queryByTestId('reminder-days')).not.toBeInTheDocument();
   });
 
   it('a device with no stored state counts as not registered', async () => {

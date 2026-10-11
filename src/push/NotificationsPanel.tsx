@@ -9,6 +9,7 @@ import {
   type TestResult,
 } from './push.ts';
 import { TEXT } from './panel-text.ts';
+import { ReminderDays } from '../reminder/ReminderDays.tsx';
 
 const TEST_MESSAGES: Record<TestResult, string> = {
   sent: TEXT.sent,
@@ -110,6 +111,7 @@ export function NotificationsPanel() {
       )}
       {support === 'supported' && registered === true && (
         <>
+          <ReminderDays />
           <button
             type="button"
             className={`${BUTTON} bg-amber-300 text-blue-950`}

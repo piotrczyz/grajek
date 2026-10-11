@@ -242,18 +242,18 @@ Let the student limit reminders to chosen days, and connect the sync triggers.
 
 ### Phase 3: Client — reminder setting and offline-safe sync
 #### Automated
-- [x] 3.1 `pnpm typecheck` passes
-- [x] 3.2 `pnpm lint` passes
-- [x] 3.3 `pnpm test` passes, including the new reminder tests
+- [x] 3.1 `pnpm typecheck` passes — 30da198
+- [x] 3.2 `pnpm lint` passes — 30da198
+- [x] 3.3 `pnpm test` passes, including the new reminder tests — 30da198
 #### Manual
 
 ### Phase 4: Client — panel setting and app wiring
 #### Automated
-- [ ] 4.1 `pnpm typecheck` passes
-- [ ] 4.2 `pnpm lint` passes
-- [ ] 4.3 `pnpm test` passes
-- [ ] 4.4 `pnpm build` passes
-- [ ] 4.5 `pnpm test:e2e` passes
+- [x] 4.1 `pnpm typecheck` passes
+- [x] 4.2 `pnpm lint` passes
+- [x] 4.3 `pnpm test` passes
+- [x] 4.4 `pnpm build` passes
+- [x] 4.5 `pnpm test:e2e` passes
 #### Manual
 - [ ] 4.6 On an installed PWA (Android and iOS 16.4+) against a deployed backend: with Pora set a few minutes ahead and no practice today, one reminder arrives near that time; after logging a practice, no reminder arrives that day
 - [ ] 4.7 The reminder text and the panel copy read as encouraging to a 7–13 year old
