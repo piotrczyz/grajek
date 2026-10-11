@@ -74,4 +74,24 @@ describe('createConnection', () => {
     expect(second.version).toBe(migrations.length);
     second.close();
   });
+
+  it('reopens at the device version when this build is older than the database', async () => {
+    const name = uniqueName();
+    // This tab still runs the older code (e.g. a rolled-back build).
+    const db = createConnection((onClose) => openDb({ name, migrations: migrations.slice(0, 2), onClose }));
+    const first = await db();
+    expect(first.version).toBe(2);
+
+    const upgraded = await openDb({ name, migrations });
+    upgraded.close();
+
+    // VersionError fallback: the getter reopens at the newer version without upgrading.
+    const second = await db();
+    expect(second).not.toBe(first);
+    expect(second.version).toBe(migrations.length);
+    const tx = second.transaction('profile');
+    await expect(tx.objectStore('profile').count()).resolves.toBe(0);
+    await tx.done;
+    second.close();
+  });
 });

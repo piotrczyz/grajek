@@ -28,7 +28,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 | F-01 | szkielet-aplikacji-offline | Uczeń może zainstalować pustą aplikację na telefonie i otworzyć ją bez internetu | — | NFR Offline, NFR Urządzenia | done |
 | F-02 | anonimowa-rejestracja-urzadzenia | Urządzenie może zarejestrować się anonimowo do powiadomień | — | FR-004, NFR Prywatność, ADR 0001 | ready |
 | S-01 | profil-i-instrument | Uczeń może utworzyć Profil i dodać instrument | F-01 | FR-001 | done |
-| S-02 | zapis-cwiczenia | Uczeń może zapisać Ćwiczenie w ok. 10 s i zobaczyć je w bieżącym tygodniu | S-01 | FR-005, FR-006, US-01 | proposed |
+| S-02 | zapis-cwiczenia | Uczeń może zapisać Ćwiczenie w ok. 10 s i zobaczyć je w bieżącym tygodniu | S-01 | FR-005, FR-006, US-01 | done |
 | S-03 | cel-tygodniowy | Uczeń może wybrać Cel tygodniowy i widzieć postęp tygodnia | S-02 | FR-002, US-01 | proposed |
 | S-04 | widok-miesiaca | Uczeń może zobaczyć miesiąc i łączny dorobek Dni z muzyką | S-02 | FR-006 | proposed |
 | S-05 | odznaki-za-wysilek | Uczeń dostaje niezapowiedziane Odznaki i widzi ich kolekcję | S-02 | FR-007 | proposed |
@@ -102,7 +102,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** opcjonalne pola (notatka, emoji) mogą wydłużyć zapis ponad 10 s.
-- **Status:** proposed
+- **Status:** done
 
 ### S-03: Cel tygodniowy
 - **Outcome:** Uczeń może wybrać Cel tygodniowy (N z 7, z sugestią 3–4) i widzieć postęp tygodnia; po osiągnięciu cel jest oznaczony, nowy tydzień to świeży start.
@@ -222,3 +222,4 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - F-01 szkielet-aplikacji-offline — archived at context/archive/2026-10-11-szkielet-aplikacji-offline/ (review r2 APPROVED; manual install/offline checks pending on device).
 - S-01 Profil i instrument (`profil-i-instrument`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-profil-i-instrument`.
 - S-07 Pora ćwiczeń (`pora-cwiczen`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-pora-cwiczen` (review r1 APPROVED; manual check of the time picker on a phone pending).
+- S-02 Zapis Ćwiczenia z widokiem tygodnia (`zapis-cwiczenia`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-zapis-cwiczenia` (review r2 APPROVED; manual checks pending on device).
