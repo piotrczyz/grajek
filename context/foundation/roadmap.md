@@ -35,7 +35,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 | S-06 | karta-postepu | Uczeń może udostępnić Kartę postępu | S-02 | FR-008 | done |
 | S-07 | pora-cwiczen | Uczeń może ustalić Porę ćwiczeń, także różną w różne dni | S-01 | FR-003 | done |
 | S-08 | przypomnienie-o-porze | Uczeń dostaje najwyżej jedno łagodne przypomnienie dziennie | F-02, S-02, S-07 | FR-004 | proposed |
-| S-09 | kilka-instrumentow | Uczeń może mieć kilka instrumentów ze statystykami osobno i razem | S-02 | FR-009 | proposed |
+| S-09 | kilka-instrumentow | Uczeń może mieć kilka instrumentów ze statystykami osobno i razem | S-02 | FR-009 | done |
 
 ## Streams
 
@@ -179,7 +179,7 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** wybór instrumentu dodaje dotknięcie do zapisu.
-- **Status:** proposed
+- **Status:** done
 
 ## Backlog Handoff
 
@@ -227,3 +227,4 @@ Grajek to darmowa aplikacja na telefon dla uczniów 7–13 lat, która pomaga sy
 - S-04 Widok miesiąca i łączny dorobek (`widok-miesiaca`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-widok-miesiaca` (review r1 APPROVED; manual check of the month card on a phone pending, plan row 2.5).
 - S-06 Karta postępu (`karta-postepu`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-karta-postepu` (review r1 APPROVED; manual checks on Android and iPhone and the card legibility check pending on device).
 - S-03 Cel tygodniowy (`cel-tygodniowy`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-cel-tygodniowy` (review r1 APPROVED; manual checks pending on device: plan 2.5 i 3.6).
+- S-09 Kilka instrumentów (`kilka-instrumentow`) — zamknięte 2026-10-11, archiwum: `context/archive/2026-10-11-kilka-instrumentow` (review r1 APPROVED; manual checks on a phone pending: plan rows 3.4 and 4.5).
