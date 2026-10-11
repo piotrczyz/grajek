@@ -45,7 +45,7 @@ The `practices` store is reused through `createConnection(open?)` so the card op
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Month view and lifetime total | 1-2 | — | yes | pending | — |
+| 1 | Month view and lifetime total | 1-2 | — | yes | in-progress | — |
 
 ## Critical Implementation Details
 - **Local dates only.** Month bounds are built from local date parts (`new Date(y, m, d)`) and turned into keys with `dayKey`; never `toISOString()` (UTC shift around midnight, see `src/practice/week.ts:1-8`).
