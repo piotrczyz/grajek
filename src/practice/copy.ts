@@ -19,7 +19,6 @@ export const TODAY_LABEL = '(dziś)';
 export const DAY_LABEL = 'Kiedy grałeś?';
 export const TODAY_CHIP = 'Dziś';
 export const YESTERDAY_CHIP = 'Wczoraj';
-export const DAY_BEFORE_CHIP = 'Przedwczoraj';
 /** Shown after saving for a past day, e.g. "Super! Dopisane do wtorku.". */
 export const backdatedMessage = (day: string) => `Super! Dopisane do ${WEEKDAY_GENITIVE[weekdayIndex(day)]}.`;
 /** Accessible name of a tappable empty past day in the week, e.g. "Środa: dopisz granie". */

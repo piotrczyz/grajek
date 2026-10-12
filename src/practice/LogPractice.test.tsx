@@ -179,14 +179,25 @@ describe('LogPractice', () => {
     expect(hasUnsavedWork()).toBe(false);
   });
   describe('day chips', () => {
-    it('offers today and 3 days back, today preselected', () => {
+    it('offers 3 days back and today as a timeline, oldest first, today last and preselected', () => {
       renderPanel();
       const group = screen.getByRole('radiogroup', { name: 'Kiedy grałeś?' });
       const chips = within(group).getAllByRole('radio');
-      expect(chips.map((chip) => chip.textContent)).toEqual(['Dziś', 'Wczoraj', 'Przedwczoraj', 'Nd']);
-      expect(chips[3]).toHaveAccessibleName('Niedziela');
-      expect(within(group).getByRole('radio', { name: 'Dziś' })).toHaveAttribute('aria-checked', 'true');
+      expect(chips.map((chip) => chip.textContent)).toEqual(['Nd', 'Pn', 'Wczoraj', 'Dziś']);
+      expect(chips.map((chip) => chip.getAttribute('aria-label'))).toEqual(['Niedziela', 'Poniedziałek', null, null]);
+      expect(chips[0]).toHaveAccessibleName('Niedziela');
+      expect(chips[1]).toHaveAccessibleName('Poniedziałek');
+      expect(chips[3]).toHaveAccessibleName('Dziś');
+      expect(chips[3]).toHaveAttribute('aria-checked', 'true');
       expect(chips.filter((chip) => chip.getAttribute('aria-checked') === 'true')).toHaveLength(1);
+    });
+
+    it('saves the day key of the oldest chip after picking it', async () => {
+      const { store, onSaved } = renderPanel();
+      fireEvent.click(screen.getByRole('radio', { name: 'Niedziela' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+      await vi.waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+      expect(store.add).toHaveBeenCalledWith({ instrumentId: 'i1', durationMinutes: 20, day: '2026-10-04' });
     });
 
     it('places the day choice above the durations', () => {
@@ -215,7 +226,7 @@ describe('LogPractice', () => {
 
     it('preselects initialDay and saves it right away', async () => {
       const { store, onSaved } = renderPanel(fakeStore(), [guitar], 'i1', '2026-10-05');
-      expect(screen.getByRole('radio', { name: 'Przedwczoraj' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('radio', { name: 'Poniedziałek' })).toHaveAttribute('aria-checked', 'true');
       fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
       await vi.waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
       expect(store.add).toHaveBeenCalledWith({ instrumentId: 'i1', durationMinutes: 20, day: '2026-10-05' });

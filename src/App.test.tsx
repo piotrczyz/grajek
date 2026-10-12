@@ -468,7 +468,7 @@ describe('logging a practice session for a past day', () => {
     await renderHomeAt(new Date(2026, 9, 14, 17, 0));
     fireEvent.click(within(week()).getByRole('button', { name: 'Poniedziałek: dopisz granie' }));
 
-    expect(screen.getByRole('radio', { name: 'Przedwczoraj' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'Poniedziałek' })).toHaveAttribute('aria-checked', 'true');
     // No week-day taps while the panel is open.
     expect(within(week()).queryAllByRole('button')).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
@@ -491,7 +491,7 @@ describe('logging a practice session for a past day', () => {
     const goalBefore = goalStatus().textContent;
 
     fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Przedwczoraj' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Sobota' }));
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
 
     expect(await screen.findByText('Super! Dopisane do soboty.')).toBeInTheDocument();

@@ -1,7 +1,6 @@
 import { useId, useState } from 'react';
 import {
   CANCEL_BUTTON,
-  DAY_BEFORE_CHIP,
   DAY_LABEL,
   EMOJI_LABEL,
   INSTRUMENT_LABEL,
@@ -41,9 +40,9 @@ interface LogPracticeProps {
   onCancel(): void;
 }
 
-const chipClass = (selected: boolean) =>
+const chipClass = (selected: boolean, size = 'text-xl') =>
   [
-    'flex min-h-14 items-center justify-center rounded-2xl border-2 px-2 text-xl font-bold',
+    `flex min-h-14 items-center justify-center rounded-2xl border-2 px-2 ${size} font-bold`,
     selected ? 'border-amber-300 bg-amber-300 text-blue-950' : 'border-white/40 bg-white/10 text-white',
   ].join(' ');
 
@@ -51,8 +50,9 @@ const chipClass = (selected: boolean) =>
  * In-place panel to log one practice session: pick a duration and save.
  * With several instruments the panel also offers them, preselected to the last
  * used one, so saving right away still takes no extra tap.
- * The day chips offer today (preselected) and up to 3 days back; "Dziś" saves
- * without a day, so the store stamps the date at save time (midnight-safe).
+ * The day chips are a one-row timeline of today and up to 3 days back: oldest on
+ * the left, today on the right, preselected. "Dziś" saves without a day, so the
+ * store stamps the date at save time (midnight-safe).
  * The note and emoji are optional and stay collapsed until "Dodaj więcej".
  */
 export function LogPractice({
@@ -133,22 +133,29 @@ export function LogPractice({
         <p id={dayLabelId} className="text-xl font-semibold">
           {DAY_LABEL}
         </p>
-        <div role="radiogroup" aria-labelledby={dayLabelId} className="grid grid-cols-2 gap-2">
-          {days.map((key, index) => {
+        <div role="radiogroup" aria-labelledby={dayLabelId} className="relative flex flex-nowrap gap-2">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-4 top-1/2 h-0.5 -translate-y-1/2 bg-white/30"
+          />
+          {[...days].reverse().map((key) => {
+            const index = days.indexOf(key);
             const weekday = WEEKDAY_LABELS[weekdayIndex(key)];
-            const label = [TODAY_CHIP, YESTERDAY_CHIP, DAY_BEFORE_CHIP][index] ?? weekday.short;
+            const label = [TODAY_CHIP, YESTERDAY_CHIP][index] ?? weekday.short;
             return (
-              <button
-                key={key}
-                type="button"
-                role="radio"
-                aria-checked={day === key}
-                aria-label={index > 2 ? weekday.full : undefined}
-                onClick={() => setDay(key)}
-                className={chipClass(day === key)}
-              >
-                {label}
-              </button>
+              // The opaque wrapper keeps the timeline line from showing through a chip.
+              <span key={key} className="relative flex flex-auto rounded-2xl bg-brand">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={day === key}
+                  aria-label={index > 1 ? weekday.full : undefined}
+                  onClick={() => setDay(key)}
+                  className={`${chipClass(day === key, 'text-lg')} w-full whitespace-nowrap`}
+                >
+                  {label}
+                </button>
+              </span>
             );
           })}
         </div>
