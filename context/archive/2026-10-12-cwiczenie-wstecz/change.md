@@ -1,9 +1,10 @@
 ---
 change_id: cwiczenie-wstecz
 title: Students can log a practice session up to 3 days back
-status: impl_reviewed
+status: archived
 created: 2026-10-12
 updated: 2026-10-12
+archived_at: 2026-10-12T19:39:23Z
 ---
 
 ## Notes
