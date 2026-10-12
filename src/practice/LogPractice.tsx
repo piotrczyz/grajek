@@ -1,6 +1,8 @@
 import { useId, useState } from 'react';
 import {
   CANCEL_BUTTON,
+  DAY_BEFORE_CHIP,
+  DAY_LABEL,
   EMOJI_LABEL,
   INSTRUMENT_LABEL,
   minutesLabel,
@@ -9,6 +11,8 @@ import {
   PANEL_HEADING,
   SAVE_BUTTON,
   SAVE_FAILED_MESSAGE,
+  TODAY_CHIP,
+  YESTERDAY_CHIP,
 } from './copy.ts';
 import {
   DURATION_CHOICES,
@@ -17,6 +21,7 @@ import {
   type Practice,
   type PracticeStore,
 } from './practiceStore.ts';
+import { backdateDays, WEEKDAY_LABELS, weekdayIndex } from './week.ts';
 import { instrumentIcon } from '../profile/instruments.ts';
 import type { Instrument } from '../profile/profileStore.ts';
 import { useUnsavedWork } from '../pwa/index.ts';
@@ -28,6 +33,10 @@ interface LogPracticeProps {
   /** Preselected instrument (the last used one). */
   initialInstrumentId: string;
   initialDuration: number;
+  /** Preselected day key (one of `backdateDays(now)`); today when absent. */
+  initialDay?: string;
+  /** The clock the day chips are built from; `new Date()` at mount by default. */
+  now?: Date;
   onSaved(practice: Practice): void;
   onCancel(): void;
 }
@@ -42,6 +51,8 @@ const chipClass = (selected: boolean) =>
  * In-place panel to log one practice session: pick a duration and save.
  * With several instruments the panel also offers them, preselected to the last
  * used one, so saving right away still takes no extra tap.
+ * The day chips offer today (preselected) and up to 3 days back; "Dziś" saves
+ * without a day, so the store stamps the date at save time (midnight-safe).
  * The note and emoji are optional and stay collapsed until "Dodaj więcej".
  */
 export function LogPractice({
@@ -49,6 +60,8 @@ export function LogPractice({
   instruments,
   initialInstrumentId,
   initialDuration,
+  initialDay,
+  now,
   onSaved,
   onCancel,
 }: LogPracticeProps) {
@@ -57,6 +70,9 @@ export function LogPractice({
   const emojiLabelId = useId();
   const noteId = useId();
   const moreId = useId();
+  const dayLabelId = useId();
+  const [days] = useState(() => backdateDays(now ?? new Date()));
+  const [day, setDay] = useState(() => (initialDay !== undefined && days.includes(initialDay) ? initialDay : days[0]));
   const [instrumentId, setInstrumentId] = useState(initialInstrumentId);
   const [duration, setDuration] = useState(initialDuration);
   const [expanded, setExpanded] = useState(false);
@@ -75,6 +91,7 @@ export function LogPractice({
       const practice = await store.add({
         instrumentId,
         durationMinutes: duration,
+        ...(day !== days[0] ? { day } : {}),
         ...(note.trim().length > 0 ? { note } : {}),
         ...(emoji !== null ? { emoji } : {}),
       });
@@ -112,6 +129,30 @@ export function LogPractice({
           </div>
         </div>
       )}
+      <div className="flex flex-col gap-2">
+        <p id={dayLabelId} className="text-xl font-semibold">
+          {DAY_LABEL}
+        </p>
+        <div role="radiogroup" aria-labelledby={dayLabelId} className="grid grid-cols-2 gap-2">
+          {days.map((key, index) => {
+            const weekday = WEEKDAY_LABELS[weekdayIndex(key)];
+            const label = [TODAY_CHIP, YESTERDAY_CHIP, DAY_BEFORE_CHIP][index] ?? weekday.short;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="radio"
+                aria-checked={day === key}
+                aria-label={index > 2 ? weekday.full : undefined}
+                onClick={() => setDay(key)}
+                className={chipClass(day === key)}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <div role="radiogroup" aria-labelledby={headingId} className="grid grid-cols-4 gap-2">
         {DURATION_CHOICES.map((minutes) => (
           <button

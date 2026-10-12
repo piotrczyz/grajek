@@ -156,13 +156,13 @@ path offline.
 
 ### Phase 1: Store accepts a chosen day
 #### Automated
-- [x] 1.1 `pnpm test src/practice/practiceStore.test.ts src/practice/week.test.ts` passes, including the new day cases
-- [x] 1.2 `pnpm typecheck` passes
+- [x] 1.1 `pnpm test src/practice/practiceStore.test.ts src/practice/week.test.ts` passes, including the new day cases — abef645
+- [x] 1.2 `pnpm typecheck` passes — abef645
 
 ### Phase 2: Day chips and tappable past days
 #### Automated
-- [ ] 2.1 `pnpm test src/practice/LogPractice.test.tsx src/practice/WeekView.test.tsx` passes
-- [ ] 2.2 `pnpm lint && pnpm typecheck` passes
+- [x] 2.1 `pnpm test src/practice/LogPractice.test.tsx src/practice/WeekView.test.tsx` passes
+- [x] 2.2 `pnpm lint && pnpm typecheck` passes
 
 ### Phase 3: Home screen wiring and end-to-end
 #### Automated

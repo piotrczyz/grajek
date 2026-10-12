@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 import { LogPractice } from './LogPractice.tsx';
@@ -19,7 +19,14 @@ function fakeStore(add: PracticeStore['add'] = (input: NewPractice) =>
   } satisfies PracticeStore;
 }
 
-function renderPanel(store = fakeStore(), instruments: Instrument[] = [guitar], initialInstrumentId = 'i1') {
+const NOW = new Date(2026, 9, 7, 17, 0); // Wednesday
+
+function renderPanel(
+  store = fakeStore(),
+  instruments: Instrument[] = [guitar],
+  initialInstrumentId = 'i1',
+  initialDay?: string,
+) {
   const onSaved = vi.fn();
   const onCancel = vi.fn();
   render(
@@ -28,6 +35,8 @@ function renderPanel(store = fakeStore(), instruments: Instrument[] = [guitar], 
       instruments={instruments}
       initialInstrumentId={initialInstrumentId}
       initialDuration={20}
+      initialDay={initialDay}
+      now={NOW}
       onSaved={onSaved}
       onCancel={onCancel}
     />,
@@ -40,7 +49,7 @@ describe('LogPractice', () => {
     renderPanel();
     const group = screen.getByRole('radiogroup', { name: 'Ile grałeś?' });
     expect(group).toBeInTheDocument();
-    expect(screen.getAllByRole('radio').map((r) => r.textContent)).toEqual([
+    expect(within(group).getAllByRole('radio').map((r) => r.textContent)).toEqual([
       '5 min',
       '10 min',
       '15 min',
@@ -117,7 +126,8 @@ describe('LogPractice', () => {
     const { store, onSaved } = renderPanel();
     expect(screen.queryByRole('radiogroup', { name: 'Na czym grałeś?' })).not.toBeInTheDocument();
     expect(screen.queryByText('Na czym grałeś?')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('radiogroup')).toHaveLength(1);
+    // Only the day and the duration choices.
+    expect(screen.getAllByRole('radiogroup')).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
     expect(store.add).toHaveBeenCalledWith({ instrumentId: 'i1', durationMinutes: 20 });
@@ -167,5 +177,53 @@ describe('LogPractice', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
     await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Zapisz' })).not.toBeInTheDocument());
     expect(hasUnsavedWork()).toBe(false);
+  });
+  describe('day chips', () => {
+    it('offers today and 3 days back, today preselected', () => {
+      renderPanel();
+      const group = screen.getByRole('radiogroup', { name: 'Kiedy grałeś?' });
+      const chips = within(group).getAllByRole('radio');
+      expect(chips.map((chip) => chip.textContent)).toEqual(['Dziś', 'Wczoraj', 'Przedwczoraj', 'Nd']);
+      expect(chips[3]).toHaveAccessibleName('Niedziela');
+      expect(within(group).getByRole('radio', { name: 'Dziś' })).toHaveAttribute('aria-checked', 'true');
+      expect(chips.filter((chip) => chip.getAttribute('aria-checked') === 'true')).toHaveLength(1);
+    });
+
+    it('places the day choice above the durations', () => {
+      renderPanel();
+      const days = screen.getByRole('radiogroup', { name: 'Kiedy grałeś?' });
+      const durations = screen.getByRole('radiogroup', { name: 'Ile grałeś?' });
+      expect(days.compareDocumentPosition(durations) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('saves today without a day, with no extra tap', async () => {
+      const { store, onSaved } = renderPanel();
+      fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+      await vi.waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+      expect(store.add).toHaveBeenCalledWith({ instrumentId: 'i1', durationMinutes: 20 });
+    });
+
+    it('saves the day key of yesterday after picking "Wczoraj"', async () => {
+      const { store, onSaved } = renderPanel();
+      fireEvent.click(screen.getByRole('radio', { name: 'Wczoraj' }));
+      expect(screen.getByRole('radio', { name: 'Wczoraj' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('radio', { name: 'Dziś' })).toHaveAttribute('aria-checked', 'false');
+      fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+      await vi.waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+      expect(store.add).toHaveBeenCalledWith({ instrumentId: 'i1', durationMinutes: 20, day: '2026-10-06' });
+    });
+
+    it('preselects initialDay and saves it right away', async () => {
+      const { store, onSaved } = renderPanel(fakeStore(), [guitar], 'i1', '2026-10-05');
+      expect(screen.getByRole('radio', { name: 'Przedwczoraj' })).toHaveAttribute('aria-checked', 'true');
+      fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+      await vi.waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+      expect(store.add).toHaveBeenCalledWith({ instrumentId: 'i1', durationMinutes: 20, day: '2026-10-05' });
+    });
+
+    it('falls back to today when initialDay is outside the window', () => {
+      renderPanel(fakeStore(), [guitar], 'i1', '2026-10-01');
+      expect(screen.getByRole('radio', { name: 'Dziś' })).toHaveAttribute('aria-checked', 'true');
+    });
   });
 });
