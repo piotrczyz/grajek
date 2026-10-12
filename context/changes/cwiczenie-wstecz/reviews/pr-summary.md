@@ -1,9 +1,13 @@
 <!-- preview-link -->
 
-**What this delivers:** A student who forgot to log practice can now add it afterwards, for up to 3 days back. The "Ile grałeś?" panel has day choices (Dziś, Wczoraj, Przedwczoraj and the weekday of 3 days ago), with today still preselected so logging today takes the same taps as before. In "Ten tydzień" an empty day from the last 3 days can be tapped to log it directly, and after saving the app says "Super! Dopisane do <dnia>." and lights that day up.
+**Co zmieni się po Twojej uwadze:** Wybór dnia „Kiedy grałeś?” będzie osią czasu w jednej linii: od najstarszego dnia po lewej do „Dziś” po prawej (np. w poniedziałek: Pt · So · Wczoraj · Dziś). „Dziś” zostaje domyślnie zaznaczone, a dni łączy delikatna linia.
 
-**Please check on the preview:**
-- On a phone, log yesterday's practice from the day choices and confirm it takes about as long as logging today.
-- Look at "Ten tydzień": empty past days you can tap should look calm and neutral (never red) but clearly tappable.
+**Odpowiedzi na Twoje uwagi:**
+- „Przedwczoraj” jest za długie, by cztery dni zmieściły się w jednym rzędzie na telefonie 360 px czytelną dla dzieci czcionką, więc dwa najstarsze dni pokazujemy skrótem dnia tygodnia, takim jak w „Ten tydzień” (Pt, So). „Wczoraj” i „Dziś” zostają słowami.
 
-**Status:** Ready to merge once you have checked the preview.
+**Co możesz sprawdzić na podglądzie:**
+- Na wąskim telefonie otwórz „Zagrałem!” i sprawdź, że cztery dni mieszczą się w jednym rzędzie, nic się nie łamie, a „Dziś” jest po prawej i zaznaczone.
+- Wybierz „Wczoraj” albo starszy dzień, zapisz i sprawdź, że ten dzień zapala się w „Ten tydzień”.
+- Puste minione dni w „Ten tydzień” powinny wyglądać spokojnie (nie na czerwono), ale dać się kliknąć.
+
+**Status:** Poprawka w przygotowaniu; po niej gotowe do scalenia, gdy sprawdzisz podgląd.
