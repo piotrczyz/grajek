@@ -2,7 +2,7 @@
 # Implementation Review: Practice backdating (up to 3 days back)
 
 **Plan**: context/changes/cwiczenie-wstecz/plan.md   **Scope**: increment 1 (phases 1-3, full plan)   **Date**: 2026-10-12
-**Round**: 1   **Verdict**: APPROVED   **Findings**: 2
+**Round**: 1   **Verdict**: APPROVED   **Findings**: 3
 
 ## Verdicts
 | Dimension | Verdict |
@@ -41,7 +41,7 @@ All 13 changed code files are named in the plan (`src/practice/{week,practiceSto
 - **Impact**: LOW
 - **Dimension**: Safety & Quality
 - **Location**: src/practice/LogPractice.tsx:75, src/profile/ProfileScreen.tsx:29
-- **Detail**: `ProfileScreen`'s `now` only refreshes on save (pre-existing). If the app stays open past midnight, the week view's tappable days are computed from yesterday's clock while the panel builds its chips from a fresh `new Date()`; a tapped day that has just left the window falls back to "Dziś" silently. Likewise a panel left open across midnight with the 3-days-back chip selected is rejected by the store and shows the generic retry message. Both are narrow edges; the store guard keeps data correct.
+- **Detail**: `ProfileScreen`'s `now` refreshes on save and on returning to the app (pre-existing), not at midnight itself. If the screen stays visible past midnight, the week view's tappable days are computed from yesterday's clock while the panel builds its chips from a fresh `new Date()`; a tapped day that has just left the window falls back to "Dziś" silently. Likewise a panel left open across midnight with the 3-days-back chip selected is rejected by the store and shows the generic retry message. Both are narrow edges; the store guard keeps data correct.
 - **Fix**: none required now; a later change could refresh `now` on visibility/focus.
 - **Decision**: ACCEPT — rare edge, data stays valid, stale-clock behaviour predates this change and the plan keeps the store as the single authority.
 
@@ -53,6 +53,17 @@ All 13 changed code files are named in the plan (`src/practice/{week,practiceSto
 - **Detail**: the `<li>` keeps its day `aria-label` and the nested button adds "<Dzień>: dopisz granie". Screen readers announce both, which is understandable and matches the plan's "existing accessible day name plus a hint".
 - **Fix**: none.
 - **Decision**: ACCEPT — as planned (Critical Implementation Details).
+
+### F3 — AC-05 integration test depends on the shared goal database
+- **Severity**: OBSERVATION
+- **Impact**: LOW
+- **Dimension**: Pattern Consistency
+- **Location**: src/App.test.tsx (AC-05 block)
+- **Detail**: the test sets a weekly goal only when none exists, because the goal store uses the app's default database shared across the file; it compares the goal text before and after, so it is correct in either branch, but less hermetic than the practice/profile stores it isolates with unique names.
+- **Fix**: none now; isolate the goal store if `App` later accepts it as a prop.
+- **Decision**: ACCEPT — the assertion holds in both branches; isolating it would widen `App`'s props beyond this change.
+
+Dismissed from the evidence passes: the new `src/practice/index.ts` exports without an outside consumer (the plan, Phase 1 item 3, asks for them); "Dziś" saving to the new today after midnight (deliberate, plan Key discoveries and the existing midnight test).
 
 ## Notes
 - Diff exceeded the inline size threshold (13 code files); two read-only evidence passes were launched, but the decisions above rest on the reviewer's own reading of the full source and test diff.
