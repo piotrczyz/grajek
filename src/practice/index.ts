@@ -12,5 +12,14 @@ export {
   type PracticeInputReason,
   type PracticeStore,
 } from './practiceStore.ts';
-export { dayKey, weekDays, WEEKDAY_LABELS, type WeekdayLabel } from './week.ts';
+export {
+  BACKDATE_DAYS,
+  backdateDays,
+  dayKey,
+  WEEKDAY_GENITIVE,
+  WEEKDAY_LABELS,
+  weekDays,
+  weekdayIndex,
+  type WeekdayLabel,
+} from './week.ts';
 export { WeekView } from './WeekView.tsx';

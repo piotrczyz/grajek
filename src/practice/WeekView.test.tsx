@@ -1,5 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { weekDays } from './week.ts';
 import { WeekView } from './WeekView.tsx';
 
@@ -40,5 +40,48 @@ describe('WeekView', () => {
   it('shows no counter, goal or totals', () => {
     render(<WeekView days={days} musicDays={new Set(['2026-10-05'])} today="2026-10-07" />);
     expect(screen.getByRole('list').textContent).not.toMatch(/\d/);
+  });
+  describe('tappable past days', () => {
+    // Today is Thursday 2026-10-08: Mon..Wed are 3..1 days back, Fri..Sun are future.
+    const thursday = '2026-10-08';
+
+    it('makes only the empty days 1 to 3 back buttons', () => {
+      render(
+        <WeekView days={days} musicDays={new Set(['2026-10-06'])} today={thursday} onLogDay={() => {}} />,
+      );
+      const buttons = within(screen.getByRole('list')).getAllByRole('button');
+      expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
+        'Poniedziałek: dopisz granie',
+        'Środa: dopisz granie',
+      ]);
+      for (const button of buttons) {
+        expect(button.className).not.toMatch(/red/);
+        expect(button.closest('li')).not.toHaveClass('bg-amber-300');
+      }
+    });
+
+    it('never makes today, music days, older or future days tappable', () => {
+      // Sunday 2026-10-11: Thu..Sat are 3..1 back, Mon..Wed are 4+ back.
+      render(
+        <WeekView days={days} musicDays={new Set(['2026-10-09'])} today="2026-10-11" onLogDay={() => {}} />,
+      );
+      expect(screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'))).toEqual([
+        'Czwartek: dopisz granie',
+        'Sobota: dopisz granie',
+      ]);
+    });
+
+    it('calls onLogDay with the tapped day key', () => {
+      const onLogDay = vi.fn();
+      render(<WeekView days={days} musicDays={new Set()} today={thursday} onLogDay={onLogDay} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Wtorek: dopisz granie' }));
+      expect(onLogDay).toHaveBeenCalledWith('2026-10-06');
+    });
+
+    it('keeps every day display-only without the handler', () => {
+      render(<WeekView days={days} musicDays={new Set()} today={thursday} />);
+      expect(screen.queryAllByRole('button')).toHaveLength(0);
+      expect(screen.getAllByRole('listitem')).toHaveLength(7);
+    });
   });
 });

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { dayKey, WEEKDAY_LABELS, weekDays } from './week.ts';
+import { backdateDays, BACKDATE_DAYS, dayKey, WEEKDAY_GENITIVE, WEEKDAY_LABELS, weekDays, weekdayIndex } from './week.ts';
 
 describe('dayKey', () => {
   it('formats the local date with zero padding', () => {
@@ -65,5 +65,68 @@ describe('WEEKDAY_LABELS', () => {
     expect(WEEKDAY_LABELS.map((label) => label.short)).toEqual(['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd']);
     expect(WEEKDAY_LABELS[0].full).toBe('Poniedziałek');
     expect(WEEKDAY_LABELS[6].full).toBe('Niedziela');
+  });
+});
+
+describe('backdateDays', () => {
+  it('returns today first, then up to 3 days back', () => {
+    expect(BACKDATE_DAYS).toBe(3);
+    expect(backdateDays(new Date(2026, 9, 7, 17, 0))).toEqual([
+      '2026-10-07',
+      '2026-10-06',
+      '2026-10-05',
+      '2026-10-04',
+    ]);
+  });
+
+  it('crosses a month boundary', () => {
+    expect(backdateDays(new Date(2026, 10, 2, 0, 5))).toEqual([
+      '2026-11-02',
+      '2026-11-01',
+      '2026-10-31',
+      '2026-10-30',
+    ]);
+  });
+
+  describe('in Europe/Warsaw', () => {
+    beforeAll(() => {
+      vi.stubEnv('TZ', 'Europe/Warsaw');
+    });
+    afterAll(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('never skips or repeats a day across the DST change', () => {
+      // CEST ends on 2026-10-25 at 03:00; 2026-10-26 00:30 is already CET.
+      const justAfterMidnight = new Date(2026, 9, 26, 0, 30);
+      expect(justAfterMidnight.getTimezoneOffset()).toBe(-60);
+      expect(backdateDays(justAfterMidnight)).toEqual([
+        '2026-10-26',
+        '2026-10-25',
+        '2026-10-24',
+        '2026-10-23',
+      ]);
+    });
+  });
+});
+
+describe('weekdayIndex and WEEKDAY_GENITIVE', () => {
+  it('maps a day key to its weekday, Monday = 0', () => {
+    expect(weekdayIndex('2026-10-05')).toBe(0);
+    expect(weekdayIndex('2026-10-07')).toBe(2);
+    expect(weekdayIndex('2026-10-11')).toBe(6);
+  });
+
+  it('lists the genitive weekday names Monday first', () => {
+    expect(WEEKDAY_GENITIVE).toEqual([
+      'poniedziałku',
+      'wtorku',
+      'środy',
+      'czwartku',
+      'piątku',
+      'soboty',
+      'niedzieli',
+    ]);
+    expect(WEEKDAY_GENITIVE[weekdayIndex('2026-10-06')]).toBe('wtorku');
   });
 });

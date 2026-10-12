@@ -2,18 +2,19 @@
  * Practice sessions (Ćwiczenie) logged by the student (Uczeń) on this device.
  *
  * Stored in the `practices` IndexedDB store (migration v4), one record per
- * session. `day` is the local calendar date at save time, so a past Dzień z
- * muzyką never moves when the device's time zone changes. Nothing here ever
+ * session. `day` is the local calendar date the session was played on (today
+ * at save time by default, or a chosen day up to `BACKDATE_DAYS` back), so a
+ * past Dzień z muzyką never moves when the device's time zone changes. Nothing here ever
  * leaves the device.
  */
 import { createConnection, type OpenConnection } from '../storage/index.ts';
-import { dayKey, weekDays } from './week.ts';
+import { backdateDays, dayKey, weekDays } from './week.ts';
 
 export interface Practice {
   id: string;
   instrumentId: string;
   durationMinutes: number;
-  /** Local calendar date at save time, `YYYY-MM-DD`. */
+  /** The chosen local calendar date, `YYYY-MM-DD`; today at save time by default. */
   day: string;
   createdAt: string;
   note?: string;
@@ -23,12 +24,17 @@ export interface Practice {
 export interface NewPractice {
   instrumentId: string;
   durationMinutes: number;
+  /** Day played, `YYYY-MM-DD`, within `backdateDays(now)`; absent = today at save time. */
+  day?: string;
   note?: string;
   emoji?: string;
 }
 
 export interface PracticeStore {
-  /** Saves a session for today; rejects with `PracticeError` on invalid input. */
+  /**
+   * Saves a session for the chosen day, today by default; rejects with
+   * `PracticeError` on invalid input (reason `day` outside today..3 days back).
+   */
   add(input: NewPractice): Promise<Practice>;
   /** Sessions of the Monday-to-Sunday week containing `now`. */
   listWeek(now?: Date): Promise<Practice[]>;
@@ -51,7 +57,7 @@ export const NOTE_MAX_LENGTH = 80;
 /** The fixed, non-judgemental emoji a session can carry. */
 export const PRACTICE_EMOJI: readonly string[] = ['😊', '🤩', '💪', '🎶', '😌'];
 
-export type PracticeInputReason = 'instrument-empty' | 'duration' | 'note-too-long' | 'emoji';
+export type PracticeInputReason = 'instrument-empty' | 'duration' | 'note-too-long' | 'emoji' | 'day';
 
 export class PracticeError extends Error {
   readonly code: 'invalid';
@@ -110,10 +116,14 @@ export function createIndexedDbPracticeStore(
     async add(input) {
       const checked = validate(input);
       const at = now();
+      const today = dayKey(at);
+      if (input.day !== undefined && !backdateDays(at).includes(input.day)) {
+        throw new PracticeError('invalid', 'day');
+      }
       const practice: Practice = {
         id: crypto.randomUUID(),
         ...checked,
-        day: dayKey(at),
+        day: input.day ?? today,
         createdAt: at.toISOString(),
       };
       await (await db()).add(PRACTICES_STORE, practice);

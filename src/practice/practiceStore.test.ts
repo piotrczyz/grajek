@@ -128,4 +128,44 @@ describe('PracticeStore', () => {
     await store.add({ instrumentId: 'piano', durationMinutes: 5 });
     await expect(store.lastPractice()).resolves.toEqual(latest);
   });
+  describe('a chosen day', () => {
+    it.each([
+      ['yesterday', '2026-10-06'],
+      ['3 days back', '2026-10-04'],
+      ['today, given explicitly', '2026-10-07'],
+    ])('accepts %s', async (_label, day) => {
+      const { store } = storeWithClock();
+      const saved = await store.add({ ...base, day });
+      expect(saved.day).toBe(day);
+      expect(saved.createdAt).toBe(new Date(2026, 9, 7, 17, 0).toISOString());
+    });
+
+    it('stamps today at save time when no day is given', async () => {
+      const { store, at } = storeWithClock();
+      at(new Date(2026, 9, 8, 0, 5));
+      await expect(store.add(base)).resolves.toMatchObject({ day: '2026-10-08' });
+    });
+
+    it.each([
+      ['4 days back', '2026-10-03'],
+      ['tomorrow', '2026-10-08'],
+      ['a malformed day', '2026-10-6'],
+      ['an empty day', ''],
+    ])('rejects %s with reason day', async (_label, day) => {
+      const { store } = storeWithClock();
+      const result = store.add({ ...base, day });
+      await expect(result).rejects.toBeInstanceOf(PracticeError);
+      await expect(result).rejects.toMatchObject({ code: 'invalid', reason: 'day' });
+      await expect(store.listWeek(new Date(2026, 9, 1, 12, 0))).resolves.toEqual([]);
+      await expect(store.listWeek()).resolves.toEqual([]);
+    });
+
+    it('lists a Saturday saved on Monday in the previous week, not this one', async () => {
+      const { store, at } = storeWithClock();
+      at(new Date(2026, 9, 12, 9, 0)); // Monday
+      const saturday = await store.add({ ...base, day: '2026-10-10' });
+      await expect(store.listWeek()).resolves.toEqual([]);
+      await expect(store.listWeek(new Date(2026, 9, 10, 12, 0))).resolves.toEqual([saturday]);
+    });
+  });
 });
