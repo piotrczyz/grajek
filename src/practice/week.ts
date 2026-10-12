@@ -39,3 +39,34 @@ export const WEEKDAY_LABELS: readonly WeekdayLabel[] = [
   { short: 'So', full: 'Sobota' },
   { short: 'Nd', full: 'Niedziela' },
 ];
+
+/** How many days back a session may be logged (Ćwiczenie wstecz). */
+export const BACKDATE_DAYS = 3;
+
+/**
+ * The day keys a session may be logged for: today first, then 1 to
+ * `BACKDATE_DAYS` days back. Built from local parts, so DST changes and month
+ * boundaries never skip or repeat a day.
+ */
+export function backdateDays(now: Date): string[] {
+  return Array.from({ length: BACKDATE_DAYS + 1 }, (_, i) =>
+    dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)),
+  );
+}
+
+/** Weekday of a day key, 0 = Monday (matching `WEEKDAY_LABELS`). */
+export function weekdayIndex(day: string): number {
+  const [year, month, date] = day.split('-').map(Number);
+  return (new Date(year, month - 1, date).getDay() + 6) % 7;
+}
+
+/** Weekday names in the genitive ("do wtorku"), Monday first. */
+export const WEEKDAY_GENITIVE: readonly string[] = [
+  'poniedziałku',
+  'wtorku',
+  'środy',
+  'czwartku',
+  'piątku',
+  'soboty',
+  'niedzieli',
+];

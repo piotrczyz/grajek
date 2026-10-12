@@ -156,8 +156,8 @@ path offline.
 
 ### Phase 1: Store accepts a chosen day
 #### Automated
-- [ ] 1.1 `pnpm test src/practice/practiceStore.test.ts src/practice/week.test.ts` passes, including the new day cases
-- [ ] 1.2 `pnpm typecheck` passes
+- [x] 1.1 `pnpm test src/practice/practiceStore.test.ts src/practice/week.test.ts` passes, including the new day cases
+- [x] 1.2 `pnpm typecheck` passes
 
 ### Phase 2: Day chips and tappable past days
 #### Automated
