@@ -49,7 +49,7 @@ method would duplicate validation.
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Practice backdating | 1-3 | — | yes | in-progress | #18 |
+| 1 | Practice backdating | 1-3 | — | yes | done | #18 |
 
 ## Critical Implementation Details
 - Window: `backdateDays(now)` returns `[today, -1, -2, -3]` day keys built with `new Date(y, m, d - i)` (local parts, DST-safe, like `weekDays`).
