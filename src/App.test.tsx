@@ -414,3 +414,92 @@ describe('weekly goal on the home screen', () => {
     expect(goalStatus()).toHaveTextContent('Cel osiągnięty!');
   });
 });
+
+describe('logging a practice session for a past day', () => {
+  const practiceOn = (name: string) => createIndexedDbPracticeStore((onClose) => openDb({ name, onClose }));
+  const week = () => screen.getByRole('list', { name: 'Ten tydzień' });
+  const musicDays = () =>
+    within(week())
+      .getAllByRole('listitem')
+      .filter((item) => item.getAttribute('aria-label')?.includes('Dzień z muzyką'));
+  const goalStatus = () =>
+    within(screen.getByRole('region', { name: 'Cel tygodnia' })).getByRole('status');
+
+  async function renderHomeAt(date: Date) {
+    // Only Date is faked: IndexedDB and React keep real timers.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(date);
+    const name = uniqueName();
+    await storeOn(name).create({ name: 'Ola', instrumentName: 'Gitara' });
+    const practiceStore = practiceOn(name);
+    render(<App store={storeOn(name)} practiceStore={practiceStore} />);
+    await screen.findByRole('heading', { level: 1, name: 'Cześć, Ola!' });
+    return practiceStore;
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('AC-01: logs yesterday from the chips and highlights it', async () => {
+    const practiceStore = await renderHomeAt(new Date(2026, 9, 14, 17, 0)); // Wednesday
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Wczoraj' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+
+    expect(await screen.findByText('Super! Dopisane do wtorku.')).toBeInTheDocument();
+    await waitFor(() => expect(musicDays()).toHaveLength(1));
+    expect(musicDays()[0]).toHaveAccessibleName('Wtorek: Dzień z muzyką');
+    await expect(practiceStore.listWeek()).resolves.toMatchObject([{ day: '2026-10-13' }]);
+  });
+
+  it('AC-02: saving right away still logs today', async () => {
+    await renderHomeAt(new Date(2026, 9, 14, 17, 0));
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    expect(screen.getByRole('radio', { name: 'Dziś' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+
+    expect(await screen.findByText('Super! Zapisane.')).toBeInTheDocument();
+    await waitFor(() => expect(musicDays()).toHaveLength(1));
+    expect(musicDays()[0]).toHaveAccessibleName('Środa: Dzień z muzyką (dziś)');
+  });
+
+  it('AC-03: tapping the day before yesterday opens the panel with that day chosen', async () => {
+    await renderHomeAt(new Date(2026, 9, 14, 17, 0));
+    fireEvent.click(within(week()).getByRole('button', { name: 'Poniedziałek: dopisz granie' }));
+
+    expect(screen.getByRole('radio', { name: 'Przedwczoraj' })).toHaveAttribute('aria-checked', 'true');
+    // No week-day taps while the panel is open.
+    expect(within(week()).queryAllByRole('button')).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+    expect(await screen.findByText('Super! Dopisane do poniedziałku.')).toBeInTheDocument();
+    await waitFor(() => expect(musicDays()).toHaveLength(1));
+    expect(musicDays()[0]).toHaveAccessibleName('Poniedziałek: Dzień z muzyką');
+    expect(within(week()).queryByRole('button', { name: /^Poniedziałek/ })).not.toBeInTheDocument();
+  });
+
+  it('AC-05: on Monday, logging Saturday leaves this week and its goal unchanged', async () => {
+    const practiceStore = await renderHomeAt(new Date(2026, 9, 12, 9, 0)); // Monday
+    // The goal store is the app's default database, shared by this file: set a goal only when none exists yet.
+    await screen.findByRole('region', { name: 'Cel tygodnia' });
+    const choose = screen.queryByRole('radio', { name: /^1 dzień/ });
+    if (choose) {
+      fireEvent.click(choose);
+      fireEvent.click(screen.getByRole('button', { name: 'Ustaw cel' }));
+    }
+    await waitFor(() => expect(goalStatus()).toHaveTextContent(/^0 z /));
+    const goalBefore = goalStatus().textContent;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zagrałem!' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Przedwczoraj' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz' }));
+
+    expect(await screen.findByText('Super! Dopisane do soboty.')).toBeInTheDocument();
+    await expect(practiceStore.listWeek(new Date(2026, 9, 10, 12, 0))).resolves.toMatchObject([
+      { day: '2026-10-10' },
+    ]);
+    await expect(practiceStore.listWeek()).resolves.toEqual([]);
+    expect(musicDays()).toHaveLength(0);
+    expect(goalStatus().textContent).toBe(goalBefore);
+  });
+});

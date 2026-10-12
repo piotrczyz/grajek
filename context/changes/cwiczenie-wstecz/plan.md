@@ -161,13 +161,13 @@ path offline.
 
 ### Phase 2: Day chips and tappable past days
 #### Automated
-- [x] 2.1 `pnpm test src/practice/LogPractice.test.tsx src/practice/WeekView.test.tsx` passes
-- [x] 2.2 `pnpm lint && pnpm typecheck` passes
+- [x] 2.1 `pnpm test src/practice/LogPractice.test.tsx src/practice/WeekView.test.tsx` passes — 27d07c9
+- [x] 2.2 `pnpm lint && pnpm typecheck` passes — 27d07c9
 
 ### Phase 3: Home screen wiring and end-to-end
 #### Automated
-- [ ] 3.1 `pnpm test` passes (full suite)
-- [ ] 3.2 `pnpm build` succeeds
-- [ ] 3.3 `pnpm test:e2e e2e/practice-backdating.spec.ts e2e/practice.spec.ts` passes
+- [x] 3.1 `pnpm test` passes (full suite)
+- [x] 3.2 `pnpm build` succeeds
+- [x] 3.3 `pnpm test:e2e e2e/practice-backdating.spec.ts e2e/practice.spec.ts` passes
 #### Manual
 - [ ] 3.4 On a phone, logging yesterday from the chips takes about as long as logging today, and empty past days look neutral (not red) but are clearly tappable

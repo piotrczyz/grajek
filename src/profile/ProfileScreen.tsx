@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BadgesCard } from '../badges/index.ts';
-import { LOG_BUTTON, SAVED_MESSAGE } from '../practice/copy.ts';
+import { backdatedMessage, LOG_BUTTON, SAVED_MESSAGE } from '../practice/copy.ts';
 import { LogPractice } from '../practice/LogPractice.tsx';
 import { DEFAULT_DURATION, type PracticeStore } from '../practice/practiceStore.ts';
 import { dayKey, weekDays } from '../practice/week.ts';
@@ -17,11 +17,13 @@ interface ProfileScreenProps {
 
 /**
  * The home screen: greeting, the last used instrument, logging a practice
- * session and the current week.
+ * session (today, or a tapped empty past day) and the current week.
  */
 export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
   const [logging, setLogging] = useState(false);
-  const [saved, setSaved] = useState(false);
+  // The day to preselect in the panel; `undefined` = today.
+  const [logDay, setLogDay] = useState<string | undefined>(undefined);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [lastDuration, setLastDuration] = useState(DEFAULT_DURATION);
   const [lastInstrumentId, setLastInstrumentId] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -74,6 +76,12 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
   const instrument =
     profile.instruments.find((candidate) => candidate.id === lastInstrumentId) ?? profile.instrument;
 
+  const openPanel = (day?: string) => {
+    setSavedMessage(null);
+    setLogDay(day);
+    setLogging(true);
+  };
+
   return (
     <>
       <h1 className="text-5xl font-extrabold tracking-tight break-words">Cześć, {profile.name}!</h1>
@@ -89,14 +97,16 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
           instruments={profile.instruments}
           initialInstrumentId={instrument.id}
           initialDuration={lastDuration}
+          initialDay={logDay}
           onSaved={(practice) => {
             setLastDuration(practice.durationMinutes);
             setLastInstrumentId(practice.instrumentId);
             setLogging(false);
-            setSaved(true);
             // The save is stamped with the clock at save time; a session left open
             // across midnight must show that day (and week) as today.
-            setNow(new Date());
+            const at = new Date();
+            setSavedMessage(practice.day === dayKey(at) ? SAVED_MESSAGE : backdatedMessage(practice.day));
+            setNow(at);
             setSavedCount((n) => n + 1);
           }}
           onCancel={() => setLogging(false)}
@@ -105,21 +115,23 @@ export function ProfileScreen({ profile, practiceStore }: ProfileScreenProps) {
         <>
           <button
             type="button"
-            onClick={() => {
-              setSaved(false);
-              setLogging(true);
-            }}
+            onClick={() => openPanel()}
             className="min-h-20 w-full max-w-sm rounded-3xl bg-amber-300 px-6 text-4xl font-extrabold text-blue-950"
           >
             {LOG_BUTTON}
           </button>
           <p role="status" className="min-h-8 text-2xl font-bold text-amber-300">
-            {saved ? SAVED_MESSAGE : null}
+            {savedMessage}
           </p>
         </>
       )}
       <BadgesCard savedCount={savedCount} />
-      <WeekView days={weekDays(now)} musicDays={musicDays} today={dayKey(now)} />
+      <WeekView
+        days={weekDays(now)}
+        musicDays={musicDays}
+        today={dayKey(now)}
+        onLogDay={logging ? undefined : openPanel}
+      />
       <ShareCardButton days={weekDays(now)} musicDays={musicDays} instrumentName={instrument.name} />
       <WeeklyGoalCard musicDayCount={musicDays.size} now={now} practiceStore={practiceStore} />
     </>
