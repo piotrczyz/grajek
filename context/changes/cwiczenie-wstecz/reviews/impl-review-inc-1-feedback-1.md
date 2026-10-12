@@ -2,12 +2,12 @@
 # Implementation Review: Practice backdating (up to 3 days back) — client feedback 1
 
 **Plan**: context/changes/cwiczenie-wstecz/plan.md   **Scope**: increment 1 (phases 1-3), feedback cycle 1 (`reviews/feedback-inc-1-1.md`)   **Date**: 2026-10-12
-**Round**: 1   **Verdict**: NEEDS_ATTENTION   **Findings**: 3
+**Round**: 2   **Verdict**: APPROVED   **Findings**: 3
 
 ## Verdicts
 | Dimension | Verdict |
 |---|---|
-| Plan Adherence | WARNING |
+| Plan Adherence | PASS |
 | Scope Discipline | PASS |
 | Safety & Quality | PASS |
 | Architecture | PASS |
@@ -30,7 +30,7 @@ Fit at 360 px: the app column has `px-6` (`src/App.tsx:52`), leaving 312 px. Fou
 - **Location**: src/practice/LogPractice.tsx:132-155
 - **Detail**: Client comment: "Wybór dnia … ma wyglądać jak oś czasu — wszystkie 4 dni w JEDNEJ linii, chronologicznie od najstarszego do dzisiaj, od lewej do prawej … „Dziś” nadal domyślnie zaznaczone … Musi się mieścić na wąskim telefonie (ok. 360 px) bez łamania tekstu … rozważ wizualny akcent osi (np. linia łącząca), ale bez przesady." The group is a 2x2 grid in today-first order, and "Przedwczoraj" cannot fit one row at 360 px.
 - **Fix**: In `LogPractice.tsx` only: render the chips from a reversed copy (`[...days].reverse()`) while leaving `backdateDays` order, `days[0]` (today) and the save logic untouched; replace `grid grid-cols-2` with a single non-wrapping row (`flex flex-nowrap gap-2`, chips `flex-auto whitespace-nowrap px-3 text-lg`, keep `min-h-14` touch height and `chipClass` colours); visible labels oldest → today: `<short weekday>` · `<short weekday>` · `Wczoraj` · `Dziś` (e.g. on Monday "Pt · So · Wczoraj · Dziś"), each short-weekday chip's accessible name is its full weekday (`WEEKDAY_LABELS[…].full`, the existing pattern of the 3-days-back chip); `DAY_BEFORE_CHIP` is then unused — remove it from `copy.ts`; add one decorative connecting line behind the row (`aria-hidden`, `pointer-events-none`, thin and low-contrast, e.g. `h-0.5 bg-white/30` at vertical centre) that never shows through a chip's text (chips get an opaque background, or the line sits only between chips); update the component doc comment ("oldest on the left, today on the right, preselected").
-- **Decision**: FIXED (5c951f9) — client feedback; one unambiguous change. Label choice is Auto (see Feedback analysis).
+- **Decision**: FIXED (5c951f9) — verified r2. Client feedback; one unambiguous change. Label choice is Auto (see Feedback analysis).
 
 ### F2 — Tests must pin the new order, labels and the 360 px fit
 - **Severity**: WARNING
@@ -39,7 +39,7 @@ Fit at 360 px: the app column has `px-6` (`src/App.tsx:52`), leaving 312 px. Fou
 - **Location**: src/practice/LogPractice.test.tsx:181-229; src/App.test.tsx:466-494; e2e/practice-backdating.spec.ts:35
 - **Detail**: Client: "Zaktualizować testy (unit/integracyjne/e2e) do nowego układu." Current tests assert the old order (`['Dziś','Wczoraj','Przedwczoraj','Nd']`) and query `name: 'Przedwczoraj'` (unit `:218`, App AC-03 `:471`, AC-05 `:494`, e2e `:35`), which F1 removes. No test checks single-row layout or width.
 - **Fix**: Unit: assert chip text order oldest → today (for the fixed clock in `renderPanel`, `['Nd','Pn','Wczoraj','Dziś']`-style per that date), accessible names of the two weekday chips are full weekdays, "Dziś" is the last chip and the only checked one, and the reversed rendering still saves today without `day` and a past chip with its key; replace `name: 'Przedwczoraj'` queries in unit, App (AC-03 → "Poniedziałek", AC-05 → "Sobota") and e2e (→ "Poniedziałek") with the full weekday; e2e: add a test (or extend `practice-backdating.spec.ts`) with `page.setViewportSize({ width: 360, height: 780 })` that opens the panel and asserts the four radios of "Kiedy grałeś?" share one row (equal `boundingBox().y`), are ordered left → right by `x` with "Dziś" rightmost and checked, each chip's text does not wrap or overflow (`scrollWidth <= clientWidth` and a single line height), and the row's right edge is ≤ 360.
-- **Decision**: FIXED (5c951f9) — required by the feedback and by F1.
+- **Decision**: FIXED (5c951f9) — verified r2. Required by the feedback and by F1.
 
 ### F3 — One flaky unrelated test under full-suite load
 - **Severity**: OBSERVATION
@@ -64,3 +64,7 @@ Fit at 360 px: the app column has `px-6` (`src/App.tsx:52`), leaving 312 px. Fou
 - The plan's Desired End State and Critical Implementation Details still describe the old order ("Dziś (preselected) · Wczoraj · Przedwczoraj · …"); the feedback supersedes them. Record it as an adaptation in `reviews/fix-r1.md`; plan.md is outside your writable sections.
 - Files of the fix: `src/practice/LogPractice.tsx`, `src/practice/copy.ts` (remove `DAY_BEFORE_CHIP`), `src/practice/LogPractice.test.tsx`, `src/App.test.tsx`, `e2e/practice-backdating.spec.ts`. No store, week-window or WeekView change.
 - Re-run: phase 2 criteria (2.1, 2.2), 3.1, 3.2, 3.3 with the browsers path above.
+
+## Round 2
+Re-review of fix 5c951f9 (evidence `reviews/fix-r1.md`: full suite 470/470 against the 468/469 baseline, red-first recorded). Verified in the diff: `LogPractice.tsx` renders `[...days].reverse()` in a `relative flex flex-nowrap` row, labels short weekday · short weekday · Wczoraj · Dziś with full weekday accessible names, `days[0]` and the save path untouched, decorative `aria-hidden` line behind opaque `bg-brand` wrappers (`--color-brand` defined in `src/index.css:6`); `DAY_BEFORE_CHIP` removed with no remaining users. `px-2` instead of the suggested `px-3` (18 px root font) is accepted: the 360 px e2e check is the binding criterion and passes. Tests assert the new order, names, checked state, saving the oldest chip, and the 360 px one-row fit with no wrap or overflow. Fix stayed inside the planned files; F3 (ACCEPT) untouched.
+Re-run by reviewer: `pnpm test src/practice/LogPractice.test.tsx src/practice/WeekView.test.tsx src/App.test.tsx` 52/52 PASS; `pnpm lint` PASS; `pnpm typecheck` PASS; `pnpm build` PASS; `pnpm test:e2e e2e/practice-backdating.spec.ts e2e/practice.spec.ts` 3/3 PASS (incl. the 360 px test).
