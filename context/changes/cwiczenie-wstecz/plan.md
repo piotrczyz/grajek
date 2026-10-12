@@ -166,8 +166,8 @@ path offline.
 
 ### Phase 3: Home screen wiring and end-to-end
 #### Automated
-- [x] 3.1 `pnpm test` passes (full suite)
-- [x] 3.2 `pnpm build` succeeds
-- [x] 3.3 `pnpm test:e2e e2e/practice-backdating.spec.ts e2e/practice.spec.ts` passes
+- [x] 3.1 `pnpm test` passes (full suite) — a7f2c27
+- [x] 3.2 `pnpm build` succeeds — a7f2c27
+- [x] 3.3 `pnpm test:e2e e2e/practice-backdating.spec.ts e2e/practice.spec.ts` passes — a7f2c27
 #### Manual
 - [ ] 3.4 On a phone, logging yesterday from the chips takes about as long as logging today, and empty past days look neutral (not red) but are clearly tappable
