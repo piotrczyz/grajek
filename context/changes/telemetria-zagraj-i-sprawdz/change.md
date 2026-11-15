@@ -1,7 +1,7 @@
 ---
 change_id: telemetria-zagraj-i-sprawdz
 title: Anonymous telemetry and accuracy feedback for the play-and-check screen
-status: planned
+status: implementing
 created: 2026-11-15
 updated: 2026-11-15
 archived_at: null
