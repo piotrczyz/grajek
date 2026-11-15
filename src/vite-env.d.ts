@@ -11,3 +11,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Build id (short commit SHA in CI, 'dev' locally), defined in vite.config.ts. */
+declare const __APP_BUILD__: string;

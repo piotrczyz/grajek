@@ -1,9 +1,11 @@
 <!-- preview-link -->
 
-**Co się zmieniło po Twoich uwagach:** Usunęliśmy z serwera przyjmowanie ręcznej odpowiedzi „Czy ocena się zgadza?”: nikt nie musi już niczego zaznaczać ani poprawiać. W zamian serwer przyjmuje razem z wynikiem próby automatyczną ocenę, które pomyłki to prawdopodobnie błąd grającego, a które błąd rozpoznawania, oraz szacowaną dokładność rozpoznawania całej próby. Przy każdym wyniku zapisujemy wersję tej oceny, więc później da się ją przeliczyć na nowo na surowych danych. Ta ocena jest tylko dla nas; dziecko jej nie widzi.
+**Co zmieniło się po Twoich uwagach:** Tabela „Nuta po nucie” mieści się teraz w całości na telefonie (360 px) także z szerszą czcionką systemu, jakiej używają testy automatyczne, i to nawet przy napisach nieco większych niż w aplikacji. Kolumna „Czas” pokazuje tylko przesunięcie w milisekundach (np. „+600 ms”), bo słowo „za wcześnie” / „za późno” jest obok w kolumnie „Ocena”. Test szerokości sprawdza teraz także szerszą czcionkę, więc taki problem wyjdzie od razu, a nie dopiero w automatycznych testach.
 
-**Co to wnosi:** Pierwsza część zbierania anonimowych danych z ekranu „Zagraj i sprawdź”: serwer przyjmuje i zapisuje wynik każdej próby razem z automatyczną oceną dokładności rozpoznawania. Dane są anonimowe (bez nagrania i bez imienia) i same znikają po 180 dniach. Liczenie oceny w aplikacji, poprawka tabeli „Nuta po nucie” na małym ekranie i nowe statystyki przyjdą w pozostałych dwóch częściach.
+**Co zostaje bez zmian:** automatyczna wysyłka wyniku z szacunkiem rozpoznawania, panel diagnostyczny, informacja o anonimowych danych i przełącznik wyłączenia. Ta część opiera się na poprzedniej i wchodzi po niej.
 
-**Do zrobienia po scaleniu:** nowe funkcje serwera zaczną działać dopiero po ręcznym wdrożeniu funkcji i ustawień bazy danych przez właściciela (instrukcja jest w README).
+**Proszę sprawdzić na podglądzie** (`?spike=nuty`, na telefonie):
+- Tabela „Nuta po nucie” nie wychodzi poza ekran i nie trzeba jej przewijać w bok; statusy jak „dobrze” czy „za wcześnie” widać w całości.
+- Zagraj melodię do końca: pod wynikiem nie ma pytania ani oceny rozpoznawania; szacunek jest tylko w panelu „Diagnostyka”.
 
-**Status:** Gotowe do scalenia; w podglądzie nie ma nic do sprawdzenia ręcznie (zmiana dotyczy tylko serwera).
+**Status:** Gotowe do scalenia, gdy automatyczne testy przejdą na zielono i sprawdzisz podgląd.
