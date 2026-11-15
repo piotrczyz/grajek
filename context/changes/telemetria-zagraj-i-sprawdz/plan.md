@@ -468,10 +468,10 @@ Rollback = redeploy the previous `api`; stored documents expire by themselves.
 
 ### Phase 6: Screen wiring, feedback UI and notice (A2)
 #### Automated
-- [x] 6.1 `pnpm test` passes including the SpikeScreen telemetry tests
-- [x] 6.2 `pnpm lint && pnpm typecheck` pass
-- [x] 6.3 `pnpm build` passes
-- [x] 6.4 `pnpm test:e2e` passes (no backend in e2e; sending fails silently)
+- [x] 6.1 `pnpm test` passes including the SpikeScreen telemetry tests — 2276e57
+- [x] 6.2 `pnpm lint && pnpm typecheck` pass — 2276e57
+- [x] 6.3 `pnpm build` passes — 2276e57
+- [x] 6.4 `pnpm test:e2e` passes (no backend in e2e; sending fails silently) — 2276e57
 #### Manual
 - [ ] 6.5 On a phone (preview with `?spike=nuty`, after functions are deployed), a finished attempt appears in `spikeNutyAttempts` and a Nie with marked notes updates it
 - [ ] 6.6 Airplane mode: an attempt played offline is stored after the connection returns
