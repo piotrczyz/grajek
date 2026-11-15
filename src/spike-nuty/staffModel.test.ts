@@ -37,6 +37,8 @@ function play(note: RefNote, overrides: Partial<QuantizedNote> = {}): QuantizedN
     frames: 10,
     suspectOctave: 0,
     suspectTwelfth: 0,
+    meanClarity: 1,
+    meanLevelDb: -20,
     startEighth: note.startEighth,
     durationEighths: note.durationEighths,
     ...overrides,

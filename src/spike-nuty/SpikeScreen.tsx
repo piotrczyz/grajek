@@ -1,6 +1,7 @@
 // Hidden spike screen "Zagraj i sprawdź" (?spike=nuty). Loaded lazily from
 // main.tsx, so nothing here ends up in the main entry chunk.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { getOrCreateDeviceId } from '../push/device-id.ts';
 import { createMetronome, type Metronome } from './audio/metronome.ts';
 import { createAudioContext, MicError, openMic, type Mic, type MicErrorKind } from './audio/mic.ts';
 import { createPitchTracker, type PitchTracker } from './audio/pitchTracker.ts';
@@ -10,6 +11,7 @@ import { Staff, type StaffSelection } from './Staff.tsx';
 import { gradeColour, referenceBars, toAlignedBars } from './staffModel.ts';
 import { noteRows, refIndexAt, summarize, type NoteRow } from './results.ts';
 import {
+  analysedFrames,
   eighthMs,
   gradeRecording,
   MELODIES,
@@ -20,6 +22,9 @@ import {
   type NoteEvent,
   type PitchFrame,
 } from './logic/index.ts';
+import { enqueue, flush, startAutoFlush } from './telemetry/queue.ts';
+import { attemptDetails, buildAttemptRecord, readTelemetryEnv, type AttemptEnd } from './telemetry/record.ts';
+import { isTelemetryEnabled, setTelemetryEnabled } from './telemetry/settings.ts';
 
 const INSTRUMENTS: Instrument[] = ['clarinet-bb', 'c'];
 const PREP_OPTIONS = [3, 5, 10];
@@ -49,6 +54,12 @@ interface Recording {
   events: NoteEvent[];
   /** The tempo the recording was made at (the slider may move afterwards). */
   bpm: number;
+  /** Client-generated id of the telemetry record for this attempt. */
+  attemptId: string;
+  /** Whether the auto-stop timer ('complete') or the Stop button ('stopped') ended it. */
+  ended: AttemptEnd;
+  /** The frames the segmenter analysed (for the attempt signal and the note window levels). */
+  frames: PitchFrame[];
 }
 
 const MIC_MESSAGES: Record<MicErrorKind, string> = {
@@ -84,6 +95,11 @@ function Cue({ prepLeft, beat }: { prepLeft: number | null; beat: Beat | null })
   );
 }
 
+/**
+ * The note-by-note list. Auto layout with wrapping cells and short headers:
+ * on a 360 px phone no cell clips its text; the status keeps its full word
+ * next to a dot in the grade colour.
+ */
 function NotesTable({ rows, selected }: { rows: NoteRow[]; selected: StaffSelection | null }) {
   const rowRefs = useRef(new Map<number, HTMLTableRowElement>());
   const isSelected = (row: NoteRow) =>
@@ -98,11 +114,11 @@ function NotesTable({ rows, selected }: { rows: NoteRow[]; selected: StaffSelect
   }, [selectedNr]);
 
   return (
-    <table className="w-full table-fixed text-xs">
+    <table className="w-full table-auto text-xs">
       <thead>
         <tr className="text-left text-slate-600">
-          {copy.NOTE_COLUMNS.map((column, i) => (
-            <th key={column} className={i === 0 ? 'w-6' : i === 4 ? 'w-[30%]' : undefined}>
+          {copy.NOTE_COLUMNS.map((column) => (
+            <th key={column} className="px-0.5">
               {column}
             </th>
           ))}
@@ -116,15 +132,22 @@ function NotesTable({ rows, selected }: { rows: NoteRow[]; selected: StaffSelect
               if (el) rowRefs.current.set(row.nr, el);
               else rowRefs.current.delete(row.nr);
             }}
-            className={`border-t align-top ${row.nr === selectedNr ? 'bg-blue-100' : ''}`}
+            className={`border-t align-top [&>td]:px-0.5 [&>td]:break-words ${row.nr === selectedNr ? 'bg-blue-100' : ''}`}
           >
             <td>{row.nr}</td>
             <td>{row.expected}</td>
             <td>{row.played}</td>
-            <td>{row.centsDiff === null ? copy.NONE : signed(Math.round(row.centsDiff))}</td>
+            <td className="whitespace-nowrap">
+              {row.centsDiff === null ? copy.NONE : signed(Math.round(row.centsDiff))}
+            </td>
             <td>{row.timing}</td>
             <td className="font-semibold" style={{ color: gradeColour(row.grade) }}>
-              {row.status}
+              <span
+                aria-hidden="true"
+                className="mr-1 inline-block h-2 w-2 rounded-full align-middle"
+                style={{ backgroundColor: gradeColour(row.grade) }}
+              />
+              <span>{row.status}</span>
             </td>
           </tr>
         ))}
@@ -151,6 +174,9 @@ export default function SpikeScreen() {
   const [selected, setSelected] = useState<StaffSelection | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
+  const [telemetryOn, setTelemetryOn] = useState(isTelemetryEnabled);
+  /** Attempts already considered for sending: each one is sent at most once. */
+  const seenAttemptsRef = useRef(new Set<string>());
 
   const melody = MELODIES.find((m) => m.id === melodyId) ?? MELODIES[0];
   const busy = phase === 'starting' || phase === 'recording';
@@ -177,6 +203,11 @@ export default function SpikeScreen() {
     () => (result && recording ? noteRows(result, recording.bpm) : []),
     [result, recording],
   );
+  // Automatic recognition estimate of the shown grading, for the diagnostics panel only.
+  const details = useMemo(
+    () => (recording && graded ? attemptDetails({ graded, recording, ended: recording.ended }) : null),
+    [recording, graded],
+  );
 
   /** Tears the session down; returns what the recording captured. */
   const teardown = () => {
@@ -194,7 +225,7 @@ export default function SpikeScreen() {
     return { frames, clicks };
   };
 
-  const stop = (recordedBpm: number) => {
+  const stop = (recordedBpm: number, ended: AttemptEnd) => {
     const captured = teardown();
     setBeat(null);
     setPrepLeft(null);
@@ -203,7 +234,13 @@ export default function SpikeScreen() {
     // Nothing played during the prep time or the count-in is graded.
     const earliestMs = -eighthMs(recordedBpm) / 2;
     const frames = captured.frames.filter((frame) => frame.timeMs >= earliestMs);
-    setRecording({ events: segment(frames, { ignoreWindows }), bpm: recordedBpm });
+    setRecording({
+      events: segment(frames, { ignoreWindows }),
+      bpm: recordedBpm,
+      attemptId: crypto.randomUUID(),
+      ended,
+      frames: analysedFrames(frames, ignoreWindows),
+    });
     setPhase('done');
   };
 
@@ -261,7 +298,7 @@ export default function SpikeScreen() {
     // Auto-stop one bar after the melody ends.
     const recordMs = (melodyLengthEighths(melody) + 2 * BEATS_PER_BAR) * eighthMs(bpm);
     const untilDownbeatMs = Math.max(0, (downbeatSec - ctx.currentTime) * 1000);
-    session.timers.push(setTimeout(() => stop(bpm), untilDownbeatMs + recordMs));
+    session.timers.push(setTimeout(() => stop(bpm, 'complete'), untilDownbeatMs + recordMs));
     setPhase('recording');
   };
 
@@ -280,6 +317,44 @@ export default function SpikeScreen() {
   );
 
   const resultView = phase === 'done' && result !== null && recording !== null;
+
+  // Telemetry: send what is still queued, and again whenever the connection returns.
+  useEffect(() => {
+    const stopAutoFlush = startAutoFlush();
+    if (isTelemetryEnabled()) void flush();
+    return stopAutoFlush;
+  }, []);
+
+  // One record per finished attempt, built from the grading shown when the
+  // result first appears. Never awaited by the UI; failures stay silent.
+  useEffect(() => {
+    if (phase !== 'done' || recording === null || graded === null) return;
+    if (seenAttemptsRef.current.has(recording.attemptId)) return;
+    seenAttemptsRef.current.add(recording.attemptId);
+    if (!telemetryOn) return;
+    const { attemptId } = recording;
+    const input = {
+      now: Date.now(),
+      settings: { melodyId: melody.id, instrument, bpm: recording.bpm, prepSec, ignoreOctave, visualOnly, autoLatency },
+      recording,
+      graded,
+      latencyMs,
+      ended: recording.ended,
+      env: readTelemetryEnv(),
+    };
+    getOrCreateDeviceId()
+      .then((deviceId) => {
+        if (!isTelemetryEnabled()) return;
+        enqueue({ kind: 'attempt', attemptId, body: buildAttemptRecord({ ...input, deviceId }) });
+        void flush();
+      })
+      .catch(() => undefined);
+  }, [phase, recording, graded, telemetryOn, melody, instrument, prepSec, ignoreOctave, visualOnly, autoLatency, latencyMs]);
+
+  const changeTelemetry = (on: boolean) => {
+    setTelemetryEnabled(on);
+    setTelemetryOn(on);
+  };
 
   return (
     // White page: the app's brand background would hide the black staff.
@@ -428,7 +503,7 @@ export default function SpikeScreen() {
               <button
                 type="button"
                 className="rounded bg-red-700 px-4 py-3 font-bold text-white"
-                onClick={() => stop(bpm)}
+                onClick={() => stop(bpm, 'stopped')}
               >
                 {copy.STOP_BUTTON}
               </button>
@@ -482,8 +557,17 @@ export default function SpikeScreen() {
             events={recording?.events ?? null}
             latencyMs={latencyMs}
             timing={graded}
+            estimate={phase === 'done' && details !== null ? { rows, ...details } : null}
           />
         )}
+      </section>
+
+      <section className="flex flex-col gap-1 text-sm text-slate-600">
+        <p>{copy.TELEMETRY_NOTICE}</p>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={telemetryOn} onChange={(e) => changeTelemetry(e.target.checked)} />
+          {copy.TELEMETRY_SWITCH_LABEL}
+        </label>
       </section>
     </main>
     </div>

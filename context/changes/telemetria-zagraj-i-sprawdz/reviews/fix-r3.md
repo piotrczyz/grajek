@@ -1,109 +1,140 @@
-# Fix round 3: telemetria-zagraj-i-sprawdz, increment 3 (client feedback 1)
+# Fix round 3: telemetria-zagraj-i-sprawdz, increment 2 (client feedback 1)
 
-Report: `reviews/impl-review-inc-3-feedback-1.md` (its `**Round**: 1`). Named `fix-r3`
-because `fix-r1.md` and `fix-r2.md` already hold increment 1's fix-round evidence; the
-commit carries `(r3)` to match this file. FIX findings: F1-F7. F8 is ACCEPT (covered by
-F6: the emulator suite was run below).
+Report: `reviews/impl-review-inc-2-feedback-1.md` (its `**Round**: 1`). Named `fix-r3`
+because `fix-r1.md` and `fix-r2.md` (increment 1, merged into this branch) are taken; the
+commits carry `(r3)`. FIX findings: F1, F2, F3, F4. F5 is ACCEPT and was left untouched.
 
-The plan's phases 7-9 (feedback aggregates, `topMisjudged`, feedback CSV columns) are
-superseded by the owner's redirect; `plan.md` is locked, so no plan text changed and
-no Progress row moved (7.1-9.2 stay `[x]`). Carried as an `adaptation` guard.
+Commits: `288e2d9` (the fix), `03c4608` (restores LF in ten files the fix had rewritten with
+CRLF, so the diff is content only; hardens the 360 px e2e with worst-case texts).
 
-## Decisions
+## F1: manual feedback removed
 
-| Decision | Choice | Source |
+- `SpikeScreen.tsx`: the "Czy ocena się zgadza?" section, Tak/Nie, the misjudged checkbox
+  column and its `Misjudging` prop, the comment field, `FeedbackStep`, `SentAttempt`/`sent`,
+  `resetFeedback`, `sendFeedback`, `MAX_COMMENT` are gone. Automatic attempt sending, the
+  anonymous-data notice and the opt-out switch stay.
+- `telemetry/api.ts`: `putFeedback` and the URL suffix removed.
+- `telemetry/queue.ts`: `QueueKind = 'attempt'`, `MAX_FEEDBACK_TRIES` and the 404 retry rule
+  removed (a 404 now drops like any other 4xx). `readQueue` drops stored legacy
+  `kind: 'feedback'` items silently, rewrites the queue without them and keeps the attempts;
+  anything else malformed still resets the queue.
+- `copy.ts`: every `FEEDBACK_*`/`MISJUDGED_*`/`misjudgedRowLabel` text removed.
+- `README.md` (spike): the feedback paragraph is replaced by the automatic estimate, where it
+  is shown, and the legacy-queue note; the record list names the new fields.
+
+## F2: raw signals and the estimate in the record
+
+- `logic/segment.ts`: every event gets `pitchSpreadCents` = population standard deviation of
+  its frame pitches in cents, rounded (Auto: a range would flag normal vibrato; the README
+  contract only says "spread"). New pure helpers `isVoicedFrame` (the segmenter's own voiced
+  test, now used by `segment`), `analysedFrames` (drops click ignore windows), `frameSignal`
+  (`frames`, `voicedFrames`, `medianClarity` over all analysed frames) and `windowLevelDb`.
+- `SpikeScreen.tsx`: `Recording.frames` keeps the analysed frames (after the count-in cut and
+  the click windows) for the record.
+- `telemetry/record.ts`: imports `estimateRecognition` from
+  `../../../functions/src/spike-nuty/recognition-estimate.ts` (passes `tsc -b`, eslint and
+  `vite build`; the module lands in the lazy `SpikeScreen` chunk only, not `index-*.js`).
+  New `attemptDetails` builds the full note list (with `windowLevelDb`: the reference window
+  shifted back by `correctionMs` to raw time, or the extra note's own span), all events,
+  `signal`, and the estimate **on the full lists before any cap**. `buildAttemptRecord` caps
+  notes (400) and events (200), cuts `estimate.notes/events` to the same lengths (the server
+  checks alignment) and clamps verdict/reason counts to `MAX_NOTES`. Without frames the record
+  has no `signal` and no `windowLevelDb` (both optional in the contract).
+
+## F3: heuristics in diagnostics only
+
+- `DiagnosticsPanel.tsx`: new `RecognitionEstimatePanel`, rendered only after a result and
+  only after "Pokaż szacunek rozpoznawania" is pressed (`aria-expanded`): estimated accuracy,
+  heuristic version, per-note verdict (błąd grającego / błąd rozpoznawania / niepewne / ok)
+  with Polish reasons (unknown codes shown raw), and the attempt signals (odsetek ramek bez
+  wysokości, mediana pewności, rozrzut opóźnienia, zdarzenia na nutę, przerwana).
+  The child's result view has none of it.
+
+## F4: "Nuta po nucie" at 360 px
+
+- `SpikeScreen.tsx` `NotesTable`: `table-auto` instead of `table-fixed`, no fixed-width
+  columns, `px-1` + `break-words` cells, cents `whitespace-nowrap`, status = colour dot
+  (`aria-hidden`) + the full word in its own span. `copy.NOTE_COLUMNS` shortened to
+  `#, Wzór, Gra, Cent, Czas, Ocena`.
+- New `e2e/spike-nuty-narrow.spec.ts` (360x800, Chromium fake media stream): a real
+  Start/Stop reaches the result view; no `th`/`td` has `scrollWidth > clientWidth`, the table
+  fits the section, every status is a full word. Then every row is filled with the longest
+  texts the list can show (`+1180 ms, za wcześnie`, `za wcześnie`, `dodatkowa`) and measured
+  again. File outside the plan's `src/` scope (soft guard `out-of-plan-files`), asked for by F4.
+
+## Tests added or changed
+
+- `queue.test.ts`: legacy feedback item dropped silently, attempts beside it kept and sent;
+  404 joins the drop list; feedback tests removed.
+- `copy.test.ts`: no feedback texts left; every verdict and reason code has a Polish name.
+- `SpikeScreen.test.tsx`: no feedback UI after a finished attempt while notice and switch
+  stay; record carries `estimate`, `signal`, `windowLevelDb`, `pitchSpreadCents`; estimate
+  texts absent from the default view, present only after opening the diagnostics panel;
+  octave-high note shown as "błąd rozpoznawania" / "skok o oktawę"; table markup (no fixed
+  layout, short headers, full status word + dot). Old feedback tests removed.
+- `record.test.ts`: new fields (spread clamp 2400, window levels, signal); `estimate` with
+  `heuristicVersion === HEURISTIC_VERSION`, octave/twelfth verdicts, accuracy; the server's
+  real `parseAttempt` accepts every record unchanged; no-frames record; 250 events: estimate
+  counts 250 events and its note verdicts equal `estimateRecognition` on the full lists.
+- `segment.test.ts`: `pitchSpreadCents` (0 steady, 30 for ±30 cents, >60 for ±80 cents);
+  `frameSignal`, `windowLevelDb`, `analysedFrames`.
+
+## Red-first proof (new tests fail with the fix reverted)
+
+Each run below swapped the named sources back to `HEAD~1` of `288e2d9` (or mutated one line),
+ran the tests, then restored them with `git checkout HEAD -- <files>` (status clean after).
+
+```
+# old queue.ts + api.ts
+$ pnpm exec vitest run src/spike-nuty/telemetry/queue.test.ts
+     × silently drops legacy feedback items and keeps the attempts queued beside them
+      Tests  1 failed | 18 passed (19)
+
+# old SpikeScreen.tsx + DiagnosticsPanel.tsx + copy.ts
+$ pnpm exec vitest run src/spike-nuty/SpikeScreen.test.tsx src/spike-nuty/copy.test.ts
+     × has no manual feedback texts any more
+     × names every verdict and reason code of the heuristic in Polish
+     × asks nothing after a finished attempt: no manual feedback, the notice and the switch stay
+     × sends the automatic estimate, the attempt signal and the note window levels in the record
+     × shows the heuristic only in the diagnostics panel, after opening it
+     × names the verdict and the reasons of a misrecognised note in Polish
+     × lets every cell wrap and keeps the full status word with a colour dot
+      Tests  7 failed | 17 passed (24)
+
+# old record.ts + segment.ts + logic/index.ts
+$ pnpm exec vitest run src/spike-nuty/telemetry/record.test.ts src/spike-nuty/logic/segment.test.ts
+      Tests  10 failed | 21 passed (31)   (all 10 new tests)
+
+# mutation: estimate computed on events.slice(0, MAX_EVENTS)
+$ pnpm exec vitest run src/spike-nuty/telemetry/record.test.ts
+     × computes the estimate of a recording over 200 events from the full event list
+      Tests  1 failed | 12 passed (13)
+
+# mutation: NotesTable back to table-fixed, w-6 / w-[30%] columns, no wrap classes
+$ pnpm exec playwright test e2e/spike-nuty-narrow.spec.ts
+  ✘  1 [mobile-chromium] › e2e\spike-nuty-narrow.spec.ts:15:1 › the note-by-note list is readable at 360 px
+    + Array [ "za wcześnie", "dodatkowa", ... ]   (worst-case status cells clipped)
+# restored:
+  ✓  1 [mobile-chromium] › e2e\spike-nuty-narrow.spec.ts:15:1 › the note-by-note list is readable at 360 px
+```
+
+Note: the first part of the e2e (real beep recording) passes on the old layout too, because a
+beep yields short statuses ("brak"); the worst-case part is what reproduces the owner's "dobrz".
+
+## Gates at `03c4608`
+
+Baseline (round-1 report): 593/593 unit, 17/17 e2e.
+
+| Check | Command | Result |
 |---|---|---|
-| Estimate used in stats/export (F2) | `resolveEstimate(doc)`: the stored `estimate` when `heuristicVersion === HEURISTIC_VERSION` **and** its `notes`/`events` lists are as long as the record's; otherwise `estimateRecognition({notes, events, signal, ended})`. The length check guards the per-note alignment `byExpectedNote` relies on. | Auto (report F2 rule + alignment safety) |
-| Recompute core location (F4) | Pure core in `functions/src/spike-nuty/recompute.ts` (args with the safety rules, plan/diff, batches, summary), unit-tested; the `.mjs` only does I/O and imports `functions/lib`. | Auto (report F4 allows either; testable in `src/`) |
-| Recompute target rule (F4) | `FIRESTORE_EMULATOR_HOST` set → emulator, and it wins over `--project` (a set emulator host can never reach production); else `--project <id>` required, otherwise refuse (exit 2). So `--write` against a non-emulator target always carries `--project`. | Auto (report F4) |
-| "Already current" (F4) | Stored estimate equal (key-order independent) to the recomputed one; anything else "would change" (split into missing / other version). | Auto |
-| Repeat constants (F3) | `REPEAT_WINDOW_MS = 5 min` (inclusive), `REPEAT_SCORE_DIFF = 30` (inclusive), consecutive pairs per `deviceId`+`melodyId` by `receivedAt`. | Auto (report F3 values) |
-| `repository.ts` touched | Only `feedbackAt` dropped from `DATE_FIELDS` (report F5 location); file is increment 3's per phase 8. | Auto |
+| Unit tests | `pnpm exec vitest run` | PASS — 609/609 (61 files), 5 consecutive green runs; vs baseline: 0 new failures (+16 net tests) |
+| Typecheck | `pnpm typecheck` (`tsc -b`) | exit 0 |
+| Lint | `pnpm lint` | exit 0 |
+| Build | `pnpm build` | exit 0 |
+| E2E | `PLAYWRIGHT_BROWSERS_PATH=…\ms-playwright pnpm test:e2e` | PASS — 18 passed (17 + the new 360 px spec) |
 
-## Changes per finding
+One earlier full unit run (right after the line-ending normalisation, cold transform cache)
+reported 1 failed / 608 passed; the failing test was not captured and it did not recur in the
+five runs that followed. Recorded so the reviewer can watch for a flake.
 
-- **F1** `functions/src/spike-nuty/stats.ts`: `feedback`/`topMisjudged` removed; new `estimateSource`,
-  `estimate` {`heuristicVersion`, `accuracyHistogram` (10 buckets over 0..1), `noAccuracy`, `meanAccuracy`,
-  `medianAccuracy`, `topRecognitionReasons` (summed `estimate.reasons`, ties in `REASON_CODES` order, top 10),
-  `byMelody`, `byExpectedNote` (verdict counts aligned with `doc.notes`, `midiName`), `byDeviceClass`, `daily`
-  (UTC day), `signals` (median unvoicedRatio / clarity / latencySpreadMs / eventsPerNote, `stoppedShare`)}.
-  Latency, octave/twelfth, score histogram kept.
-- **F2** `resolveEstimate` in `stats.ts` (rule above), `estimateSource: {stored, recomputed}`.
-- **F3** `REPEAT_WINDOW_MS`, `REPEAT_SCORE_DIFF` exported; `repeats: {pairs, divergent, medianAccuracyDiff}`.
-- **F4** `functions/src/spike-nuty/recompute.ts` + `functions/scripts/recompute-estimates.mjs` (dry run default,
-  `--write`, `--project`, `--from/--to`, paginated reads of 500, batched `update({estimate})` of 400, `--help`).
-- **F5** `export.ts`: feedback columns and `misjudged` removed; `heuristicVersion`, `estimatedAccuracy`,
-  `estimateSource`, `estimateReasons` added (one `resolveEstimate` per row). `stats.ts`: `LegacyFeedback`,
-  `MisjudgedNote`, `findNote`, `AttemptDoc.feedback/feedbackAt` removed. `repository.ts`: `feedbackAt` dropped.
-- **F6** `test/spike-nuty-stats.test.ts` rewritten (resolveEstimate ×4, each breakdown, histogram, reasons,
-  signals, stored vs recomputed, repeats ×5); `test/spike-nuty-export.test.ts` (no feedback columns, recomputed
-  and stored estimate columns); `test/spike-nuty-admin-handler.test.ts` (new fields, no feedback);
-  new `test/spike-nuty-recompute.test.ts` (args safety, plan, key order, summary, batches);
-  `test-emulator/spike-nuty-stats.emulator.test.ts` (one stored + two recomputed, estimate and repeat aggregates,
-  CSV estimate header).
-- **F7** `README.md` "Owner statistics": new stats fields, resolution rule, repeat constants, CSV columns,
-  "Recompute estimates" subsection (emulator and `--project`, dry run first).
-
-## Evidence (all in the worktree)
-
-Touched criteria 7.1, 8.1, 8.2, 9.1, 9.2:
-
-```
-$ cd functions && npx vitest run            (7.1, 8.1 + full suite)
- Test Files  14 passed (14)
-      Tests  323 passed (323)
-$ npx tsc -p tsconfig.build.json            (8.2 build)      exit 0
-$ npx tsc -p tsconfig.json --noEmit         (8.2 typecheck)  exit 0
-$ node scripts/spike-nuty-stats.mjs --help  (9.2)            exit 0
-$ node scripts/recompute-estimates.mjs --help                exit 0
-$ node scripts/recompute-estimates.mjs --write   (no FIRESTORE_EMULATOR_HOST, no --project)
-no target: set FIRESTORE_EMULATOR_HOST for the emulator, or pass --project <id> for a real project
-exit 2
-$ (root) pnpm lint                                           exit 0
-$ (root) pnpm typecheck                                      exit 0
-```
-
-Baseline comparison: review round 1 recorded 289/289 unit tests passing on the pre-fix code; now 323/323
-(0 failed; +34 = new and rewritten tests minus removed feedback tests). No new failures.
-
-**9.1 emulator suite** (adaptation: a foreign emulator holds 5001/8080, so an untracked copy of
-`firebase.json` with functions 15101, firestore 18181/ws 19151, hub 14410, logging 14510 was used and deleted
-afterwards, with `functions/firestore-debug.log`):
-
-```
-$ node scripts/ensure-secret-local.mjs
-$ FUNCTIONS_EMULATOR_HOST=127.0.0.1:15101 pnpm exec firebase --config ../firebase.alt-ports.json \
-    emulators:exec --only functions,firestore --project demo-grajek "vitest run -c vitest.emulator.config.ts"
- Test Files  4 passed (4)
-      Tests  21 passed (21)
-+  Script exited successfully (code 0)
-```
-
-**Recompute script end to end on the Firestore emulator** (same alt-port config; a throwaway seed script,
-deleted afterwards, wrote 3 raw docs: `no-estimate`, `old-version` (heuristicVersion `0`, accuracy 0.9) and
-`out-of-range` (2026-10-01)):
-
-```
-dry run --from 2026-11-01 --to 2026-11-30:
-  total 2, alreadyCurrent 0, wouldChange 2, missingEstimate 1, otherHeuristicVersion 1, meanAccuracyDelta -0.233
-  Dry run: nothing written (add --write to store).
---write, same range:  same summary, "Wrote 2 estimates."
-dry run, no range:    total 3, alreadyCurrent 2, wouldChange 1 (the out-of-range doc), missingEstimate 1
-old-version after write: heuristicVersion 1, estimatedAccuracy 0.667, deviceId d1, score 50 (other fields intact)
-```
-
-## Red with the fix reverted
-
-`stats.ts`, `export.ts`, `repository.ts` restored from `HEAD` (`git show HEAD:…`) and `recompute.ts` moved
-away, new tests kept:
-
-```
-$ npx vitest run test/spike-nuty-stats.test.ts test/spike-nuty-export.test.ts \
-    test/spike-nuty-admin-handler.test.ts test/spike-nuty-recompute.test.ts
- FAIL  test/spike-nuty-recompute.test.ts (cannot import recompute.js)
- Test Files  4 failed (4)
-      Tests  20 failed | 38 passed (58)
-```
-
-(The 20: resolveEstimate ×4, the 6 estimate aggregates, the 5 repeat tests, the empty-stats test, the 3 CSV
-estimate/no-feedback tests, the admin 200 stats test.) Sources restored; full suite back to 323/323.
+Functions (`functions/`) were not touched: no emulator run was needed.

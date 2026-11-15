@@ -10,6 +10,8 @@ const event = (startMs: number, durationMs: number): NoteEvent => ({
   frames: 10,
   suspectOctave: 0,
   suspectTwelfth: 0,
+  meanClarity: 1,
+  meanLevelDb: -20,
 });
 
 describe('quantize', () => {

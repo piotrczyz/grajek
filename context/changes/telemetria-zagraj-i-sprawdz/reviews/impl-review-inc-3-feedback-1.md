@@ -113,13 +113,13 @@ These pass because the legacy feedback code still compiles; they prove nothing a
 - **Location**: functions/test-emulator/spike-nuty-stats.emulator.test.ts
 - **Detail**: Not run in this round; the code under test is about to change wholesale (F1-F6), so a pre-fix run would prove nothing. The fix round must run it (F6).
 - **Fix**: Covered by F6.
-- **Decision**: ACCEPT — the fix round ran it (`fix-r3.md`) and r2 re-ran it: 21/21.
+- **Decision**: ACCEPT — the fix round ran it (`fix-r3-inc-3.md`, committed as `fix-r3.md`) and r2 re-ran it: 21/21.
 
 
 ## Round 2
 
-Re-review of fix commits `0d5d4b1` (code, tests, README, `fix-r3.md`) and `9d90123` (Decision lines).
-Read `reviews/fix-r3.md` (baseline 289 -> 323/323, red-first proof with the sources reverted: 20 failed)
+Re-review of fix commits `0d5d4b1` (code, tests, README, `fix-r3-inc-3.md`, committed as `fix-r3.md`) and `9d90123` (Decision lines).
+Read `reviews/fix-r3-inc-3.md` (baseline 289 -> 323/323, red-first proof with the sources reverted: 20 failed)
 and the fix diff. Per finding:
 
 - F1: `computeStats` (functions/src/spike-nuty/stats.ts) drops `feedback`/`topMisjudged` and returns
