@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { CSV_COLUMNS, csvCell, toCsv } from '../src/spike-nuty/export.js';
+import { HEURISTIC_VERSION, type RecognitionEstimate } from '../src/spike-nuty/recognition-estimate.js';
 import { expireAtFor } from '../src/spike-nuty/repository.js';
 import type { AttemptDoc } from '../src/spike-nuty/stats.js';
 import type { AttemptRecord } from '../src/spike-nuty/types.js';
-import { ATTEMPT_ID, DEVICE_ID, sampleAttempt } from './spike-nuty-fakes.js';
+import { ATTEMPT_ID, DEVICE_ID, sampleAttempt, sampleFullAttempt } from './spike-nuty-fakes.js';
 
 const AT = new Date('2026-11-15T10:00:00Z');
 
@@ -90,14 +91,7 @@ describe('toCsv', () => {
   });
 
   it('fills the scalar columns and the JSON columns of an attempt', () => {
-    const rows = parseCsv(
-      toCsv([
-        doc({
-          feedback: { agrees: false, regraded: true, misjudged: [{ refIndex: 1, playedIndex: 1 }], comment: '=źle, "bardzo"' },
-          feedbackAt: AT,
-        }),
-      ]),
-    );
+    const rows = parseCsv(toCsv([doc()]));
     const row = Object.fromEntries(CSV_COLUMNS.map((name, i) => [name, rows[1][i]]));
     expect(row).toMatchObject({
       id: ATTEMPT_ID,
@@ -116,22 +110,39 @@ describe('toCsv', () => {
       outputLatencyMs: '45.2',
       correctionMs: '-10',
       ended: 'complete',
-      feedbackAgrees: 'false',
-      feedbackRegraded: 'true',
-      feedbackComment: '\'=źle, "bardzo"',
-      feedbackAt: '2026-11-15T10:00:00.000Z',
-      misjudged: '[{"refIndex":1,"playedIndex":1}]',
     });
     expect(JSON.parse(row.notes)).toEqual(sampleAttempt().notes);
     expect(JSON.parse(row.events)).toEqual(sampleAttempt().events);
   });
 
-  it('leaves the feedback columns blank for an attempt without feedback', () => {
+  it('has no manual feedback columns', () => {
+    for (const name of ['feedbackAgrees', 'feedbackRegraded', 'feedbackComment', 'feedbackAt', 'misjudged']) {
+      expect(CSV_COLUMNS).not.toContain(name);
+    }
+  });
+
+  it('writes the estimate recomputed from the raw record when none is stored', () => {
     const rows = parseCsv(toCsv([doc()]));
     const row = Object.fromEntries(CSV_COLUMNS.map((name, i) => [name, rows[1][i]]));
-    expect(row.feedbackAgrees).toBe('');
-    expect(row.feedbackComment).toBe('');
-    expect(row.misjudged).toBe('');
+    expect(row).toMatchObject({
+      heuristicVersion: HEURISTIC_VERSION,
+      estimatedAccuracy: '0.667',
+      estimateSource: 'recomputed',
+    });
+    expect(JSON.parse(row.estimateReasons)).toEqual({ octaveJump: 1 });
+  });
+
+  it('writes the stored estimate of the current heuristic version', () => {
+    const full = sampleFullAttempt() as unknown as AttemptRecord;
+    const rows = parseCsv(toCsv([{ ...full, id: ATTEMPT_ID, receivedAt: AT, expireAt: expireAtFor(AT) }]));
+    const row = Object.fromEntries(CSV_COLUMNS.map((name, i) => [name, rows[1][i]]));
+    const estimate = full.estimate as RecognitionEstimate;
+    expect(row).toMatchObject({
+      heuristicVersion: HEURISTIC_VERSION,
+      estimatedAccuracy: String(estimate.estimatedAccuracy),
+      estimateSource: 'stored',
+    });
+    expect(JSON.parse(row.estimateReasons)).toEqual(estimate.reasons);
   });
 
   it('writes only the header for no attempts', () => {

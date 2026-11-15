@@ -28,7 +28,7 @@ export interface SpikeNutyRepository {
   listAttempts(from: Date, to: Date, limit: number): Promise<AttemptDoc[]>;
 }
 
-const DATE_FIELDS = ['receivedAt', 'expireAt', 'feedbackAt'] as const;
+const DATE_FIELDS = ['receivedAt', 'expireAt'] as const;
 
 /** A stored document as an `AttemptDoc`: Firestore timestamps become `Date`. */
 export function toAttemptDoc(id: string, data: Record<string, unknown>): AttemptDoc {

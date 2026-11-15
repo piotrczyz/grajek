@@ -1,7 +1,8 @@
 /**
  * Owner stats and export of the real `api` function on the Functions
  * emulator, with the Firestore emulator behind it (project `demo-grajek`).
- * Attempts are seeded through the public PUT route. Run
+ * Attempts are seeded through the public PUT route: the first with the
+ * client's stored estimate, the others without one (recomputed). Run
  * through `pnpm test:emulators`, which makes sure `.secret.local` holds the
  * dummy `SPIKE_NUTY_ADMIN_KEY` of `.secret.local.example`.
  */
@@ -9,7 +10,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { sampleAttempt } from '../test/spike-nuty-fakes.js';
+import { sampleAttempt, sampleFullAttempt } from '../test/spike-nuty-fakes.js';
 
 const PROJECT = 'demo-grajek';
 const FUNCTIONS_HOST = process.env.FUNCTIONS_EMULATOR_HOST ?? '127.0.0.1:5001';
@@ -60,7 +61,8 @@ beforeAll(async () => {
 
   const scores = [95, 40, 72];
   for (const [i, id] of attempts.entries()) {
-    const body = sampleAttempt({
+    const build = i === 0 ? sampleFullAttempt : sampleAttempt;
+    const body = build({
       deviceId: devices[i === 2 ? 1 : 0],
       ended: i === 1 ? 'stopped' : 'complete',
       result: { ...(sampleAttempt().result as object), scorePercent: scores[i] },
@@ -80,13 +82,20 @@ describe('spike-nuty owner endpoints on the emulators', () => {
       attempts: 3,
       devices: 2,
       ended: { complete: 2, stopped: 1 },
-      feedback: { answered: 0, agrees: 0, agreesPercent: null },
-      topMisjudged: [],
       latencyByDeviceClass: { ios: { attempts: 3, medianOutputLatencyMs: 45.2, medianOffsetMs: 10 } },
       octaveErrorRate: 0.5,
       twelfthErrorRate: 0,
+      // Stored estimate 0.333 (missing note in a loud window), recomputed 0.667 twice.
+      estimateSource: { stored: 1, recomputed: 2 },
+      estimate: { meanAccuracy: 0.556, medianAccuracy: 0.667, topRecognitionReasons: [
+        { reason: 'octaveJump', count: 3 },
+        { reason: 'missingLoud', count: 1 },
+      ] },
+      // Attempts 1 and 2: one device, one melody, seconds apart, 95 vs 40 points.
+      repeats: { pairs: 1, divergent: 1, medianAccuracyDiff: 0.334 },
       truncated: false,
     });
+    expect(stats).not.toHaveProperty('feedback');
     const histogram = stats.scoreHistogram as Array<{ from: number; count: number }>;
     expect(histogram.find((b) => b.from === 40)?.count).toBe(1);
     expect(histogram.find((b) => b.from === 70)?.count).toBe(1);
@@ -96,7 +105,7 @@ describe('spike-nuty owner endpoints on the emulators', () => {
   it('exports JSON for the range and nothing outside it', async () => {
     const inRange = await get(`/spike-nuty/export?from=${day(-1)}&to=${day(0)}`);
     expect(inRange.status).toBe(200);
-    const body = (await inRange.json()) as { attempts: Array<{ id: string; receivedAt: string; feedback?: unknown }> };
+    const body = (await inRange.json()) as { attempts: Array<{ id: string; receivedAt: string }> };
     expect(body.attempts.map((a) => a.id).sort()).toEqual([...attempts].sort());
     expect(Number.isNaN(Date.parse(body.attempts[0].receivedAt))).toBe(false);
 
@@ -114,6 +123,7 @@ describe('spike-nuty owner endpoints on the emulators', () => {
     const lines = (await response.text()).trimEnd().split('\r\n');
     expect(lines).toHaveLength(1 + attempts.length);
     expect(lines[0].startsWith('id,receivedAt,deviceId,')).toBe(true);
+    expect(lines[0]).toContain(',heuristicVersion,estimatedAccuracy,estimateSource,estimateReasons,');
     expect(lines.slice(1).map((l) => l.split(',')[0]).sort()).toEqual([...attempts].sort());
 
     const empty = await get(`/spike-nuty/export?from=2020-01-01&to=2020-01-31&format=csv`);

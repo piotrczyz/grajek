@@ -272,12 +272,42 @@ of the secret `SPIKE_NUTY_ADMIN_KEY` (without it or with a wrong one: `401`; whi
 secret is empty: `503`).
 
 - `GET /api/spike-nuty/stats?from=YYYY-MM-DD&to=YYYY-MM-DD` - attempts and devices,
-  normal end vs Stop, a score histogram, how often players agreed with the grading,
-  the ten most often misjudged expected notes, latency medians per device class
-  (`ios`, `android`, `desktop`, `other`) and the octave / twelfth error rates.
+  normal end vs Stop, a score histogram, latency medians per device class (`ios`,
+  `android`, `desktop`, `other`), the octave / twelfth error rates, and the
+  automatic recognition estimate (below): `estimateSource`, `estimate` and `repeats`.
 - `GET /api/spike-nuty/export?from=…&to=…&format=json|csv` - every stored attempt of
-  the range, as JSON or as a CSV download (one row per attempt; the note list, the
-  raw events and the misjudged notes are JSON text in their own columns).
+  the range, as JSON or as a CSV download (one row per attempt; the note list and the
+  raw events are JSON text in their own columns, followed by the estimate columns
+  `heuristicVersion`, `estimatedAccuracy`, `estimateSource` (`stored` / `recomputed`)
+  and `estimateReasons`, the JSON reason counts of the notes judged recognition errors).
+
+**Recognition estimate in the stats.** Every attempt is counted with one estimate of
+the heuristic (`functions/src/spike-nuty/recognition-estimate.ts`): the estimate stored
+with the attempt when its `heuristicVersion` is the current `HEURISTIC_VERSION` and its
+note and event lists match the record, otherwise one recomputed on the fly from the raw
+notes and events (records without an estimate, older heuristic versions).
+`estimateSource: { stored, recomputed }` counts both. `estimate` holds:
+
+- `accuracyHistogram` - ten buckets of the estimated accuracy over 0..1 (the last one
+  includes 1), `noAccuracy` (attempts without reference notes), `meanAccuracy`,
+  `medianAccuracy`;
+- `topRecognitionReasons` - reason codes of the notes judged recognition errors
+  (`octaveJump`, `shortEvent`, `missingLoud`, …), summed over the attempts, most
+  frequent first;
+- `byMelody`, `byDeviceClass` and `daily` (UTC day of `receivedAt`) - attempts and mean
+  estimated accuracy each; `byExpectedNote` - per expected note (`extra` for notes
+  nobody asked for) the number of notes and how many were judged `player`,
+  `recognition`, `uncertain` and `ok`;
+- `signals` - medians over the attempts of the share of frames without a pitch, the
+  clarity, the onset spread and the events per note, plus the share of stopped
+  attempts.
+
+`repeats` finds the same device playing the same melody again: consecutive attempts of
+one `deviceId` and `melodyId` at most 5 minutes apart (`REPEAT_WINDOW_MS`) are a pair,
+and a pair whose scores differ by at least 30 points (`REPEAT_SCORE_DIFF`) is
+divergent; `medianAccuracyDiff` is the median difference in estimated accuracy of the
+divergent pairs. Many divergent repeats with a large accuracy difference point at the
+recognition, not the player.
 
 Both days are inclusive (UTC, on `receivedAt`); the default is the last 30 days and the
 range is at most 366 days. One call reads at most 10 000 attempts; `truncated: true`
@@ -299,6 +329,31 @@ SPIKE_NUTY_ADMIN_KEY=... node functions/scripts/spike-nuty-stats.mjs export --fo
 
 Against the emulators, add `--base http://127.0.0.1:5001/demo-grajek/europe-central2/api`
 and use the dummy key from `functions/.secret.local`.
+
+### Recompute estimates
+
+After a change to the heuristic (and a bump of `HEURISTIC_VERSION`), store the new
+estimates on the raw records with `functions/scripts/recompute-estimates.mjs`. It is a
+dry run unless `--write` is given: it prints how many attempts it read, how many are
+already current, how many would change (no estimate, another heuristic version) and the
+accuracy changes. A write updates only the field `estimate`, in batches of 400. It runs
+only against the Firestore emulator (`FIRESTORE_EMULATOR_HOST` set, which wins over
+`--project`) or a project named with `--project`; without either it refuses to start.
+`--from` / `--to` limit it to days of `receivedAt` (UTC, inclusive). Build first:
+
+```sh
+pnpm --dir functions build
+# emulator (another terminal: pnpm --dir functions emulators)
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node functions/scripts/recompute-estimates.mjs
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node functions/scripts/recompute-estimates.mjs --write
+# production: dry run first, then the same with --write
+gcloud auth application-default login
+node functions/scripts/recompute-estimates.mjs --project <project-id> --from 2026-11-01
+node functions/scripts/recompute-estimates.mjs --project <project-id> --from 2026-11-01 --write
+```
+
+The stats do not need the recompute: they already recompute old or missing estimates
+on the fly. Storing them makes the export and the raw documents agree with the stats.
 
 **Manual step before the next functions deploy.** `api` now requires the secret
 `SPIKE_NUTY_ADMIN_KEY`; a `firebase deploy --only functions` without it fails. Set it

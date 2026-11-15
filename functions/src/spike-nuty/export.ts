@@ -1,14 +1,16 @@
 /**
  * CSV form of the stored spike attempts (`GET /api/spike-nuty/export?format=csv`):
- * one row per attempt, scalar columns plus `notes`, `events` and `misjudged`
- * as JSON strings. RFC 4180 quoting with CRLF line ends; text cells that a
- * spreadsheet would run as a formula are prefixed with `'`.
+ * one row per attempt, scalar columns plus `notes`, `events` and the
+ * estimate's reason counts as JSON strings. The estimate columns come from
+ * `resolveEstimate` (stored when current, else recomputed). RFC 4180 quoting
+ * with CRLF line ends; text cells that a spreadsheet would run as a formula
+ * are prefixed with `'`.
  */
-import { deviceClass, type AttemptDoc } from './stats.js';
+import { deviceClass, resolveEstimate, type AttemptDoc, type ResolvedEstimate } from './stats.js';
 
 type Cell = string | number | boolean | null | undefined;
 
-const COLUMNS: Array<[string, (doc: AttemptDoc) => Cell]> = [
+const COLUMNS: Array<[string, (doc: AttemptDoc, resolved: ResolvedEstimate) => Cell]> = [
   ['id', (d) => d.id],
   ['receivedAt', (d) => d.receivedAt.toISOString()],
   ['deviceId', (d) => d.deviceId],
@@ -40,13 +42,12 @@ const COLUMNS: Array<[string, (doc: AttemptDoc) => Cell]> = [
   ['correctionMs', (d) => d.timing.correctionMs],
   ['samples', (d) => d.timing.samples],
   ['ended', (d) => d.ended],
-  ['feedbackAgrees', (d) => d.feedback?.agrees],
-  ['feedbackRegraded', (d) => d.feedback?.regraded],
-  ['feedbackComment', (d) => d.feedback?.comment],
-  ['feedbackAt', (d) => d.feedbackAt?.toISOString()],
+  ['heuristicVersion', (_d, r) => r.estimate.heuristicVersion],
+  ['estimatedAccuracy', (_d, r) => r.estimate.estimatedAccuracy],
+  ['estimateSource', (_d, r) => r.source],
+  ['estimateReasons', (_d, r) => JSON.stringify(r.estimate.reasons)],
   ['notes', (d) => JSON.stringify(d.notes)],
   ['events', (d) => JSON.stringify(d.events)],
-  ['misjudged', (d) => (d.feedback ? JSON.stringify(d.feedback.misjudged) : undefined)],
 ];
 
 export const CSV_COLUMNS = COLUMNS.map(([name]) => name);
@@ -68,7 +69,8 @@ export function csvCell(value: Cell): string {
 export function toCsv(docs: AttemptDoc[]): string {
   const lines = [CSV_COLUMNS.map(csvCell).join(',')];
   for (const doc of docs) {
-    lines.push(COLUMNS.map(([, get]) => csvCell(get(doc))).join(','));
+    const resolved = resolveEstimate(doc);
+    lines.push(COLUMNS.map(([, get]) => csvCell(get(doc, resolved))).join(','));
   }
   return `${lines.join('\r\n')}\r\n`;
 }

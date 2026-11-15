@@ -119,9 +119,7 @@ describe('GET /spike-nuty/stats', () => {
   it('answers 200 with the aggregates of the range', async () => {
     const t = setup();
     t.store('a', new Date('2026-11-10T12:00:00Z'));
-    t.store('b', new Date('2026-11-15T23:59:59Z'), { deviceId: OTHER_DEVICE_ID, ended: 'stopped' }, {
-      feedback: { agrees: true, regraded: false, misjudged: [] },
-    });
+    t.store('b', new Date('2026-11-15T23:59:59Z'), { deviceId: OTHER_DEVICE_ID, ended: 'stopped' });
     t.store('old', new Date('2026-09-01T12:00:00Z'));
     t.store('future', new Date('2026-11-16T00:00:00Z'));
 
@@ -133,13 +131,16 @@ describe('GET /spike-nuty/stats', () => {
       attempts: 2,
       devices: 2,
       ended: { complete: 1, stopped: 1 },
-      feedback: { answered: 1, agrees: 1, agreesPercent: 100 },
+      estimateSource: { stored: 0, recomputed: 2 },
+      repeats: { pairs: 0, divergent: 0, medianAccuracyDiff: null },
       truncated: false,
     });
     const body = res.body as Record<string, unknown>;
-    for (const field of ['scoreHistogram', 'topMisjudged', 'latencyByDeviceClass', 'octaveErrorRate', 'twelfthErrorRate']) {
+    for (const field of ['scoreHistogram', 'latencyByDeviceClass', 'octaveErrorRate', 'twelfthErrorRate', 'estimate']) {
       expect(body).toHaveProperty(field);
     }
+    expect(body).not.toHaveProperty('feedback');
+    expect(body).not.toHaveProperty('topMisjudged');
     expect(t.calls.listAttempts).toEqual([
       { from: new Date('2026-10-16T00:00:00Z'), to: new Date('2026-11-16T00:00:00Z'), limit: MAX_DOCUMENTS },
     ]);
