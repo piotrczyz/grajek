@@ -1,7 +1,7 @@
 ---
 change_id: spike-zagraj-i-sprawdz
 title: Spike "Play and check" - record an instrument to a metronome and grade notes on a staff
-status: implemented
+status: impl_reviewed
 created: 2026-11-15
 updated: 2026-11-15
 archived_at: null
