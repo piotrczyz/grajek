@@ -1,7 +1,10 @@
 <!-- preview-link -->
 
-**Co to wnosi:** Pierwsza część zbierania anonimowych danych z ekranu „Zagraj i sprawdź”: serwer potrafi już przyjąć i zapisać wynik każdej próby oraz odpowiedź „czy ocena się zgadza”. Dane są anonimowe (bez nagrania i bez imienia) i same znikają po 180 dniach. Na tym etapie w aplikacji nic się jeszcze nie zmienia; wysyłanie z telefonu i statystyki dla właściciela przyjdą w kolejnych częściach.
+**Co to wnosi:** Ekran „Zagraj i sprawdź” po każdej skończonej próbie wysyła anonimowy wynik (bez nagrania i bez imienia), a jeśli telefon jest offline, wyśle go później. Pod wynikiem pojawia się pytanie „Czy ocena się zgadza?”: po „Nie” można zaznaczyć nuty, które aplikacja oceniła źle, i dopisać komentarz. Na ekranie jest informacja o wysyłaniu danych i przełącznik, który je wyłącza. Ta część opiera się na poprzedniej i wchodzi po niej.
 
-**Do zrobienia po scaleniu:** nowe funkcje serwera zaczną działać dopiero po ręcznym wdrożeniu funkcji i ustawień bazy danych przez właściciela (instrukcja jest w README). Po wdrożeniu warto sprawdzić w konsoli Firebase, że automatyczne usuwanie starych danych jest włączone.
+**Proszę sprawdzić na podglądzie** (`?spike=nuty`, po wdrożeniu funkcji serwera z poprzedniej części):
+- Zagraj melodię do końca i sprawdź, że wynik trafił do bazy; potem odpowiedz „Nie”, zaznacz dwie nuty i wyślij — ten sam wpis powinien się uzupełnić.
+- Włącz tryb samolotowy, zagraj próbę, wyłącz tryb samolotowy i sprawdź, że wynik dotarł.
+- Wyłącz przełącznik „Wysyłaj anonimowe dane” i upewnij się, że pytanie o ocenę znika.
 
-**Status:** Gotowe do scalenia; w podglądzie nie ma nic do sprawdzenia ręcznie (zmiana dotyczy tylko serwera).
+**Status:** Gotowe do scalenia po sprawdzeniu podglądu.
