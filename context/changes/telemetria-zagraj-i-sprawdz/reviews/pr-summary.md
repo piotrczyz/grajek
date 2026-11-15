@@ -1,7 +1,9 @@
 <!-- preview-link -->
 
-**Co to wnosi:** Pierwsza część zbierania anonimowych danych z ekranu „Zagraj i sprawdź”: serwer potrafi już przyjąć i zapisać wynik każdej próby oraz odpowiedź „czy ocena się zgadza”. Dane są anonimowe (bez nagrania i bez imienia) i same znikają po 180 dniach. Na tym etapie w aplikacji nic się jeszcze nie zmienia; wysyłanie z telefonu i statystyki dla właściciela przyjdą w kolejnych częściach.
+**Co się zmieniło po Twoich uwagach:** Usunęliśmy z serwera przyjmowanie ręcznej odpowiedzi „Czy ocena się zgadza?”: nikt nie musi już niczego zaznaczać ani poprawiać. W zamian serwer przyjmuje razem z wynikiem próby automatyczną ocenę, które pomyłki to prawdopodobnie błąd grającego, a które błąd rozpoznawania, oraz szacowaną dokładność rozpoznawania całej próby. Przy każdym wyniku zapisujemy wersję tej oceny, więc później da się ją przeliczyć na nowo na surowych danych. Ta ocena jest tylko dla nas; dziecko jej nie widzi.
 
-**Do zrobienia po scaleniu:** nowe funkcje serwera zaczną działać dopiero po ręcznym wdrożeniu funkcji i ustawień bazy danych przez właściciela (instrukcja jest w README). Po wdrożeniu warto sprawdzić w konsoli Firebase, że automatyczne usuwanie starych danych jest włączone.
+**Co to wnosi:** Pierwsza część zbierania anonimowych danych z ekranu „Zagraj i sprawdź”: serwer przyjmuje i zapisuje wynik każdej próby razem z automatyczną oceną dokładności rozpoznawania. Dane są anonimowe (bez nagrania i bez imienia) i same znikają po 180 dniach. Liczenie oceny w aplikacji, poprawka tabeli „Nuta po nucie” na małym ekranie i nowe statystyki przyjdą w pozostałych dwóch częściach.
 
-**Status:** Gotowe do scalenia; w podglądzie nie ma nic do sprawdzenia ręcznie (zmiana dotyczy tylko serwera).
+**Do zrobienia po scaleniu:** nowe funkcje serwera zaczną działać dopiero po ręcznym wdrożeniu funkcji i ustawień bazy danych przez właściciela (instrukcja jest w README).
+
+**Status:** Jeszcze niegotowe: zmiany po Twoich uwagach są w trakcie wprowadzania.
