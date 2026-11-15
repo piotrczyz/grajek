@@ -14,6 +14,8 @@ function play(note: RefNote, overrides: Partial<QuantizedNote> = {}): QuantizedN
     frames: 10,
     suspectOctave: 0,
     suspectTwelfth: 0,
+    meanClarity: 1,
+    meanLevelDb: -20,
     startEighth: note.startEighth,
     durationEighths: note.durationEighths,
     ...overrides,
@@ -88,6 +90,17 @@ describe('noteRows', () => {
     expect(rows[4]).toMatchObject({ played: '–', centsDiff: null, offsetMs: null, timing: '–', status: 'brak' });
     expect(rows[4].playedIndex).toBeNull();
     expect(rows[14]).toMatchObject({ expected: '–', played: 'D3', status: 'dodatkowa', grade: 'extra', refIndex: null });
+  });
+
+  it('exposes the grading kind and the MIDI numbers next to the Polish copy', () => {
+    const rows = noteRows(mixed(), 60);
+    const n = melody.notes;
+    expect(rows[0]).toMatchObject({ kind: 'good', expectedMidi: n[0].midi, playedMidi: n[0].midi });
+    expect(rows[1].kind).toBe('late');
+    expect(rows[2].kind).toBe('early');
+    expect(rows[3]).toMatchObject({ kind: 'wrongPitch', expectedMidi: n[3].midi, playedMidi: n[3].midi + 1 });
+    expect(rows[4]).toMatchObject({ kind: 'missing', expectedMidi: n[4].midi, playedMidi: null });
+    expect(rows[14]).toMatchObject({ kind: 'extra', expectedMidi: null, playedMidi: 50 });
   });
 
   it('says too short or too long for a duration-only yellow', () => {

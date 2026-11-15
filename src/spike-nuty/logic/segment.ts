@@ -49,6 +49,10 @@ export interface NoteEvent {
   suspectOctave: number;
   /** Frames a twelfth (±19) away from the event's pitch. */
   suspectTwelfth: number;
+  /** Mean detector clarity of the voiced frames, 0..1, rounded to 0.001. */
+  meanClarity: number;
+  /** Mean level of the voiced frames in dB, rounded to 0.1. */
+  meanLevelDb: number;
 }
 
 interface VoicedFrame {
@@ -56,6 +60,7 @@ interface VoicedFrame {
   midiFloat: number;
   midi: number;
   levelDb: number;
+  clarity: number;
 }
 
 interface OpenNote {
@@ -75,6 +80,10 @@ interface OpenNote {
 function medianMidi(frames: VoicedFrame[]): number {
   const sorted = frames.map((f) => f.midi).sort((a, b) => a - b);
   return sorted[Math.floor(sorted.length / 2)];
+}
+
+function mean(values: number[]): number {
+  return values.reduce((sum, v) => sum + v, 0) / Math.max(values.length, 1);
 }
 
 function frameStepMs(frames: PitchFrame[]): number {
@@ -98,6 +107,8 @@ function toEvent(note: OpenNote, endMs: number): NoteEvent {
     frames: note.frames.length,
     suspectOctave: note.frames.filter((f) => Math.abs(f.midi - midi) === 12).length,
     suspectTwelfth: note.frames.filter((f) => Math.abs(f.midi - midi) === 19).length,
+    meanClarity: Math.round(mean(note.frames.map((f) => f.clarity)) * 1000) / 1000,
+    meanLevelDb: Math.round(mean(note.frames.map((f) => f.levelDb)) * 10) / 10,
   };
 }
 
@@ -155,6 +166,7 @@ export function segment(frames: PitchFrame[], options: Partial<SegmentOptions> =
       midiFloat,
       midi: Math.round(midiFloat),
       levelDb: frame.levelDb,
+      clarity: frame.clarity,
     };
 
     if (!note) {

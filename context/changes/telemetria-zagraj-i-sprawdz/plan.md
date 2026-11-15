@@ -456,8 +456,8 @@ Rollback = redeploy the previous `api`; stored documents expire by themselves.
 
 ### Phase 4: Record building (A2)
 #### Automated
-- [ ] 4.1 `pnpm test` passes including telemetry/record, results and segment tests
-- [ ] 4.2 `pnpm typecheck` passes
+- [x] 4.1 `pnpm test` passes including telemetry/record, results and segment tests
+- [x] 4.2 `pnpm typecheck` passes
 #### Manual
 
 ### Phase 5: Offline queue, transport and opt-out (A2)

@@ -7,9 +7,15 @@ import { VitePWA } from 'vite-plugin-pwa';
 // Matches the welcome screen background so the Android splash and iOS status bar blend in.
 const THEME_COLOR = '#1e3a8a';
 
+// Build id sent with spike telemetry: the short commit SHA in CI, 'dev' locally.
+const APP_BUILD = process.env.GITHUB_SHA?.slice(0, 7) || 'dev';
+
 export default defineConfig({
   // Relative base keeps the build host- and path-agnostic (deploy target is still open).
   base: './',
+  define: {
+    __APP_BUILD__: JSON.stringify(APP_BUILD),
+  },
   plugins: [
     react(),
     tailwindcss(),

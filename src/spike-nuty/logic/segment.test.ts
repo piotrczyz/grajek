@@ -99,6 +99,14 @@ describe('segment', () => {
     expect(events[0].suspectTwelfth).toBe(1);
   });
 
+  it('reports the rounded mean clarity and level of the voiced frames', () => {
+    const frames = [...tone(60, 0, 200, -20, 0.95), ...tone(60, 200, 400, -25, 0.9), ...silence(400, 600)];
+    const events = segment(frames);
+    expect(events).toHaveLength(1);
+    expect(events[0].meanClarity).toBe(0.925);
+    expect(events[0].meanLevelDb).toBe(-22.5);
+  });
+
   it('drops events shorter than minNoteMs', () => {
     const frames = [...tone(60, 0, 400), ...silence(400, 600), ...tone(64, 600, 660), ...silence(660, 900)];
     const events = segment(frames);

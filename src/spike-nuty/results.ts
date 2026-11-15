@@ -27,7 +27,9 @@ export function refIndexAt(melody: Melody, eighth: number): number | null {
 }
 
 type RefEntry = CompareResult['reference'][number];
-type Kind = keyof typeof copy.STATUS;
+/** Why a note got its grade; the keys of copy.STATUS. */
+export type NoteKind = keyof typeof copy.STATUS;
+type Kind = NoteKind;
 
 /** Why a reference note got its grade. */
 function kindOf(r: RefEntry, result: CompareResult): Kind {
@@ -65,6 +67,12 @@ export interface NoteRow {
   offsetMs: number | null;
   timing: string;
   status: string;
+  /** Machine-readable reason behind `status`. */
+  kind: NoteKind;
+  /** Written MIDI number of the reference note; null for an extra note. */
+  expectedMidi: number | null;
+  /** Written MIDI number of the played note; null for a missing note. */
+  playedMidi: number | null;
   grade: NoteGrade | 'extra';
   refIndex: number | null;
   playedIndex: number | null;
@@ -99,6 +107,9 @@ export function noteRows(result: CompareResult, bpm: number): NoteRow[] {
         offsetMs,
         timing,
         status: copy.STATUS[kind],
+        kind,
+        expectedMidi: r.note.midi,
+        playedMidi: played ? played.midi : null,
         grade: r.grade,
         refIndex,
         playedIndex: r.playedIndex,
@@ -118,6 +129,9 @@ export function noteRows(result: CompareResult, bpm: number): NoteRow[] {
         offsetMs: null,
         timing: copy.NONE,
         status: copy.STATUS.extra,
+        kind: 'extra',
+        expectedMidi: null,
+        playedMidi: p.note.midi,
         grade: 'extra',
         refIndex: null,
         playedIndex,
