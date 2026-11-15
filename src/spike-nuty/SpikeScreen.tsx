@@ -118,7 +118,7 @@ function NotesTable({ rows, selected }: { rows: NoteRow[]; selected: StaffSelect
       <thead>
         <tr className="text-left text-slate-600">
           {copy.NOTE_COLUMNS.map((column) => (
-            <th key={column} className="px-1">
+            <th key={column} className="px-0.5">
               {column}
             </th>
           ))}
@@ -132,7 +132,7 @@ function NotesTable({ rows, selected }: { rows: NoteRow[]; selected: StaffSelect
               if (el) rowRefs.current.set(row.nr, el);
               else rowRefs.current.delete(row.nr);
             }}
-            className={`border-t align-top [&>td]:px-1 [&>td]:break-words ${row.nr === selectedNr ? 'bg-blue-100' : ''}`}
+            className={`border-t align-top [&>td]:px-0.5 [&>td]:break-words ${row.nr === selectedNr ? 'bg-blue-100' : ''}`}
           >
             <td>{row.nr}</td>
             <td>{row.expected}</td>

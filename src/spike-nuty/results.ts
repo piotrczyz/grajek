@@ -92,8 +92,8 @@ export function noteRows(result: CompareResult, bpm: number): NoteRow[] {
     const offsetMs = played ? Math.round(played.startMs - r.note.startEighth * eighth) : null;
     let timing: string = copy.NONE;
     if (played && offsetMs !== null) {
-      if (kind === 'late' || kind === 'early') timing = `${copy.signedMs(offsetMs)}, ${copy.STATUS[kind]}`;
-      else if (kind === 'rhythm')
+      // Late/early keep only the signed offset: the status word is in the Ocena column.
+      if (kind === 'rhythm')
         timing = played.durationEighths < r.note.durationEighths ? copy.TOO_SHORT : copy.TOO_LONG;
       else timing = copy.signedMs(offsetMs);
     }

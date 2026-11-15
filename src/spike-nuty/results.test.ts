@@ -84,8 +84,8 @@ describe('noteRows', () => {
     expect(rows).toHaveLength(15);
     expect(rows.map((r) => r.nr)).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
     expect(rows[0]).toMatchObject({ expected: 'C4', played: 'C4', status: 'dobrze', timing: '+40 ms', grade: 'green' });
-    expect(rows[1]).toMatchObject({ status: 'za późno', timing: '+600 ms, za późno', offsetMs: 600, grade: 'yellow' });
-    expect(rows[2]).toMatchObject({ status: 'za wcześnie', timing: '\u2212400 ms, za wcześnie', offsetMs: -400 });
+    expect(rows[1]).toMatchObject({ status: 'za późno', timing: '+600 ms', offsetMs: 600, grade: 'yellow' });
+    expect(rows[2]).toMatchObject({ status: 'za wcześnie', timing: '\u2212400 ms', offsetMs: -400 });
     expect(rows[3]).toMatchObject({ expected: 'C4', played: 'Cis4', centsDiff: 88, status: 'zła nuta', grade: 'red' });
     expect(rows[4]).toMatchObject({ played: '–', centsDiff: null, offsetMs: null, timing: '–', status: 'brak' });
     expect(rows[4].playedIndex).toBeNull();

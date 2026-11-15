@@ -45,25 +45,39 @@ test('the note-by-note list is readable at 360 px', async ({ page }) => {
   await expect(region.getByRole('cell', { name: layout.statuses[0], exact: true }).first()).toBeVisible();
 
   // A beep never plays the melody, so the rows above are mostly short ("brak").
-  // Fill every row with the longest texts the list can show and measure again.
-  const worstCase = await region.evaluate((section) => {
-    const longest = ['15', 'Fis4', 'Gis5', '−1200', '+1180 ms, za wcześnie'];
-    const table = section.querySelector('table') as HTMLTableElement;
-    for (const [i, row] of [...table.querySelectorAll('tbody tr')].entries()) {
-      const cells = row.querySelectorAll('td');
-      longest.forEach((text, column) => {
-        cells[column].textContent = text;
-      });
-      const word = cells[5].querySelectorAll('span');
-      word[word.length - 1].textContent = i % 2 === 0 ? 'za wcześnie' : 'dodatkowa';
-    }
-    const all = [...table.querySelectorAll('th, td')] as HTMLElement[];
-    return {
-      tableWidth: table.scrollWidth,
-      sectionWidth: section.clientWidth,
-      clipped: all.filter((cell) => cell.scrollWidth > cell.clientWidth).map((cell) => cell.textContent),
-    };
-  });
+  // Fill every row with the longest texts the list can show and measure again,
+  // first with the device font, then with a wide one at a larger size (ubuntu CI
+  // renders with DejaVu Sans, which is wider than the Windows/Android default).
+  const measureWorstCase = (font: { family: string; size: string } | null) =>
+    region.evaluate((section, wide) => {
+      const fixed = ['15', 'Fis4', 'Gis5', '\u22121200'];
+      const timings = ['\u22121180 ms', '+1180 ms', 'za krótko', 'za długo'];
+      const grades = ['za wcześnie', 'dodatkowa', 'zła nuta'];
+      const table = section.querySelector('table') as HTMLTableElement;
+      table.style.fontFamily = wide ? wide.family : '';
+      table.style.fontSize = wide ? wide.size : '';
+      for (const [i, row] of [...table.querySelectorAll('tbody tr')].entries()) {
+        const cells = row.querySelectorAll('td');
+        fixed.forEach((text, column) => {
+          cells[column].textContent = text;
+        });
+        cells[4].textContent = timings[i % timings.length];
+        const word = cells[5].querySelectorAll('span');
+        word[word.length - 1].textContent = grades[i % grades.length];
+      }
+      const all = [...table.querySelectorAll('th, td')] as HTMLElement[];
+      return {
+        tableWidth: table.scrollWidth,
+        sectionWidth: section.clientWidth,
+        clipped: all.filter((cell) => cell.scrollWidth > cell.clientWidth).map((cell) => cell.textContent),
+      };
+    }, font);
+
+  const worstCase = await measureWorstCase(null);
   expect(worstCase.clipped).toEqual([]);
   expect(worstCase.tableWidth).toBeLessThanOrEqual(worstCase.sectionWidth);
+
+  const wideFont = await measureWorstCase({ family: '"DejaVu Sans", Verdana, sans-serif', size: '14px' });
+  expect(wideFont.clipped).toEqual([]);
+  expect(wideFont.tableWidth).toBeLessThanOrEqual(wideFont.sectionWidth);
 });
