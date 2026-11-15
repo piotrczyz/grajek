@@ -478,7 +478,7 @@ Rollback = redeploy the previous `api`; stored documents expire by themselves.
 
 ### Phase 7: Aggregates and CSV (A3)
 #### Automated
-- [ ] 7.1 `pnpm --dir functions test` passes including spike-nuty-stats and spike-nuty-export tests
+- [x] 7.1 `pnpm --dir functions test` passes including spike-nuty-stats and spike-nuty-export tests
 #### Manual
 
 ### Phase 8: Admin endpoints and secret (A3)
