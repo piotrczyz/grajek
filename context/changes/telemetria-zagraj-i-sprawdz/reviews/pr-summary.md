@@ -1,13 +1,11 @@
 <!-- preview-link -->
 
-**Co zmieniło się po Twoich uwagach:** Zniknęło pytanie „Czy ocena się zgadza?” razem z zaznaczaniem nut i komentarzem: nikt nie musi już nic oceniać. Zamiast tego aplikacja po każdej próbie sama szacuje, które nuty to prawdopodobnie błąd grającego, a które błąd rozpoznawania, i zapisuje ten szacunek w anonimowym wyniku próby. Dziecko tego nie widzi; szacunek jest tylko w panelu diagnostycznym. Tabela „Nuta po nucie” ma krótsze nagłówki, zawija tekst i pokazuje status kolorową kropką z pełnym słowem, więc na telefonie (360 px) nic nie jest ucięte.
+**Co zmieniło się po Twoich uwagach:** Tabela „Nuta po nucie” zostaje przebudowana tak, żeby na telefonie (360 px) mieściła się w całości niezależnie od czcionki systemu, także gdy czcionka jest szersza lub większa. Kolumna „Czas” pokazuje już tylko przesunięcie w milisekundach, bo słowo „za wcześnie” / „za późno” jest obok w kolumnie „Ocena”. Test szerokości sprawdza teraz także szerszą czcionkę, więc ten sam problem wyjdzie od razu, a nie dopiero w automatycznych testach.
 
-**Co zostaje bez zmian:** automatyczna wysyłka wyniku, krótka informacja o anonimowych danych i przełącznik wyłączenia. Ta część opiera się na poprzedniej i wchodzi po niej.
+**Co zostaje bez zmian:** automatyczna wysyłka wyniku z szacunkiem rozpoznawania, panel diagnostyczny, informacja o anonimowych danych i przełącznik wyłączenia. Ta część opiera się na poprzedniej i wchodzi po niej.
 
 **Proszę sprawdzić na podglądzie** (`?spike=nuty`, na telefonie):
-- Zagraj melodię do końca: pod wynikiem nie ma żadnego pytania ani oceny rozpoznawania.
-- W panelu „Diagnostyka” kliknij „Pokaż szacunek rozpoznawania”: widać szacowaną dokładność i ocenę każdej nuty z powodem.
-- Tabela „Nuta po nucie” jest czytelna, statusy jak „dobrze” czy „za wcześnie” widać w całości.
-- Wynik próby trafia do bazy razem z szacunkiem dokładności, także gdy zagrasz bez internetu i połączenie wróci.
+- Tabela „Nuta po nucie” nie wychodzi poza ekran i nie trzeba jej przewijać w bok; statusy jak „dobrze” czy „za wcześnie” widać w całości.
+- Zagraj melodię do końca: pod wynikiem nie ma pytania ani oceny rozpoznawania; szacunek jest tylko w panelu „Diagnostyka”.
 
-**Status:** Gotowe do scalenia po sprawdzeniu podglądu.
+**Status:** Jeszcze niegotowe: poprawka układu tabeli jest w toku, potem automatyczne testy muszą przejść na zielono.
