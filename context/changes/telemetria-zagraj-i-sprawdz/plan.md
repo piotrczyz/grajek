@@ -456,14 +456,14 @@ Rollback = redeploy the previous `api`; stored documents expire by themselves.
 
 ### Phase 4: Record building (A2)
 #### Automated
-- [x] 4.1 `pnpm test` passes including telemetry/record, results and segment tests
-- [x] 4.2 `pnpm typecheck` passes
+- [x] 4.1 `pnpm test` passes including telemetry/record, results and segment tests — 5e81943
+- [x] 4.2 `pnpm typecheck` passes — 5e81943
 #### Manual
 
 ### Phase 5: Offline queue, transport and opt-out (A2)
 #### Automated
-- [ ] 5.1 `pnpm test` passes including telemetry/queue and telemetry/settings tests (FIFO order, cap 20, drop on 400, keep on 5xx/429/network error, feedback 404 dropped after 5 tries, single concurrent flush)
-- [ ] 5.2 `pnpm lint` passes
+- [x] 5.1 `pnpm test` passes including telemetry/queue and telemetry/settings tests (FIFO order, cap 20, drop on 400, keep on 5xx/429/network error, feedback 404 dropped after 5 tries, single concurrent flush)
+- [x] 5.2 `pnpm lint` passes
 #### Manual
 
 ### Phase 6: Screen wiring, feedback UI and notice (A2)
