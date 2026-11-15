@@ -4,6 +4,7 @@ import {
   toStoredFeedback,
   type SpikeNutyRepository,
 } from '../src/spike-nuty/repository.js';
+import type { AttemptDoc } from '../src/spike-nuty/stats.js';
 
 export interface FakeRateWindow {
   windowStart: Date;
@@ -17,7 +18,12 @@ export interface FakeRateWindow {
 export function createMemorySpikeNutyRepository() {
   const attempts = new Map<string, Record<string, unknown>>();
   const windows = new Map<string, FakeRateWindow>();
-  const calls = { createIfAbsent: 0, saveFeedback: 0, hitRateLimit: 0 };
+  const calls = {
+    createIfAbsent: 0,
+    saveFeedback: 0,
+    hitRateLimit: 0,
+    listAttempts: [] as Array<{ from: Date; to: Date; limit: number }>,
+  };
 
   const repo: SpikeNutyRepository = {
     async exists(id) {
@@ -52,6 +58,14 @@ export function createMemorySpikeNutyRepository() {
       }
       window.count += 1;
       return { allowed: true, retryAfterSec: 0 };
+    },
+    async listAttempts(from, to, limit) {
+      calls.listAttempts.push({ from, to, limit });
+      return [...attempts.entries()]
+        .map(([id, data]) => ({ ...data, id }) as unknown as AttemptDoc)
+        .filter((doc) => doc.receivedAt >= from && doc.receivedAt < to)
+        .sort((a, b) => a.receivedAt.getTime() - b.receivedAt.getTime())
+        .slice(0, limit);
     },
   };
 
