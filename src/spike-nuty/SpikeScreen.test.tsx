@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MicError } from './audio/mic.ts';
 import { MELODIES, midiToHz, type PitchFrame } from './logic/index.ts';
@@ -42,6 +42,22 @@ vi.mock('./audio/pitchTracker.ts', () => ({
     latencyMs: 0,
   }),
 }));
+// Telemetry: the queue is mocked (nothing leaves the test), the device id is fixed.
+const DEVICE_ID = '0b9f8c2e-4d1a-4c3b-9e8f-1a2b3c4d5e6f';
+const telemetry = vi.hoisted(() => ({
+  enqueue: vi.fn(),
+  flush: vi.fn(() => Promise.resolve()),
+  startAutoFlush: vi.fn(() => () => undefined),
+}));
+vi.mock('./telemetry/queue.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./telemetry/queue.ts')>()),
+  enqueue: telemetry.enqueue,
+  flush: telemetry.flush,
+  startAutoFlush: telemetry.startAutoFlush,
+}));
+vi.mock('../push/device-id.ts', () => ({
+  getOrCreateDeviceId: () => Promise.resolve(DEVICE_ID),
+}));
 // jsdom cannot measure SVG text: the staff is mocked and records what it gets.
 vi.mock('./Staff.tsx', () => ({
   Staff: ({ bars }: { bars: AlignedBar[] }) => {
@@ -55,6 +71,10 @@ beforeEach(() => {
   audio.frames = [];
   audio.leadIn = [];
   audio.staffBars = [];
+  telemetry.enqueue.mockReset();
+  telemetry.flush.mockClear();
+  telemetry.startAutoFlush.mockClear();
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -195,5 +215,208 @@ describe('SpikeScreen', () => {
     await recordAndStop();
     // Without the clarinet transposition the played notes sit a tone too low.
     expect(await screen.findByText(/^Wynik: \d+%$/)).not.toHaveTextContent('Wynik: 100%');
+  });
+});
+
+describe('SpikeScreen telemetry', () => {
+  type Enqueued = { kind: string; attemptId: string; body: Record<string, unknown> };
+  const enqueued = (kind: 'attempt') =>
+    telemetry.enqueue.mock.calls.map(([item]) => item as Enqueued).filter((item) => item.kind === kind);
+
+  async function finishedAttempt() {
+    audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
+    audio.frames = framesOfMelody();
+    render(<SpikeScreen />);
+    await recordAndStop();
+    await screen.findByText('Wynik: 100%');
+    await waitFor(() => expect(enqueued('attempt')).toHaveLength(1));
+  }
+
+  it('shows the notice and the switch on both views, switched on by default', async () => {
+    audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
+    audio.frames = framesOfMelody();
+    render(<SpikeScreen />);
+    const notice = 'Wysyłamy anonimowe dane o dokładności rozpoznawania (bez nagrania), żeby ulepszyć aplikację.';
+    expect(screen.getByText(notice)).toBeInTheDocument();
+    expect(screen.getByLabelText('Wysyłaj anonimowe dane')).toBeChecked();
+    expect(telemetry.startAutoFlush).toHaveBeenCalledTimes(1);
+    expect(telemetry.flush).toHaveBeenCalled();
+    await recordAndStop();
+    await screen.findByText('Wynik: 100%');
+    expect(screen.getByText(notice)).toBeInTheDocument();
+    expect(screen.getByLabelText('Wysyłaj anonimowe dane')).toBeChecked();
+  });
+
+  it('enqueues one record per finished attempt, ended by the Stop button', async () => {
+    await finishedAttempt();
+    const [item] = enqueued('attempt');
+    expect(item.attemptId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(item.body).toMatchObject({
+      v: 1,
+      deviceId: DEVICE_ID,
+      ended: 'stopped',
+      settings: { melodyId: MELODIES[0].id, instrument: 'clarinet-bb', bpm: 60, autoLatency: true },
+      result: { scorePercent: 100 },
+    });
+    expect(item.body).not.toHaveProperty('name');
+    // Re-grading the same recording does not send it again.
+    fireEvent.click(screen.getByLabelText('Automatyczna korekta opóźnienia'));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(enqueued('attempt')).toHaveLength(1);
+    // A new attempt gets its own record and id.
+    fireEvent.click(screen.getByRole('button', { name: 'Zagraj jeszcze raz' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop' }));
+    await waitFor(() => expect(enqueued('attempt')).toHaveLength(2));
+    expect(enqueued('attempt')[1].attemptId).not.toBe(item.attemptId);
+  });
+
+  it('marks an attempt ended by the timer as complete', async () => {
+    vi.useFakeTimers();
+    audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
+    audio.frames = framesOfMelody();
+    render(<SpikeScreen />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    await settle();
+    act(() => {
+      vi.advanceTimersByTime(10 * 60 * 1000);
+    });
+    await settle();
+    expect(screen.getByText('Wynik: 100%')).toBeInTheDocument();
+    expect(enqueued('attempt')).toHaveLength(1);
+    expect(enqueued('attempt')[0].body).toMatchObject({ ended: 'complete' });
+  });
+
+
+  it('sends nothing when the switch is off', async () => {
+    audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
+    audio.frames = framesOfMelody();
+    render(<SpikeScreen />);
+    fireEvent.click(screen.getByLabelText('Wysyłaj anonimowe dane'));
+    expect(screen.getByLabelText('Wysyłaj anonimowe dane')).not.toBeChecked();
+    expect(localStorage.getItem('grajek.spikeNuty.telemetry')).toBe('off');
+    await recordAndStop();
+    await screen.findByText('Wynik: 100%');
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(telemetry.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('asks nothing after a finished attempt: no manual feedback, the notice and the switch stay', async () => {
+    await finishedAttempt();
+    expect(screen.queryByText('Czy ocena się zgadza?')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tak' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nie' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/aplikacja się pomyliła/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Komentarz/)).not.toBeInTheDocument();
+    const table = within(screen.getByRole('region', { name: 'Nuta po nucie' }));
+    expect(table.queryAllByRole('checkbox')).toHaveLength(0);
+    expect(
+      screen.getByText('Wysyłamy anonimowe dane o dokładności rozpoznawania (bez nagrania), żeby ulepszyć aplikację.'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Wysyłaj anonimowe dane')).toBeChecked();
+    // Only the attempt record is queued.
+    expect(telemetry.enqueue.mock.calls.every(([item]) => (item as Enqueued).kind === 'attempt')).toBe(true);
+  });
+
+  it('sends the automatic estimate, the attempt signal and the note window levels in the record', async () => {
+    await finishedAttempt();
+    const { body } = enqueued('attempt')[0];
+    expect(body.estimate).toMatchObject({ heuristicVersion: '1', estimatedAccuracy: 1 });
+    expect(body.signal).toMatchObject({ frames: framesOfMelody().length });
+    const notes = body.notes as Array<{ windowLevelDb: number | null }>;
+    expect(notes[0].windowLevelDb).toBeGreaterThan(-30);
+    const events = body.events as Array<{ pitchSpreadCents: number }>;
+    expect(events[0].pitchSpreadCents).toBe(0);
+  });
+});
+
+describe('SpikeScreen recognition estimate', () => {
+  const ESTIMATE_TEXTS = [
+    'Szacowana dokładność rozpoznawania',
+    'Odsetek ramek bez wysokości',
+    'Mediana pewności',
+    'Rozrzut opóźnienia',
+    'Zdarzenia na nutę',
+    'Przerwana',
+  ];
+
+  it('shows the heuristic only in the diagnostics panel, after opening it', async () => {
+    audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
+    audio.frames = framesOfMelody();
+    render(<SpikeScreen />);
+    await recordAndStop();
+    await screen.findByText('Wynik: 100%');
+    // The default result view (what the child sees) has none of it.
+    for (const text of ESTIMATE_TEXTS) expect(screen.queryByText(text)).not.toBeInTheDocument();
+    expect(screen.queryByText('ok')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Szacunek rozpoznawania (dla zespołu)' })).not.toBeInTheDocument();
+
+    const diagnostics = within(screen.getByRole('region', { name: 'Diagnostyka' }));
+    fireEvent.click(diagnostics.getByRole('button', { name: 'Pokaż szacunek rozpoznawania' }));
+    const panel = within(diagnostics.getByRole('region', { name: 'Szacunek rozpoznawania (dla zespołu)' }));
+    for (const text of ESTIMATE_TEXTS) expect(panel.getByText(text)).toBeInTheDocument();
+    expect(panel.getByText('100%')).toBeInTheDocument();
+    // Stopped with the button.
+    expect(panel.getByText('tak')).toBeInTheDocument();
+    // 15 reference notes, all played right.
+    expect(panel.getAllByText('ok')).toHaveLength(15);
+    // Not inside the result sections.
+    expect(within(screen.getByRole('region', { name: 'Nuta po nucie' })).queryByText('ok')).not.toBeInTheDocument();
+
+    fireEvent.click(diagnostics.getByRole('button', { name: 'Ukryj szacunek rozpoznawania' }));
+    expect(screen.queryByText('Szacowana dokładność rozpoznawania')).not.toBeInTheDocument();
+  });
+
+  it('names the verdict and the reasons of a misrecognised note in Polish', async () => {
+    audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
+    // The 2nd note of the melody heard an octave too high.
+    const melody = MELODIES[0];
+    const second = melody.notes[1];
+    audio.frames = framesOfMelody().map((f) =>
+      f.hz !== null && f.timeMs >= second.startEighth * 500 && f.timeMs < (second.startEighth + second.durationEighths) * 500
+        ? { ...f, hz: f.hz * 2 }
+        : f,
+    );
+    render(<SpikeScreen />);
+    await recordAndStop();
+    await screen.findByText(/^Wynik: \d+%$/);
+    fireEvent.click(screen.getByRole('button', { name: 'Pokaż szacunek rozpoznawania' }));
+    const panel = within(screen.getByRole('region', { name: 'Szacunek rozpoznawania (dla zespołu)' }));
+    expect(panel.getByText('błąd rozpoznawania')).toBeInTheDocument();
+    expect(panel.getByText('skok o oktawę')).toBeInTheDocument();
+  });
+});
+
+describe('SpikeScreen note-by-note list on a narrow phone', () => {
+  it('lets every cell wrap and keeps the full status word with a colour dot', async () => {
+    audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
+    audio.frames = framesOfMelody();
+    render(<SpikeScreen />);
+    await recordAndStop();
+    await screen.findByText('Wynik: 100%');
+    const table = within(screen.getByRole('region', { name: 'Nuta po nucie' })).getByRole('table');
+    // No fixed layout and no fixed-width columns that clip text at 360 px.
+    expect(table).not.toHaveClass('table-fixed');
+    expect(table.querySelectorAll('[class*="w-["], th.w-6, th.w-14')).toHaveLength(0);
+    expect(within(table).getAllByRole('columnheader').map((th) => th.textContent)).toEqual([
+      '#',
+      'Wzór',
+      'Gra',
+      'Cent',
+      'Czas',
+      'Ocena',
+    ]);
+    const statusCells = within(table)
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => row.querySelectorAll('td')[5]);
+    expect(statusCells).toHaveLength(15);
+    for (const cell of statusCells) {
+      expect(cell.textContent).toBe('dobrze');
+      expect(cell.querySelector('span[aria-hidden="true"]')).not.toBeNull();
+    }
   });
 });

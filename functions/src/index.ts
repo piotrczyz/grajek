@@ -8,6 +8,12 @@
  *
  * One scheduled function `reminders` runs every 5 minutes and sends the due
  * daily reminders, at most one per device per local day.
+ *
+ * `api` also takes the anonymous attempt records (with the automatic
+ * recognition estimate) of the hidden "Zagraj i sprawdź" spike screen
+ * (`/api/spike-nuty/...`, Firestore `spikeNutyAttempts`, 180-day TTL) and
+ * serves the owner's aggregates and export behind the `SPIKE_NUTY_ADMIN_KEY`
+ * secret.
  */
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -15,6 +21,7 @@ import { logger } from 'firebase-functions';
 import { onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret, defineString } from 'firebase-functions/params';
+import { createApiHandler } from './api-router.js';
 import { createDevicesHandler } from './devices/handler.js';
 import {
   createLogSender,
@@ -26,8 +33,12 @@ import {
 import { createFirestoreRepository } from './devices/repository.js';
 import { createFirestoreReminderRepository } from './reminders/repository.js';
 import { runReminderTick } from './reminders/tick.js';
+import { createSpikeNutyAdminHandler } from './spike-nuty/admin-handler.js';
+import { createSpikeNutyHandler } from './spike-nuty/handler.js';
+import { createFirestoreSpikeNutyRepository } from './spike-nuty/repository.js';
 
 const VAPID_PRIVATE_KEY = defineSecret('VAPID_PRIVATE_KEY');
+const SPIKE_NUTY_ADMIN_KEY = defineSecret('SPIKE_NUTY_ADMIN_KEY');
 const VAPID_PUBLIC_KEY = defineString('VAPID_PUBLIC_KEY', {
   description: 'Public VAPID key (the same value as VITE_VAPID_PUBLIC_KEY in the PWA build).',
 });
@@ -47,17 +58,36 @@ const sender: PushSender = shouldUseLogSender(process.env)
       privateKey: () => VAPID_PRIVATE_KEY.value(),
     });
 
-const handler = createDevicesHandler({
+const devicesHandler = createDevicesHandler({
   repo: createFirestoreRepository(getFirestore()),
   sender,
   now: () => new Date(),
   onError: (error) => logger.error('devices api error', toLoggableError(error)),
 });
 
+const spikeNutyHandler = createSpikeNutyHandler({
+  repo: createFirestoreSpikeNutyRepository(getFirestore()),
+  now: () => new Date(),
+  onError: (error) => logger.error('spike-nuty api error', toLoggableError(error)),
+});
+
+const spikeNutyAdminHandler = createSpikeNutyAdminHandler({
+  repo: createFirestoreSpikeNutyRepository(getFirestore()),
+  adminKey: () => SPIKE_NUTY_ADMIN_KEY.value(),
+  now: () => new Date(),
+  onError: (error) => logger.error('spike-nuty admin api error', toLoggableError(error)),
+});
+
+const handler = createApiHandler({
+  devices: devicesHandler,
+  spikeNuty: spikeNutyHandler,
+  spikeNutyAdmin: spikeNutyAdminHandler,
+});
+
 export const api = onRequest(
   {
     region: 'europe-central2',
-    secrets: [VAPID_PRIVATE_KEY],
+    secrets: [VAPID_PRIVATE_KEY, SPIKE_NUTY_ADMIN_KEY],
     cors: false,
     maxInstances: 2,
   },

@@ -51,6 +51,22 @@ describe('firebase.json', () => {
   });
 });
 
+describe('firestore.indexes.json', () => {
+  const indexes = JSON.parse(readFileSync(root('firestore.indexes.json'), 'utf8')) as {
+    fieldOverrides: Array<{ collectionGroup: string; fieldPath: string; ttl?: boolean; indexes: unknown[] }>;
+  };
+
+  it.each(['spikeNutyAttempts', 'spikeNutyRateLimits'])(
+    'declares a TTL policy on %s.expireAt',
+    (collectionGroup) => {
+      const override = indexes.fieldOverrides.find(
+        (o) => o.collectionGroup === collectionGroup && o.fieldPath === 'expireAt',
+      );
+      expect(override).toMatchObject({ ttl: true, indexes: [] });
+    },
+  );
+});
+
 describe('firestore.rules', () => {
   const rules = readFileSync(root('firestore.rules'), 'utf8');
   const code = rules.replace(/\/\/.*$/gm, '');

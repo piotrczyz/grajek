@@ -47,6 +47,64 @@ Instrument domyślny to Klarnet B♭: nuty na pięciolinii są w zapisie
 klarnetowym (wykryta wysokość brzmiąca + 2 półtony). „Instrument w C” wyłącza
 transpozycję.
 
+## Anonimowe dane o dokładności
+
+Po każdym nagraniu, które dojdzie do ekranu wyniku, aplikacja wysyła w tle
+jeden anonimowy rekord (`PUT /api/spike-nuty/attempts/{id}`). Ekran nie czeka
+na wysyłkę; bez sieci rekord czeka w kolejce w `localStorage`
+(`grajek.spikeNuty.queue.v1`, najwyżej 20 pozycji) i idzie po powrocie
+połączenia albo przy następnym otwarciu ekranu.
+
+Co jest w rekordzie:
+
+- anonimowy identyfikator urządzenia (ten sam co przy powiadomieniach) i
+  losowy identyfikator próby;
+- wersja aplikacji (skrót commita), user agent przeglądarki, czy aplikacja
+  działa jako PWA, platforma i „mobile”, jeśli przeglądarka je podaje;
+- ustawienia: utwór, instrument, tempo, czas na przygotowanie, ignorowanie
+  oktawy, wizualny metronom, automatyczna korekta;
+- wynik, wysokości, liczniki (dobrze, za późno, …) i lista nuta po nucie
+  (oczekiwana i zagrana nuta jako numery MIDI, centy, przesunięcie, status,
+  błąd oktawy/duodecymy, średni poziom wejścia w oknie nuty);
+- surowe wykryte zdarzenia (najwyżej 200: wysokość brzmiąca, start, długość,
+  centy, średnia pewność i poziom, liczba ramek, rozrzut wysokości w centach)
+  przed korektą opóźnienia;
+- sygnał całej próby: liczba analizowanych ramek, ramek z wykrytą wysokością
+  i mediana pewności;
+- automatyczny szacunek rozpoznawania (niżej) z wersją heurystyki;
+- opóźnienie wyjścia audio, mediana i średnia przesunięcia, zastosowana korekta;
+- czy nagranie skończyło się samo (`complete`), czy przyciskiem Stop
+  (`stopped`).
+
+Nie wysyłamy nagrania dźwięku, imienia ani żadnych danych profilu. Serwer
+kasuje rekordy po 180 dniach.
+
+Nikt nie musi oceniać wyniku ręcznie: aplikacja sama szacuje dokładność
+rozpoznawania z danych próby. Każdą nutę z listy „Nuta po nucie” i każde
+zdarzenie heurystyka uznaje za „prawdopodobny błąd grającego”, „prawdopodobny
+błąd rozpoznawania”, „niepewne” albo „ok” (np. skok o oktawę lub duodecymę,
+bardzo krótkie, ciche albo niepewne zdarzenie, nuta rozbita na kilka zdarzeń,
+niestabilna wysokość, brak nuty przy głośnym sygnale to podejrzenie błędu
+rozpoznawania; stabilna, pewna inna nuta albo pojedyncza nuta poza rytmem to
+błąd grającego). Szacowana dokładność = 1 − udział nut wzorca podejrzanych o
+błąd rozpoznawania. Liczy ją na urządzeniu ten sam moduł co serwer
+(`functions/src/spike-nuty/recognition-estimate.ts`), na całym nagraniu przed
+przycięciem list, i zapisuje w rekordzie z wersją heurystyki, żeby dało się ją
+przeliczyć na surowych danych.
+
+Dziecko tego nie widzi. Szacunek, werdykt każdej nuty z powodami i sygnały
+próby (odsetek ramek bez wysokości, mediana pewności, rozrzut opóźnienia,
+zdarzenia na nutę, czy próba przerwana) pokazuje dopiero przycisk „Pokaż
+szacunek rozpoznawania” w panelu „Diagnostyka”.
+
+Starsze wersje ekranu mogły zostawić w kolejce ręczne odpowiedzi „Czy ocena
+się zgadza?”; kolejka po cichu je usuwa, a czekające obok rekordy prób
+wysyła normalnie.
+
+**Jak wyłączyć:** odznacz „Wysyłaj anonimowe dane” na dole ekranu. Wybór
+zostaje na tym urządzeniu (`localStorage`, klucz
+`grajek.spikeNuty.telemetry` = `off`); wyłączenie czyści kolejkę.
+
 ## Werdykt
 
 _Do uzupełnienia po teście na iPhonie: czy rozpoznawanie wysokości i rytmu jest
