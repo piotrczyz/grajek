@@ -1,4 +1,5 @@
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
+import type { AttemptDoc } from './stats.js';
 import type { AttemptRecord, CreateResult, RateLimitResult } from './types.js';
 
 export const ATTEMPTS_COLLECTION = 'spikeNutyAttempts';
@@ -20,6 +21,25 @@ export interface SpikeNutyRepository {
    * first write; refuses (and counts nothing) once `limit` writes are in.
    */
   hitRateLimit(deviceId: string, now: Date, limit: number, windowMs: number): Promise<RateLimitResult>;
+  /**
+   * Stored attempts with `from <= receivedAt < to`, oldest first, at most
+   * `limit` of them; timestamps come back as `Date`.
+   */
+  listAttempts(from: Date, to: Date, limit: number): Promise<AttemptDoc[]>;
+}
+
+const DATE_FIELDS = ['receivedAt', 'expireAt'] as const;
+
+/** A stored document as an `AttemptDoc`: Firestore timestamps become `Date`. */
+export function toAttemptDoc(id: string, data: Record<string, unknown>): AttemptDoc {
+  const doc: Record<string, unknown> = { ...data, id };
+  for (const field of DATE_FIELDS) {
+    const value = doc[field];
+    if (value instanceof Timestamp) {
+      doc[field] = value.toDate();
+    }
+  }
+  return doc as unknown as AttemptDoc;
 }
 
 export function expireAtFor(receivedAt: Date): Date {
@@ -76,6 +96,17 @@ export function createFirestoreSpikeNutyRepository(db: Firestore): SpikeNutyRepo
         tx.update(ref, { count: count + 1 });
         return { allowed: true, retryAfterSec: 0 };
       });
+    },
+
+    async listAttempts(from, to, limit) {
+      const snap = await db
+        .collection(ATTEMPTS_COLLECTION)
+        .where('receivedAt', '>=', Timestamp.fromDate(from))
+        .where('receivedAt', '<', Timestamp.fromDate(to))
+        .orderBy('receivedAt')
+        .limit(limit)
+        .get();
+      return snap.docs.map((d) => toAttemptDoc(d.id, d.data()));
     },
   };
 }

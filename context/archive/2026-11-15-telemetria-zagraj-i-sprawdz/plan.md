@@ -108,9 +108,9 @@ free of derived fields.
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Backend ingest (A1) | 1-3 | — | no | done | — |
-| 2 | Client telemetry and feedback (A2) | 4-6 | 1 | yes | done | — |
-| 3 | Owner stats and export (A3) | 7-9 | 1 | yes | pending | — |
+| 1 | Backend ingest (A1) | 1-3 | — | no | done | #22 |
+| 2 | Client telemetry and feedback (A2) | 4-6 | 1 | yes | done | #23 |
+| 3 | Owner stats and export (A3) | 7-9 | 1 | yes | done | #24 |
 
 Increments 2 and 3 are each stacked on increment 1 and are file-disjoint from
 each other (2 touches only `src/`, `vite.config.ts`; 3 touches only
@@ -478,18 +478,18 @@ Rollback = redeploy the previous `api`; stored documents expire by themselves.
 
 ### Phase 7: Aggregates and CSV (A3)
 #### Automated
-- [ ] 7.1 `pnpm --dir functions test` passes including spike-nuty-stats and spike-nuty-export tests
+- [x] 7.1 `pnpm --dir functions test` passes including spike-nuty-stats and spike-nuty-export tests — bb5af40
 #### Manual
 
 ### Phase 8: Admin endpoints and secret (A3)
 #### Automated
-- [ ] 8.1 `pnpm --dir functions test` passes including spike-nuty-admin-handler tests
-- [ ] 8.2 `pnpm --dir functions build && pnpm --dir functions typecheck` pass
+- [x] 8.1 `pnpm --dir functions test` passes including spike-nuty-admin-handler tests — e93f874
+- [x] 8.2 `pnpm --dir functions build && pnpm --dir functions typecheck` pass — e93f874
 #### Manual
 
 ### Phase 9: Emulator test, script and owner docs (A3)
 #### Automated
-- [ ] 9.1 `pnpm --dir functions test:emulators` passes including spike-nuty-stats.emulator tests
-- [ ] 9.2 `node functions/scripts/spike-nuty-stats.mjs --help` exits 0
+- [x] 9.1 `pnpm --dir functions test:emulators` passes including spike-nuty-stats.emulator tests — 7e3e1f3
+- [x] 9.2 `node functions/scripts/spike-nuty-stats.mjs --help` exits 0 — 7e3e1f3
 #### Manual
 - [ ] 9.3 After the owner sets the secret and deploys, `curl -H "X-Admin-Key: …" https://grajek.web.app/api/spike-nuty/stats` returns the aggregates
