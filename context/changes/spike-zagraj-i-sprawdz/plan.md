@@ -102,7 +102,7 @@ Web Audio and renders it.
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Spike music logic (pure, unit-tested) | 1-2 | — | no | in-progress | — |
+| 1 | Spike music logic (pure, unit-tested) | 1-2 | — | no | done | — |
 | 2 | Spike screen with recording at ?spike=nuty | 3-5 | 1 | yes | pending | — |
 
 ## Critical Implementation Details
