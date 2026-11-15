@@ -1,16 +1,13 @@
 <!-- preview-link -->
 
-**Co to wnosi:** Ukryty ekran próbny „Zagraj i sprawdź”. Dziecko wybiera utwór, gra do metronomu, a telefon nagrywa przez mikrofon i pokazuje na pięciolinii nuty wzorcowe i zagrane (zielona: dobrze, żółta: zły rytm, czerwona: zła lub brakująca nuta) oraz wynik w %. Reszta aplikacji się nie zmienia. Ta część jest zbudowana na poprzedniej i wchodzi po niej.
+**Co zmieni się po Twoich uwagach (w przygotowaniu):**
+- Po Starcie jest czas na przygotowanie (domyślnie 5 s, do wyboru 3 / 5 / 10 s) z dużym odliczaniem, potem takt metronomu z dużymi cyframi 1 2 3 4 i „Graj!”. Nuty wzorcowe widać od początku, a w trakcie gry podświetla się bieżąca nuta.
+- Po zagraniu otwiera się osobny ekran wyniku: wynik w %, krótkie podsumowanie („8 z 10 nut dobrze, 2 za późno…”), legenda kolorów, przyciski „Zagraj jeszcze raz” i „Zmień utwór” oraz lista nuta po nucie (wzór, zagrane, centy, ile za wcześnie lub za późno). Dotknięcie nuty podświetla jej wiersz.
+- Porównanie: wybraliśmy dwie wyrównane pięciolinie podpisane „Wzór” i „Zagrałeś”, z zagraną nutą pionowo pod nutą wzorca. Nakładanie nut na jedną pięciolinię było na wąskim ekranie nieczytelne. Brakująca nuta to czerwona pauza, nuta dodatkowa jest szara.
+- Opóźnienie: telefon sam wylicza typowe przesunięcie zagranych nut względem metronomu i odejmuje je przed oceną rytmu, bez osobnej kalibracji. W diagnostyce widać to przesunięcie i można korektę wyłączyć, żeby porównać.
 
-**Proszę sprawdzić na iPhonie:**
-- Otwórz podgląd z dopiskiem `?spike=nuty` na końcu adresu, dodaj go do ekranu początkowego, uruchom z ikony i zezwól na mikrofon (szczegółowa instrukcja jest w opisie spike'a, z miejscem na werdykt).
-- Zagraj każdy utwór przy 60 i 90 BPM, raz ze słyszalnym metronomem, raz z „Tylko wizualny metronom”; poprawna gra powinna dać głównie zielone nuty, celowo zła nuta czerwoną, spóźniona żółtą.
-- Przy ćwiczeniu E-F-G zajrzyj do panelu diagnostyki (błędy oktawy i duodecymy), a po odmowie mikrofonu sprawdź, czy pojawia się polski komunikat.
-- Otwórz aplikację bez dopisku i potwierdź, że wygląda i działa jak dotąd.
+**Co sprawdzić na iPhonie po poprawce:** zagraj „Panie Janie” przy 60 BPM. Poprawna gra powinna dać głównie zielone nuty, a odliczanie i podpisy wierszy powinny być czytelne z odległości.
 
-**Decyzje podjęte przez nas (daj znać, jeśli coś zmienić):**
-- Wynik = nuty zielone plus połowa żółtych; dodatkowe nuty nie obniżają wyniku. Rytm jest dobry, gdy nuta zaczyna się na właściwej ósemce, a długość różni się najwyżej o ósemkę.
-- Utwory: „Wlazł kotek”, „Panie Janie” w C i ćwiczenie E-F-G w niskim rejestrze; tylko takt 4/4, jeden takt odliczania.
-- Kod ekranu próbnego pobiera się raz w tle przy aktualizacji aplikacji u wszystkich (około 0,4 MB), choć uruchamia się tylko pod ukrytym adresem.
+**Twoja decyzja:** daj znać, jeśli wolisz przycisk kalibracji albo łagodniejszą ocenę rytmu zamiast automatycznej korekty. Zauważyliśmy też, że dwie te same nuty zagrane pod rząd czasem zlewają się w jedną. Ocenimy to po kolejnym teście.
 
-**Status:** Gotowe do scalenia po sprawdzeniu na iPhonie.
+**Status:** Jeszcze niegotowe: poprawki są w przygotowaniu.
