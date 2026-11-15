@@ -20,3 +20,25 @@ export const SCORE_HEADING = 'Wynik';
 export const SCORE_EMPTY = 'Zagraj utwór, żeby zobaczyć wynik.';
 export const DIAGNOSTICS_HEADING = 'Diagnostyka';
 export const DIAGNOSTICS_EMPTY = 'Brak danych – naciśnij Start.';
+
+// Recording (phase 4).
+export const STARTING = 'Włączam mikrofon…';
+export const countInLabel = (beat: number) => `Odliczanie: ${beat}`;
+export const beatLabel = (bar: number, beat: number) => `Takt ${bar}, miara ${beat}`;
+export const RECORDING = 'Nagrywam – graj!';
+export const MIC_DENIED =
+  'Brak zgody na mikrofon. Zezwól na mikrofon dla tej strony w ustawieniach Safari i spróbuj ponownie.';
+export const MIC_UNAVAILABLE = 'Nie znaleziono mikrofonu w tym urządzeniu albo przeglądarce.';
+export const MIC_OTHER = 'Nie udało się włączyć mikrofonu.';
+export const RETRY_BUTTON = 'Spróbuj ponownie';
+export const LIVE_HEADING = 'Na żywo';
+export const LIVE_HZ = 'Częstotliwość';
+export const LIVE_SOUNDING = 'Nuta (brzmiąca)';
+export const LIVE_WRITTEN = 'Nuta (zapis)';
+export const LIVE_CENTS = 'Centy';
+export const LIVE_LEVEL = 'Poziom';
+export const LIVE_CLARITY = 'Pewność';
+export const LATENCY = 'Korekta opóźnienia';
+export const EVENTS_HEADING = 'Wykryte zdarzenia';
+export const EVENTS_EMPTY = 'Nie wykryto żadnych nut.';
+export const EVENT_COLUMNS = ['Nuta (zapis)', 'Start ms', 'Długość ms', 'Oktawa?', 'Duodecyma?'] as const;

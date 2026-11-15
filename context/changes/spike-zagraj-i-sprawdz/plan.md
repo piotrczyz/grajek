@@ -424,16 +424,16 @@ Grade the recording and show both staves coloured, with the score.
 
 ### Phase 3: Hidden route, lazy screen shell and README
 #### Automated
-- [x] 3.1 `pnpm test` passes, including `isSpikeRoute` cases and a SpikeScreen render test showing the Polish defaults (Klarnet B♭, 60 BPM, both toggles off)
-- [x] 3.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass
-- [x] 3.3 After `pnpm build`, the entry script referenced by `dist/index.html` does not contain the string `Zagraj i sprawdź`, and another file in `dist/assets/` does
+- [x] 3.1 `pnpm test` passes, including `isSpikeRoute` cases and a SpikeScreen render test showing the Polish defaults (Klarnet B♭, 60 BPM, both toggles off) — 24e606d
+- [x] 3.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass — 24e606d
+- [x] 3.3 After `pnpm build`, the entry script referenced by `dist/index.html` does not contain the string `Zagraj i sprawdź`, and another file in `dist/assets/` does — 24e606d
 #### Manual
 - [ ] 3.4 Opening the app without the parameter looks and behaves exactly as before
 
 ### Phase 4: Metronome, microphone and live pitch
 #### Automated
-- [ ] 4.1 `pnpm test` passes, including: `openMic` maps `NotAllowedError` to `denied` and a missing `navigator.mediaDevices` to `unavailable`; SpikeScreen shows the Polish permission-denied message when the mic is denied (audio modules mocked)
-- [ ] 4.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass
+- [x] 4.1 `pnpm test` passes, including: `openMic` maps `NotAllowedError` to `denied` and a missing `navigator.mediaDevices` to `unavailable`; SpikeScreen shows the Polish permission-denied message when the mic is denied (audio modules mocked)
+- [x] 4.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass
 #### Manual
 - [ ] 4.3 On an iPhone (Safari, standalone PWA from the home screen) the count-in clicks are heard, the beat marker moves, the diagnostics show a steady note name and cents while a clarinet holds a note, and metronome clicks do not appear as events
 - [ ] 4.4 Denying the microphone shows the Polish message
