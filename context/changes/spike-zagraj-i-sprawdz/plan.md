@@ -409,9 +409,9 @@ Grade the recording and show both staves coloured, with the score.
 
 ### Phase 1: Notes, transposition and melodies
 #### Automated
-- [ ] 1.1 `pnpm test src/spike-nuty/logic` passes, covering: 440 Hz → A4 0 cents; 261.63 Hz → C4; 452 Hz → A4 about +46 cents; 147 Hz sounding → D3 → written E3 on clarinet; instrument `c` leaves pitch unchanged; invalid Hz → null
-- [ ] 1.2 Melody tests pass: every bar sums to 8 eighths, every pitch in E3–G4 written, none at or above A#4, three melodies with distinct ids
-- [ ] 1.3 `pnpm lint` and `pnpm typecheck` pass
+- [x] 1.1 `pnpm test src/spike-nuty/logic` passes, covering: 440 Hz → A4 0 cents; 261.63 Hz → C4; 452 Hz → A4 about +46 cents; 147 Hz sounding → D3 → written E3 on clarinet; instrument `c` leaves pitch unchanged; invalid Hz → null
+- [x] 1.2 Melody tests pass: every bar sums to 8 eighths, every pitch in E3–G4 written, none at or above A#4, three melodies with distinct ids
+- [x] 1.3 `pnpm lint` and `pnpm typecheck` pass
 #### Manual
 
 ### Phase 2: Segmentation, quantization and comparison
