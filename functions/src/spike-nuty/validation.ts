@@ -1,26 +1,30 @@
 import { parseDeviceId } from '../devices/validation.js';
+import {
+  VERDICTS,
+  type EstimateSignals,
+  type ItemVerdict,
+  type RecognitionEstimate,
+  type Verdict,
+  type VerdictCounts,
+} from './recognition-estimate.js';
 import type {
   AttemptCounts,
   AttemptDevice,
   AttemptEnd,
   AttemptEvent,
-  AttemptFeedback,
   AttemptNote,
   AttemptRecord,
   AttemptResult,
   AttemptSettings,
+  AttemptSignal,
   AttemptTiming,
   Instrument,
-  MisjudgedNote,
   NoteStatus,
 } from './types.js';
 
 export const MAX_EVENTS = 200;
 export const MAX_NOTES = 400;
-export const MAX_MISJUDGED = 400;
-export const MAX_ATTEMPT_BYTES = 131072;
-export const MAX_FEEDBACK_BYTES = 8192;
-export const MAX_COMMENT = 500;
+export const MAX_ATTEMPT_BYTES = 262144;
 export const MAX_USER_AGENT = 512;
 export const MAX_SHORT_STRING = 64;
 export const MAX_COUNT = 500;
@@ -31,6 +35,12 @@ const INSTRUMENTS = new Set<Instrument>(['clarinet-bb', 'c']);
 const STATUSES = new Set<NoteStatus>(['good', 'late', 'early', 'rhythm', 'wrongPitch', 'missing', 'extra']);
 const ENDS = new Set<AttemptEnd>(['complete', 'stopped']);
 const COUNT_KEYS = ['total', 'good', 'late', 'early', 'rhythm', 'wrongPitch', 'missing', 'extra'] as const;
+const VERDICT_SET = new Set<Verdict>(VERDICTS);
+/** Reason codes are checked by shape, not membership: a new heuristic version may add codes. */
+const REASON_CODE = /^[a-z][A-Za-z0-9]{0,31}$/;
+export const MAX_REASON_KEYS = 32;
+export const MAX_ITEM_REASON_CODES = 6;
+export const MAX_HEURISTIC_VERSION = 32;
 
 /** Thrown inside the parsers; turned into `null` at the public boundary. */
 class Invalid extends Error {}
@@ -55,8 +65,8 @@ function int(value: unknown, min: number, max: number): number {
   return Number.isInteger(value) ? num(value, min, max) : fail();
 }
 
-function numOrNull(value: unknown): number | null {
-  return value === null ? null : num(value);
+function numOrNull(value: unknown, min = -Infinity, max = Infinity): number | null {
+  return value === null ? null : num(value, min, max);
 }
 
 function intOrNull(value: unknown, min: number, max: number): number | null {
@@ -134,7 +144,7 @@ function parseResult(value: unknown): AttemptResult {
 
 function parseNote(value: unknown): AttemptNote {
   const n = obj(value);
-  return {
+  const note: AttemptNote = {
     nr: int(n.nr, 0, MAX_INDEX),
     refIndex: intOrNull(n.refIndex, 0, MAX_INDEX),
     playedIndex: intOrNull(n.playedIndex, 0, MAX_INDEX),
@@ -146,11 +156,15 @@ function parseNote(value: unknown): AttemptNote {
     octaveOff: bool(n.octaveOff),
     twelfthOff: bool(n.twelfthOff),
   };
+  if (n.windowLevelDb !== undefined) {
+    note.windowLevelDb = numOrNull(n.windowLevelDb, -200, 20);
+  }
+  return note;
 }
 
 function parseEvent(value: unknown): AttemptEvent {
   const e = obj(value);
-  return {
+  const event: AttemptEvent = {
     midi: int(e.midi, 0, 127),
     startMs: num(e.startMs),
     durationMs: num(e.durationMs, 0),
@@ -161,6 +175,10 @@ function parseEvent(value: unknown): AttemptEvent {
     suspectOctave: int(e.suspectOctave, 0, Number.MAX_SAFE_INTEGER),
     suspectTwelfth: int(e.suspectTwelfth, 0, Number.MAX_SAFE_INTEGER),
   };
+  if (e.pitchSpreadCents !== undefined) {
+    event.pitchSpreadCents = num(e.pitchSpreadCents, 0, 2400);
+  }
+  return event;
 }
 
 function parseTiming(value: unknown): AttemptTiming {
@@ -174,11 +192,83 @@ function parseTiming(value: unknown): AttemptTiming {
   };
 }
 
-function parseMisjudged(value: unknown): MisjudgedNote {
-  const m = obj(value);
+function parseSignal(value: unknown): AttemptSignal {
+  const s = obj(value);
+  const frames = int(s.frames, 0, Number.MAX_SAFE_INTEGER);
   return {
-    refIndex: intOrNull(m.refIndex, 0, MAX_INDEX),
-    playedIndex: intOrNull(m.playedIndex, 0, MAX_INDEX),
+    frames,
+    voicedFrames: int(s.voicedFrames, 0, frames),
+    medianClarity: numOrNull(s.medianClarity, 0, 1),
+  };
+}
+
+function parseVerdictCounts(value: unknown): VerdictCounts {
+  const c = obj(value);
+  return {
+    player: int(c.player, 0, MAX_NOTES),
+    recognition: int(c.recognition, 0, MAX_NOTES),
+    uncertain: int(c.uncertain, 0, MAX_NOTES),
+    ok: int(c.ok, 0, MAX_NOTES),
+  };
+}
+
+function reasonCode(value: unknown): string {
+  return typeof value === 'string' && REASON_CODE.test(value) ? value : fail();
+}
+
+function parseReasonCounts(value: unknown): Record<string, number> {
+  const r = obj(value);
+  const keys = Object.keys(r);
+  if (keys.length > MAX_REASON_KEYS) {
+    fail();
+  }
+  const counts: Record<string, number> = {};
+  for (const key of keys) {
+    counts[reasonCode(key)] = int(r[key], 0, MAX_NOTES);
+  }
+  return counts;
+}
+
+function parseItemVerdict(value: unknown): ItemVerdict {
+  const v = obj(value);
+  return {
+    verdict: oneOf(v.verdict, VERDICT_SET),
+    reasons: list(v.reasons, MAX_ITEM_REASON_CODES, reasonCode),
+  };
+}
+
+/** A list of exactly `length` item verdicts (aligned with the record's notes or events). */
+function alignedVerdicts(value: unknown, length: number): ItemVerdict[] {
+  const items = list(value, length, parseItemVerdict);
+  return items.length === length ? items : fail();
+}
+
+function parseSignals(value: unknown): EstimateSignals {
+  const s = obj(value);
+  return {
+    unvoicedRatio: numOrNull(s.unvoicedRatio, 0, 1),
+    medianClarity: numOrNull(s.medianClarity, 0, 1),
+    latencySpreadMs: numOrNull(s.latencySpreadMs, 0),
+    eventsPerNote: numOrNull(s.eventsPerNote, 0),
+    stopped: bool(s.stopped),
+  };
+}
+
+function parseEstimate(value: unknown, notes: number, events: number): RecognitionEstimate {
+  const e = obj(value);
+  const heuristicVersion = str(e.heuristicVersion, MAX_HEURISTIC_VERSION);
+  if (heuristicVersion.length === 0) {
+    fail();
+  }
+  return {
+    heuristicVersion,
+    estimatedAccuracy: numOrNull(e.estimatedAccuracy, 0, 1),
+    noteCounts: parseVerdictCounts(e.noteCounts),
+    eventCounts: parseVerdictCounts(e.eventCounts),
+    reasons: parseReasonCounts(e.reasons),
+    notes: alignedVerdicts(e.notes, notes),
+    events: alignedVerdicts(e.events, events),
+    signals: parseSignals(e.signals),
   };
 }
 
@@ -195,7 +285,9 @@ function guard<T>(parse: () => T): T | null {
 
 /**
  * Parses an attempt body per record contract v1. Returns a copy holding only
- * the whitelisted fields, or `null` on any violation.
+ * the whitelisted fields, or `null` on any violation. The optional fields
+ * (`signal`, `estimate`, note `windowLevelDb`, event `pitchSpreadCents`) stay
+ * absent when the body omits them.
  */
 export function parseAttempt(body: unknown): AttemptRecord | null {
   return guard(() => {
@@ -204,7 +296,7 @@ export function parseAttempt(body: unknown): AttemptRecord | null {
       fail();
     }
     const app = obj(b.app);
-    return {
+    const record: AttemptRecord = {
       v: 1,
       deviceId: uuid(b.deviceId),
       clientTs: num(b.clientTs, 0),
@@ -217,38 +309,13 @@ export function parseAttempt(body: unknown): AttemptRecord | null {
       timing: parseTiming(b.timing),
       ended: oneOf(b.ended, ENDS),
     };
-  });
-}
-
-/**
- * Parses a feedback body. `misjudged` must be empty when `agrees` is true;
- * `comment` is trimmed and dropped when empty.
- */
-export function parseFeedback(body: unknown): AttemptFeedback | null {
-  return guard(() => {
-    const b = obj(body);
-    if (b.v !== 1) {
-      fail();
+    if (b.signal !== undefined) {
+      record.signal = parseSignal(b.signal);
     }
-    const agrees = bool(b.agrees);
-    const misjudged = list(b.misjudged, MAX_MISJUDGED, parseMisjudged);
-    if (agrees && misjudged.length > 0) {
-      fail();
+    if (b.estimate !== undefined) {
+      record.estimate = parseEstimate(b.estimate, record.notes.length, record.events.length);
     }
-    const feedback: AttemptFeedback = {
-      v: 1,
-      deviceId: uuid(b.deviceId),
-      agrees,
-      misjudged,
-      regraded: bool(b.regraded),
-    };
-    if (b.comment !== undefined) {
-      const comment = str(b.comment, MAX_COMMENT).trim();
-      if (comment) {
-        feedback.comment = comment;
-      }
-    }
-    return feedback;
+    return record;
   });
 }
 

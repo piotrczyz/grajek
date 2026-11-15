@@ -188,24 +188,58 @@ The hidden "Zagraj i sprawdź" screen (`?spike=nuty`) sends one anonymous record
 finished attempt to the same `api` function, so the owner can tell a child's mistakes
 from recognition mistakes across devices.
 
-Endpoints (JSON, `Cache-Control: no-store`):
+Endpoint (JSON, `Cache-Control: no-store`):
 
-- `PUT /api/spike-nuty/attempts/{attemptId}` - the attempt record (at most 128 KiB);
+- `PUT /api/spike-nuty/attempts/{attemptId}` - the attempt record (at most 256 KiB);
   `attemptId` is a client-generated UUID v4, so a retry of a stored attempt answers
-  204 and changes nothing.
-- `PUT /api/spike-nuty/attempts/{attemptId}/feedback` - the answer to "Czy ocena się
-  zgadza?" (at most 8 KiB); accepted only from the device that sent the attempt, a
-  later answer replaces the earlier one.
-- Each device may write 60 times per hour (attempts and feedback together); then
-  `429` with `Retry-After`.
+  204 and changes nothing. Any other `/api/spike-nuty/...` path answers `404`.
+- Each device may store 60 attempts per hour (retries of a stored attempt are not
+  counted); then `429` with `Retry-After`.
+
+There is no manual "Czy ocena się zgadza?" answer: the accuracy of the recognition is
+estimated automatically (below).
+
+**Record contract** (`v: 1`, `functions/src/spike-nuty/types.ts`, validated in
+`validation.ts`; any violation answers `400 invalid_attempt`):
+
+- `deviceId`, `clientTs`, `app.build`, `device` (`userAgent`, `standalone`, optional
+  `platform`, `mobile`), `settings` (melody, instrument, tempo, preparation, toggles),
+  `result` (`scorePercent`, `pitchPercent`, `counts`), `timing` (latency figures),
+  `ended` (`complete` | `stopped`).
+- `notes[]` (at most 400): the note-by-note list (`refIndex`, `playedIndex`, expected
+  and played pitch, `centsDiff`, `offsetMs`, `status`, `octaveOff`, `twelfthOff`).
+- `events[]` (at most 200): the raw detected events (pitch, timing, clarity, level,
+  frames, octave/twelfth suspect frames).
+- Optional raw signals for the heuristic, absent in older records: note
+  `windowLevelDb` (number -200..20 or null, the input level during the note's window),
+  event `pitchSpreadCents` (0..2400, the pitch spread within the event), attempt
+  `signal` (`frames`, `voicedFrames` <= `frames`, `medianClarity` 0..1 or null).
+- Optional `estimate`, computed on the device by
+  `functions/src/spike-nuty/recognition-estimate.ts`: `heuristicVersion`
+  (`HEURISTIC_VERSION`, currently `1`), `estimatedAccuracy` (0..1 or null: 1 minus the
+  share of reference notes judged a likely recognition error), `noteCounts` and
+  `eventCounts` per verdict (`player`, `recognition`, `uncertain`, `ok`), `reasons`
+  (at most 32 reason codes of the recognition suspects with their counts), `notes[]`
+  and `events[]` (one `{verdict, reasons}` per note and event, at most 6 reason codes
+  each, same length as `notes` and `events`) and `signals` (`unvoicedRatio`,
+  `medianClarity`, `latencySpreadMs`, `eventsPerNote`, `stopped`). Reason codes are
+  checked by shape (`^[a-z][A-Za-z0-9]{0,31}$`), not against a list, so a new heuristic
+  version can add codes without a functions deploy. The raw fields stay in the record,
+  so stored estimates can be recomputed when `HEURISTIC_VERSION` changes. The estimate
+  is for the owner only; the child never sees it.
+
+The body cap is 256 KiB because a record at every cap (400 notes, 200 events, every
+optional field and a full estimate) measures about 205 KiB of JSON; a Firestore
+document may hold 1 MiB.
 
 **What is stored** in Firestore `spikeNutyAttempts/{attemptId}`: the anonymous device
 id, the app build, the user agent (as sent, at most 512 characters), whether the app
 runs installed, the screen settings (melody, instrument, tempo, preparation, toggles),
 the scores and counts, the note-by-note grading, the raw detected notes (pitch,
 timing, clarity, level), the latency figures, whether the attempt ran to the end,
-the feedback, and the server times `receivedAt` and `expireAt`. Every other field of
-the request is dropped. The per-device counter lives in `spikeNutyRateLimits/{deviceId}`.
+the optional raw signals and recognition estimate above, and the server times
+`receivedAt` and `expireAt`. Every other field of the request is dropped. The
+per-device counter lives in `spikeNutyRateLimits/{deviceId}`.
 
 **What is not stored:** no audio, no profile name or profile data, no IP address, no
 account. Clients cannot read or write either collection (Firestore rules deny all).

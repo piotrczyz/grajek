@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  MAX_COMMENT,
-  MAX_EVENTS,
-  MAX_NOTES,
-  MAX_USER_AGENT,
-  parseAttempt,
-  parseAttemptId,
-  parseFeedback,
-} from '../src/spike-nuty/validation.js';
-import { ATTEMPT_ID, sampleAttempt, sampleFeedback } from './spike-nuty-fakes.js';
+import { MAX_EVENTS, MAX_NOTES, MAX_USER_AGENT, parseAttempt, parseAttemptId } from '../src/spike-nuty/validation.js';
+import { ATTEMPT_ID, sampleAttempt, sampleFullAttempt } from './spike-nuty-fakes.js';
 
 type Body = Record<string, unknown>;
 
@@ -127,39 +119,68 @@ describe('parseAttemptId', () => {
   });
 });
 
-describe('parseFeedback', () => {
-  it('keeps the whitelisted fields and trims the comment', () => {
-    expect(parseFeedback({ ...sampleFeedback(), extra: 'x' })).toEqual({
-      ...sampleFeedback(),
-      comment: 'grałam dobrze',
-    });
+describe('parseAttempt optional signal and estimate fields', () => {
+  function full(path: string[], value: unknown): Body {
+    const body = structuredClone(sampleFullAttempt());
+    let target: Body = body;
+    for (const key of path.slice(0, -1)) {
+      target = target[key] as Body;
+    }
+    target[path[path.length - 1]] = value;
+    return body;
+  }
+
+  it('round-trips a body with every optional field', () => {
+    const body = sampleFullAttempt();
+    expect(parseAttempt(body)).toEqual(body);
   });
 
-  it('accepts agreement with an empty misjudged list and no comment', () => {
-    const parsed = parseFeedback(sampleFeedback({ agrees: true, misjudged: [], comment: undefined }));
-    expect(parsed).toEqual({ v: 1, deviceId: sampleFeedback().deviceId, agrees: true, misjudged: [], regraded: false });
+  it('keeps the optional fields absent for a v1 body without them', () => {
+    const parsed = parseAttempt(sampleAttempt()) as unknown as Body;
+    expect(parsed).not.toHaveProperty('signal');
+    expect(parsed).not.toHaveProperty('estimate');
+    expect((parsed.notes as Body[])[0]).not.toHaveProperty('windowLevelDb');
+    expect((parsed.events as Body[])[0]).not.toHaveProperty('pitchSpreadCents');
   });
 
-  it('drops a comment that is empty after trimming', () => {
-    expect(parseFeedback(sampleFeedback({ comment: '   ' }))).not.toHaveProperty('comment');
+  it('accepts a null windowLevelDb and a null estimatedAccuracy', () => {
+    expect(parseAttempt(full(['notes', '0', 'windowLevelDb'], null))).not.toBeNull();
+    expect(parseAttempt(full(['estimate', 'estimatedAccuracy'], null))).not.toBeNull();
   });
 
-  it('rejects agrees: true with a non-empty misjudged list', () => {
-    expect(parseFeedback(sampleFeedback({ agrees: true }))).toBeNull();
-  });
-
-  it('rejects a comment of 501 characters', () => {
-    expect(parseFeedback(sampleFeedback({ comment: 'x'.repeat(MAX_COMMENT + 1) }))).toBeNull();
-    expect(parseFeedback(sampleFeedback({ comment: 'x'.repeat(MAX_COMMENT) }))).not.toBeNull();
+  it('accepts an unknown reason code of the right shape (a later heuristic version)', () => {
+    const body = full(['estimate', 'reasons'], { newCode2: 3 });
+    (((body.estimate as Body).notes as Body[])[0] as Body).reasons = ['newCode2'];
+    expect(parseAttempt(body)).not.toBeNull();
   });
 
   it.each([
-    ['non-UUID device id', { deviceId: 'abc' }],
-    ['missing regraded', { regraded: undefined }],
-    ['bad misjudged item', { misjudged: [{ refIndex: 'one', playedIndex: null }] }],
-    ['too many misjudged', { misjudged: Array.from({ length: 401 }, () => ({ refIndex: 0, playedIndex: 0 })) }],
-    ['wrong version', { v: 2 }],
-  ])('rejects %s', (_name, overrides) => {
-    expect(parseFeedback(sampleFeedback(overrides))).toBeNull();
+    ['bad verdict', ['estimate', 'notes', '0', 'verdict'], 'maybe'],
+    ['notes length mismatch', ['estimate', 'notes'], [{ verdict: 'ok', reasons: [] }]],
+    ['events length mismatch', ['estimate', 'events'], []],
+    ['7 reasons on one item', ['estimate', 'notes', '0', 'reasons'], ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7']],
+    ['bad reason code', ['estimate', 'notes', '0', 'reasons'], ['Octave jump']],
+    ['bad reason key', ['estimate', 'reasons'], { 'octave-jump': 1 }],
+    ['33 reason keys', ['estimate', 'reasons'], Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`c${i}`, 1]))],
+    ['reason count above 400', ['estimate', 'reasons'], { octaveJump: 401 }],
+    ['accuracy 1.1', ['estimate', 'estimatedAccuracy'], 1.1],
+    ['empty heuristic version', ['estimate', 'heuristicVersion'], ''],
+    ['heuristic version over 32', ['estimate', 'heuristicVersion'], 'x'.repeat(33)],
+    ['verdict count above 400', ['estimate', 'noteCounts', 'ok'], 401],
+    ['missing verdict count', ['estimate', 'eventCounts', 'player'], undefined],
+    ['unvoiced ratio above 1', ['estimate', 'signals', 'unvoicedRatio'], 1.5],
+    ['negative latency spread', ['estimate', 'signals', 'latencySpreadMs'], -1],
+    ['non-boolean stopped', ['estimate', 'signals', 'stopped'], 'no'],
+    ['voicedFrames above frames', ['signal', 'voicedFrames'], 501],
+    ['fractional frames', ['signal', 'frames'], 10.5],
+    ['medianClarity above 1', ['signal', 'medianClarity'], 1.2],
+    ['pitch spread above 2400', ['events', '0', 'pitchSpreadCents'], 2401],
+    ['negative pitch spread', ['events', '0', 'pitchSpreadCents'], -1],
+    ['window level above 20 dB', ['notes', '0', 'windowLevelDb'], 21],
+    ['window level below -200 dB', ['notes', '0', 'windowLevelDb'], -201],
+    ['estimate not an object', ['estimate'], 'x'],
+    ['signal null', ['signal'], null],
+  ])('rejects %s', (_name, path, value) => {
+    expect(parseAttempt(full(path, value))).toBeNull();
   });
 });
