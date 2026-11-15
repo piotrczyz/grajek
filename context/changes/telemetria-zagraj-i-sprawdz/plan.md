@@ -436,15 +436,15 @@ Rollback = redeploy the previous `api`; stored documents expire by themselves.
 
 ### Phase 1: Attempt and feedback validation (A1)
 #### Automated
-- [x] 1.1 `pnpm --dir functions test` passes including spike-nuty-validation tests
-- [x] 1.2 `pnpm --dir functions typecheck` passes
+- [x] 1.1 `pnpm --dir functions test` passes including spike-nuty-validation tests — b31c23b
+- [x] 1.2 `pnpm --dir functions typecheck` passes — b31c23b
 #### Manual
 
 ### Phase 2: Repository, rate limit, handler and routing (A1)
 #### Automated
-- [ ] 2.1 `pnpm --dir functions test` passes including spike-nuty-handler and api-router tests
-- [ ] 2.2 `pnpm --dir functions build` passes
-- [ ] 2.3 `pnpm --dir functions typecheck` passes
+- [x] 2.1 `pnpm --dir functions test` passes including spike-nuty-handler and api-router tests
+- [x] 2.2 `pnpm --dir functions build` passes
+- [x] 2.3 `pnpm --dir functions typecheck` passes
 #### Manual
 
 ### Phase 3: Emulator test, TTL policy and docs (A1)

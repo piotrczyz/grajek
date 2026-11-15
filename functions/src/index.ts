@@ -8,6 +8,10 @@
  *
  * One scheduled function `reminders` runs every 5 minutes and sends the due
  * daily reminders, at most one per device per local day.
+ *
+ * `api` also takes the anonymous attempt records and accuracy feedback of
+ * the hidden "Zagraj i sprawdź" spike screen (`/api/spike-nuty/...`,
+ * Firestore `spikeNutyAttempts`, 180-day TTL).
  */
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -15,6 +19,7 @@ import { logger } from 'firebase-functions';
 import { onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret, defineString } from 'firebase-functions/params';
+import { createApiHandler } from './api-router.js';
 import { createDevicesHandler } from './devices/handler.js';
 import {
   createLogSender,
@@ -26,6 +31,8 @@ import {
 import { createFirestoreRepository } from './devices/repository.js';
 import { createFirestoreReminderRepository } from './reminders/repository.js';
 import { runReminderTick } from './reminders/tick.js';
+import { createSpikeNutyHandler } from './spike-nuty/handler.js';
+import { createFirestoreSpikeNutyRepository } from './spike-nuty/repository.js';
 
 const VAPID_PRIVATE_KEY = defineSecret('VAPID_PRIVATE_KEY');
 const VAPID_PUBLIC_KEY = defineString('VAPID_PUBLIC_KEY', {
@@ -47,12 +54,20 @@ const sender: PushSender = shouldUseLogSender(process.env)
       privateKey: () => VAPID_PRIVATE_KEY.value(),
     });
 
-const handler = createDevicesHandler({
+const devicesHandler = createDevicesHandler({
   repo: createFirestoreRepository(getFirestore()),
   sender,
   now: () => new Date(),
   onError: (error) => logger.error('devices api error', toLoggableError(error)),
 });
+
+const spikeNutyHandler = createSpikeNutyHandler({
+  repo: createFirestoreSpikeNutyRepository(getFirestore()),
+  now: () => new Date(),
+  onError: (error) => logger.error('spike-nuty api error', toLoggableError(error)),
+});
+
+const handler = createApiHandler({ devices: devicesHandler, spikeNuty: spikeNutyHandler });
 
 export const api = onRequest(
   {

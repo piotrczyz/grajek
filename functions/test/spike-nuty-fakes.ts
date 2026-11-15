@@ -1,4 +1,64 @@
-export const DEVICE_ID = '3f2b8c1e-9d4a-4f6b-8a2e-1c5d7e9f0a1b';
+import {
+  expireAtFor,
+  retryAfterSec,
+  toStoredFeedback,
+  type SpikeNutyRepository,
+} from '../src/spike-nuty/repository.js';
+
+export interface FakeRateWindow {
+  windowStart: Date;
+  count: number;
+}
+
+/**
+ * In-memory `SpikeNutyRepository`. `attempts` holds what would be stored per
+ * attempt id; `windows` the rate-limit counter per device.
+ */
+export function createMemorySpikeNutyRepository() {
+  const attempts = new Map<string, Record<string, unknown>>();
+  const windows = new Map<string, FakeRateWindow>();
+  const calls = { createIfAbsent: 0, saveFeedback: 0, hitRateLimit: 0 };
+
+  const repo: SpikeNutyRepository = {
+    async exists(id) {
+      return attempts.has(id);
+    },
+    async createIfAbsent(id, record, now) {
+      calls.createIfAbsent += 1;
+      if (attempts.has(id)) {
+        return 'exists';
+      }
+      attempts.set(id, { ...structuredClone(record), receivedAt: now, expireAt: expireAtFor(now) });
+      return 'created';
+    },
+    async saveFeedback(id, deviceId, feedback, now) {
+      calls.saveFeedback += 1;
+      const current = attempts.get(id);
+      if (!current || current.deviceId !== deviceId) {
+        return false;
+      }
+      attempts.set(id, { ...current, feedback: toStoredFeedback(feedback), feedbackAt: now });
+      return true;
+    },
+    async hitRateLimit(deviceId, now, limit, windowMs) {
+      calls.hitRateLimit += 1;
+      const window = windows.get(deviceId);
+      if (!window || now.getTime() >= window.windowStart.getTime() + windowMs) {
+        windows.set(deviceId, { windowStart: now, count: 1 });
+        return { allowed: true, retryAfterSec: 0 };
+      }
+      if (window.count >= limit) {
+        return { allowed: false, retryAfterSec: retryAfterSec(window.windowStart, windowMs, now) };
+      }
+      window.count += 1;
+      return { allowed: true, retryAfterSec: 0 };
+    },
+  };
+
+  return { repo, attempts, windows, calls };
+}
+
+export const DEVICE_ID ='3f2b8c1e-9d4a-4f6b-8a2e-1c5d7e9f0a1b';
 export const OTHER_DEVICE_ID = '7a1c2e3f-4b5d-4e6f-9a0b-1c2d3e4f5a6b';
 export const ATTEMPT_ID = 'c0ffee00-1234-4abc-8def-0123456789ab';
 

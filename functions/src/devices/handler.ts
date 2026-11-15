@@ -4,23 +4,9 @@ import type { PushPayload } from './types.js';
 import { parseDeviceId, parseSubscription } from './validation.js';
 import { nextReminderAt } from '../reminders/schedule.js';
 import { parseReminder } from '../reminders/validation.js';
+import { bodySize, error, isJson, noContent, type HttpRequest, type HttpResponse } from '../http.js';
 
-/** The subset of the Express request the handler reads. */
-export interface HttpRequest {
-  method: string;
-  path: string;
-  headers: Record<string, string | string[] | undefined>;
-  body?: unknown;
-  rawBody?: Buffer;
-}
-
-/** The subset of the Express response the handler writes. */
-export interface HttpResponse {
-  status(code: number): HttpResponse;
-  set(field: string, value: string): HttpResponse;
-  json(body: unknown): unknown;
-  end(): unknown;
-}
+export type { HttpRequest, HttpResponse } from '../http.js';
 
 export interface DevicesHandlerDeps {
   repo: DeviceRepository;
@@ -46,32 +32,6 @@ export const TEST_PAYLOAD: PushPayload = {
 const ROUTE = /^(?:\/api)?\/devices\/([^/]+)(\/test|\/reminder)?\/?$/;
 
 const ALLOWED: Record<string, string> = { '': 'PUT, DELETE', '/test': 'POST', '/reminder': 'PUT' };
-
-function error(res: HttpResponse, status: number, code: string): void {
-  res.status(status).json({ error: code });
-}
-
-function noContent(res: HttpResponse, status = 204): void {
-  res.status(status).end();
-}
-
-function header(req: HttpRequest, name: string): string | undefined {
-  const value = req.headers[name];
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function bodySize(req: HttpRequest): number {
-  if (req.rawBody) {
-    return req.rawBody.length;
-  }
-  const length = Number(header(req, 'content-length') ?? 0);
-  return Number.isFinite(length) ? length : 0;
-}
-
-function isJson(req: HttpRequest): boolean {
-  const type = header(req, 'content-type') ?? '';
-  return type.split(';')[0].trim().toLowerCase() === 'application/json';
-}
 
 export function createDevicesHandler(deps: DevicesHandlerDeps) {
   const { repo, sender, now } = deps;
