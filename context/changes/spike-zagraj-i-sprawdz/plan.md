@@ -424,9 +424,9 @@ Grade the recording and show both staves coloured, with the score.
 
 ### Phase 3: Hidden route, lazy screen shell and README
 #### Automated
-- [ ] 3.1 `pnpm test` passes, including `isSpikeRoute` cases and a SpikeScreen render test showing the Polish defaults (Klarnet B♭, 60 BPM, both toggles off)
-- [ ] 3.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass
-- [ ] 3.3 After `pnpm build`, the entry script referenced by `dist/index.html` does not contain the string `Zagraj i sprawdź`, and another file in `dist/assets/` does
+- [x] 3.1 `pnpm test` passes, including `isSpikeRoute` cases and a SpikeScreen render test showing the Polish defaults (Klarnet B♭, 60 BPM, both toggles off)
+- [x] 3.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass
+- [x] 3.3 After `pnpm build`, the entry script referenced by `dist/index.html` does not contain the string `Zagraj i sprawdź`, and another file in `dist/assets/` does
 #### Manual
 - [ ] 3.4 Opening the app without the parameter looks and behaves exactly as before
 

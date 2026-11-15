@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.tsx';
 import './index.css';
@@ -6,6 +6,9 @@ import { registerAppUpdates } from './pwa/index.ts';
 import { requestPersistentStorage } from './storage/index.ts';
 import { createIndexedDbPracticeStore } from './practice/index.ts';
 import { startReminderSync, withReminderSync } from './reminder/index.ts';
+// Hidden note-recognition spike (?spike=nuty): a lazy chunk, never in the main bundle.
+import { LazySpikeScreen } from './spike-nuty/lazy.ts';
+import { isSpikeRoute } from './spike-nuty/route.ts';
 
 // Best effort, fire-and-forget: never blocks or breaks rendering.
 void requestPersistentStorage();
@@ -28,6 +31,12 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <App practiceStore={withReminderSync(createIndexedDbPracticeStore())} />
+    {isSpikeRoute(window.location.search) ? (
+      <Suspense fallback={null}>
+        <LazySpikeScreen />
+      </Suspense>
+    ) : (
+      <App practiceStore={withReminderSync(createIndexedDbPracticeStore())} />
+    )}
   </StrictMode>,
 );

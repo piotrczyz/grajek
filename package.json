@@ -19,8 +19,10 @@
   "packageManager": "pnpm@12.9.1",
   "dependencies": {
     "idb": "^8.0.4",
+    "pitchy": "^4.1.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "vexflow": "^5.0.0",
     "workbox-window": "^7.4.1"
   },
   "devDependencies": {
