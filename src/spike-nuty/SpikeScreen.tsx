@@ -11,6 +11,7 @@ import { Staff, type StaffSelection } from './Staff.tsx';
 import { gradeColour, referenceBars, toAlignedBars } from './staffModel.ts';
 import { noteRows, refIndexAt, summarize, type NoteRow } from './results.ts';
 import {
+  analysedFrames,
   eighthMs,
   gradeRecording,
   MELODIES,
@@ -22,7 +23,7 @@ import {
   type PitchFrame,
 } from './logic/index.ts';
 import { enqueue, flush, startAutoFlush } from './telemetry/queue.ts';
-import { buildAttemptRecord, readTelemetryEnv, type AttemptEnd } from './telemetry/record.ts';
+import { attemptDetails, buildAttemptRecord, readTelemetryEnv, type AttemptEnd } from './telemetry/record.ts';
 import { isTelemetryEnabled, setTelemetryEnabled } from './telemetry/settings.ts';
 
 const INSTRUMENTS: Instrument[] = ['clarinet-bb', 'c'];
@@ -57,19 +58,9 @@ interface Recording {
   attemptId: string;
   /** Whether the auto-stop timer ('complete') or the Stop button ('stopped') ended it. */
   ended: AttemptEnd;
+  /** The frames the segmenter analysed (for the attempt signal and the note window levels). */
+  frames: PitchFrame[];
 }
-
-/** The telemetry record sent for a recording, as needed by its feedback. */
-interface SentAttempt {
-  attemptId: string;
-  deviceId: string;
-  /** `autoLatency` in the sent record; a different value now means the view was re-graded. */
-  autoLatency: boolean;
-}
-
-type FeedbackStep = 'ask' | 'no' | 'sent';
-
-const MAX_COMMENT = 500;
 
 const MIC_MESSAGES: Record<MicErrorKind, string> = {
   denied: copy.MIC_DENIED,
@@ -104,22 +95,12 @@ function Cue({ prepLeft, beat }: { prepLeft: number | null; beat: Beat | null })
   );
 }
 
-interface Misjudging {
-  /** Row numbers marked "aplikacja się pomyliła". */
-  marked: number[];
-  onToggle: (nr: number) => void;
-}
-
-function NotesTable({
-  rows,
-  selected,
-  misjudging,
-}: {
-  rows: NoteRow[];
-  selected: StaffSelection | null;
-  /** When set, every row gets a "aplikacja się pomyliła" toggle. */
-  misjudging?: Misjudging;
-}) {
+/**
+ * The note-by-note list. Auto layout with wrapping cells and short headers:
+ * on a 360 px phone no cell clips its text; the status keeps its full word
+ * next to a dot in the grade colour.
+ */
+function NotesTable({ rows, selected }: { rows: NoteRow[]; selected: StaffSelection | null }) {
   const rowRefs = useRef(new Map<number, HTMLTableRowElement>());
   const isSelected = (row: NoteRow) =>
     selected !== null &&
@@ -133,15 +114,14 @@ function NotesTable({
   }, [selectedNr]);
 
   return (
-    <table className="w-full table-fixed text-xs">
+    <table className="w-full table-auto text-xs">
       <thead>
         <tr className="text-left text-slate-600">
-          {copy.NOTE_COLUMNS.map((column, i) => (
-            <th key={column} className={i === 0 ? 'w-6' : i === 4 ? 'w-[30%]' : undefined}>
+          {copy.NOTE_COLUMNS.map((column) => (
+            <th key={column} className="px-1">
               {column}
             </th>
           ))}
-          {misjudging && <th className="w-14">{copy.MISJUDGED_COLUMN}</th>}
         </tr>
       </thead>
       <tbody>
@@ -152,26 +132,23 @@ function NotesTable({
               if (el) rowRefs.current.set(row.nr, el);
               else rowRefs.current.delete(row.nr);
             }}
-            className={`border-t align-top ${row.nr === selectedNr ? 'bg-blue-100' : ''}`}
+            className={`border-t align-top [&>td]:px-1 [&>td]:break-words ${row.nr === selectedNr ? 'bg-blue-100' : ''}`}
           >
             <td>{row.nr}</td>
             <td>{row.expected}</td>
             <td>{row.played}</td>
-            <td>{row.centsDiff === null ? copy.NONE : signed(Math.round(row.centsDiff))}</td>
+            <td className="whitespace-nowrap">
+              {row.centsDiff === null ? copy.NONE : signed(Math.round(row.centsDiff))}
+            </td>
             <td>{row.timing}</td>
             <td className="font-semibold" style={{ color: gradeColour(row.grade) }}>
-              {row.status}
+              <span
+                aria-hidden="true"
+                className="mr-1 inline-block h-2 w-2 rounded-full align-middle"
+                style={{ backgroundColor: gradeColour(row.grade) }}
+              />
+              <span>{row.status}</span>
             </td>
-            {misjudging && (
-              <td>
-                <input
-                  type="checkbox"
-                  aria-label={copy.misjudgedRowLabel(row.nr)}
-                  checked={misjudging.marked.includes(row.nr)}
-                  onChange={() => misjudging.onToggle(row.nr)}
-                />
-              </td>
-            )}
           </tr>
         ))}
       </tbody>
@@ -198,10 +175,6 @@ export default function SpikeScreen() {
   const sessionRef = useRef<Session | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const [telemetryOn, setTelemetryOn] = useState(isTelemetryEnabled);
-  const [sent, setSent] = useState<SentAttempt | null>(null);
-  const [feedbackStep, setFeedbackStep] = useState<FeedbackStep>('ask');
-  const [misjudged, setMisjudged] = useState<number[]>([]);
-  const [comment, setComment] = useState('');
   /** Attempts already considered for sending: each one is sent at most once. */
   const seenAttemptsRef = useRef(new Set<string>());
 
@@ -229,6 +202,11 @@ export default function SpikeScreen() {
   const rows = useMemo(
     () => (result && recording ? noteRows(result, recording.bpm) : []),
     [result, recording],
+  );
+  // Automatic recognition estimate of the shown grading, for the diagnostics panel only.
+  const details = useMemo(
+    () => (recording && graded ? attemptDetails({ graded, recording, ended: recording.ended }) : null),
+    [recording, graded],
   );
 
   /** Tears the session down; returns what the recording captured. */
@@ -261,8 +239,8 @@ export default function SpikeScreen() {
       bpm: recordedBpm,
       attemptId: crypto.randomUUID(),
       ended,
+      frames: analysedFrames(frames, ignoreWindows),
     });
-    resetFeedback();
     setPhase('done');
   };
 
@@ -324,12 +302,6 @@ export default function SpikeScreen() {
     setPhase('recording');
   };
 
-  const resetFeedback = () => {
-    setFeedbackStep('ask');
-    setMisjudged([]);
-    setComment('');
-  };
-
   const changeSong = () => {
     setRecording(null);
     setSelected(null);
@@ -374,45 +346,14 @@ export default function SpikeScreen() {
       .then((deviceId) => {
         if (!isTelemetryEnabled()) return;
         enqueue({ kind: 'attempt', attemptId, body: buildAttemptRecord({ ...input, deviceId }) });
-        setSent({ attemptId, deviceId, autoLatency: input.settings.autoLatency });
         void flush();
       })
       .catch(() => undefined);
   }, [phase, recording, graded, telemetryOn, melody, instrument, prepSec, ignoreOctave, visualOnly, autoLatency, latencyMs]);
 
-  const showFeedback = resultView && telemetryOn && sent !== null && sent.attemptId === recording.attemptId;
-
-  const toggleMisjudged = (nr: number) =>
-    setMisjudged((marked) => (marked.includes(nr) ? marked.filter((n) => n !== nr) : [...marked, nr]));
-
-  const sendFeedback = (agrees: boolean) => {
-    if (sent === null || !isTelemetryEnabled()) return;
-    const trimmed = agrees ? '' : comment.trim().slice(0, MAX_COMMENT);
-    enqueue({
-      kind: 'feedback',
-      attemptId: sent.attemptId,
-      body: {
-        v: 1,
-        deviceId: sent.deviceId,
-        agrees,
-        misjudged: agrees
-          ? []
-          : rows
-              .filter((row) => misjudged.includes(row.nr))
-              .map((row) => ({ refIndex: row.refIndex, playedIndex: row.playedIndex })),
-        ...(trimmed ? { comment: trimmed } : {}),
-        regraded: autoLatency !== sent.autoLatency,
-      },
-    });
-    setFeedbackStep('sent');
-    void flush();
-  };
-
   const changeTelemetry = (on: boolean) => {
     setTelemetryEnabled(on);
     setTelemetryOn(on);
-    // Switching off drops the queued record, so no feedback can follow it.
-    if (!on) setSent(null);
   };
 
   return (
@@ -455,65 +396,8 @@ export default function SpikeScreen() {
           <section aria-label={copy.NOTES_TABLE_HEADING}>
             <h2 className="font-semibold">{copy.NOTES_TABLE_HEADING}</h2>
             <p className="text-xs text-slate-600">{copy.NOTES_TABLE_HINT}</p>
-            <NotesTable
-              rows={rows}
-              selected={selected}
-              misjudging={
-                showFeedback && feedbackStep === 'no' ? { marked: misjudged, onToggle: toggleMisjudged } : undefined
-              }
-            />
+            <NotesTable rows={rows} selected={selected} />
           </section>
-
-          {showFeedback && (
-            <section aria-label={copy.FEEDBACK_HEADING} className="flex flex-col gap-2 rounded border p-3">
-              <h2 className="font-semibold">{copy.FEEDBACK_HEADING}</h2>
-              {feedbackStep === 'sent' ? (
-                <p role="status">{copy.FEEDBACK_THANKS}</p>
-              ) : (
-                <>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className="rounded border px-4 py-2 font-bold"
-                      onClick={() => sendFeedback(true)}
-                    >
-                      {copy.FEEDBACK_YES}
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={feedbackStep === 'no'}
-                      className={`rounded border px-4 py-2 font-bold ${feedbackStep === 'no' ? 'bg-slate-200' : ''}`}
-                      onClick={() => setFeedbackStep('no')}
-                    >
-                      {copy.FEEDBACK_NO}
-                    </button>
-                  </div>
-                  {feedbackStep === 'no' && (
-                    <>
-                      <p className="text-xs text-slate-600">{copy.FEEDBACK_HINT}</p>
-                      <label className="flex flex-col gap-1 text-sm">
-                        <span>{copy.FEEDBACK_COMMENT_LABEL}</span>
-                        <textarea
-                          className="rounded border px-2 py-1"
-                          rows={3}
-                          maxLength={MAX_COMMENT}
-                          value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        className="self-start rounded bg-blue-900 px-4 py-2 font-bold text-white"
-                        onClick={() => sendFeedback(false)}
-                      >
-                        {copy.FEEDBACK_SEND}
-                      </button>
-                    </>
-                  )}
-                </>
-              )}
-            </section>
-          )}
 
           <div className="flex flex-col gap-2">
             <button
@@ -673,6 +557,7 @@ export default function SpikeScreen() {
             events={recording?.events ?? null}
             latencyMs={latencyMs}
             timing={graded}
+            estimate={phase === 'done' && details !== null ? { rows, ...details } : null}
           />
         )}
       </section>

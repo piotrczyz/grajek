@@ -220,7 +220,7 @@ describe('SpikeScreen', () => {
 
 describe('SpikeScreen telemetry', () => {
   type Enqueued = { kind: string; attemptId: string; body: Record<string, unknown> };
-  const enqueued = (kind: 'attempt' | 'feedback') =>
+  const enqueued = (kind: 'attempt') =>
     telemetry.enqueue.mock.calls.map(([item]) => item as Enqueued).filter((item) => item.kind === kind);
 
   async function finishedAttempt() {
@@ -288,7 +288,8 @@ describe('SpikeScreen telemetry', () => {
     expect(enqueued('attempt')[0].body).toMatchObject({ ended: 'complete' });
   });
 
-  it('sends nothing and hides the question when the switch is off', async () => {
+
+  it('sends nothing when the switch is off', async () => {
     audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
     audio.frames = framesOfMelody();
     render(<SpikeScreen />);
@@ -301,51 +302,121 @@ describe('SpikeScreen telemetry', () => {
       await Promise.resolve();
     });
     expect(telemetry.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('asks nothing after a finished attempt: no manual feedback, the notice and the switch stay', async () => {
+    await finishedAttempt();
     expect(screen.queryByText('Czy ocena się zgadza?')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tak' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nie' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/aplikacja się pomyliła/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Komentarz/)).not.toBeInTheDocument();
+    const table = within(screen.getByRole('region', { name: 'Nuta po nucie' }));
+    expect(table.queryAllByRole('checkbox')).toHaveLength(0);
+    expect(
+      screen.getByText('Wysyłamy anonimowe dane o dokładności rozpoznawania (bez nagrania), żeby ulepszyć aplikację.'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Wysyłaj anonimowe dane')).toBeChecked();
+    // Only the attempt record is queued.
+    expect(telemetry.enqueue.mock.calls.every(([item]) => (item as Enqueued).kind === 'attempt')).toBe(true);
   });
 
-  it('enqueues agreement when the player answers Tak', async () => {
+  it('sends the automatic estimate, the attempt signal and the note window levels in the record', async () => {
     await finishedAttempt();
-    const attemptId = enqueued('attempt')[0].attemptId;
-    const question = await screen.findByRole('region', { name: 'Czy ocena się zgadza?' });
-    fireEvent.click(within(question).getByRole('button', { name: 'Tak' }));
-    expect(enqueued('feedback')).toEqual([
-      {
-        kind: 'feedback',
-        attemptId,
-        body: { v: 1, deviceId: DEVICE_ID, agrees: true, misjudged: [], regraded: false },
-      },
+    const { body } = enqueued('attempt')[0];
+    expect(body.estimate).toMatchObject({ heuristicVersion: '1', estimatedAccuracy: 1 });
+    expect(body.signal).toMatchObject({ frames: framesOfMelody().length });
+    const notes = body.notes as Array<{ windowLevelDb: number | null }>;
+    expect(notes[0].windowLevelDb).toBeGreaterThan(-30);
+    const events = body.events as Array<{ pitchSpreadCents: number }>;
+    expect(events[0].pitchSpreadCents).toBe(0);
+  });
+});
+
+describe('SpikeScreen recognition estimate', () => {
+  const ESTIMATE_TEXTS = [
+    'Szacowana dokładność rozpoznawania',
+    'Odsetek ramek bez wysokości',
+    'Mediana pewności',
+    'Rozrzut opóźnienia',
+    'Zdarzenia na nutę',
+    'Przerwana',
+  ];
+
+  it('shows the heuristic only in the diagnostics panel, after opening it', async () => {
+    audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
+    audio.frames = framesOfMelody();
+    render(<SpikeScreen />);
+    await recordAndStop();
+    await screen.findByText('Wynik: 100%');
+    // The default result view (what the child sees) has none of it.
+    for (const text of ESTIMATE_TEXTS) expect(screen.queryByText(text)).not.toBeInTheDocument();
+    expect(screen.queryByText('ok')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Szacunek rozpoznawania (dla zespołu)' })).not.toBeInTheDocument();
+
+    const diagnostics = within(screen.getByRole('region', { name: 'Diagnostyka' }));
+    fireEvent.click(diagnostics.getByRole('button', { name: 'Pokaż szacunek rozpoznawania' }));
+    const panel = within(diagnostics.getByRole('region', { name: 'Szacunek rozpoznawania (dla zespołu)' }));
+    for (const text of ESTIMATE_TEXTS) expect(panel.getByText(text)).toBeInTheDocument();
+    expect(panel.getByText('100%')).toBeInTheDocument();
+    // Stopped with the button.
+    expect(panel.getByText('tak')).toBeInTheDocument();
+    // 15 reference notes, all played right.
+    expect(panel.getAllByText('ok')).toHaveLength(15);
+    // Not inside the result sections.
+    expect(within(screen.getByRole('region', { name: 'Nuta po nucie' })).queryByText('ok')).not.toBeInTheDocument();
+
+    fireEvent.click(diagnostics.getByRole('button', { name: 'Ukryj szacunek rozpoznawania' }));
+    expect(screen.queryByText('Szacowana dokładność rozpoznawania')).not.toBeInTheDocument();
+  });
+
+  it('names the verdict and the reasons of a misrecognised note in Polish', async () => {
+    audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
+    // The 2nd note of the melody heard an octave too high.
+    const melody = MELODIES[0];
+    const second = melody.notes[1];
+    audio.frames = framesOfMelody().map((f) =>
+      f.hz !== null && f.timeMs >= second.startEighth * 500 && f.timeMs < (second.startEighth + second.durationEighths) * 500
+        ? { ...f, hz: f.hz * 2 }
+        : f,
+    );
+    render(<SpikeScreen />);
+    await recordAndStop();
+    await screen.findByText(/^Wynik: \d+%$/);
+    fireEvent.click(screen.getByRole('button', { name: 'Pokaż szacunek rozpoznawania' }));
+    const panel = within(screen.getByRole('region', { name: 'Szacunek rozpoznawania (dla zespołu)' }));
+    expect(panel.getByText('błąd rozpoznawania')).toBeInTheDocument();
+    expect(panel.getByText('skok o oktawę')).toBeInTheDocument();
+  });
+});
+
+describe('SpikeScreen note-by-note list on a narrow phone', () => {
+  it('lets every cell wrap and keeps the full status word with a colour dot', async () => {
+    audio.openMic.mockResolvedValue({ source: {}, stop: () => undefined });
+    audio.frames = framesOfMelody();
+    render(<SpikeScreen />);
+    await recordAndStop();
+    await screen.findByText('Wynik: 100%');
+    const table = within(screen.getByRole('region', { name: 'Nuta po nucie' })).getByRole('table');
+    // No fixed layout and no fixed-width columns that clip text at 360 px.
+    expect(table).not.toHaveClass('table-fixed');
+    expect(table.querySelectorAll('[class*="w-["], th.w-6, th.w-14')).toHaveLength(0);
+    expect(within(table).getAllByRole('columnheader').map((th) => th.textContent)).toEqual([
+      '#',
+      'Wzór',
+      'Gra',
+      'Cent',
+      'Czas',
+      'Ocena',
     ]);
-    expect(screen.getByRole('status')).toHaveTextContent('Dziękujemy!');
-  });
-
-  it('enqueues the notes marked as misjudged and the comment when the player answers Nie', async () => {
-    await finishedAttempt();
-    const question = await screen.findByRole('region', { name: 'Czy ocena się zgadza?' });
-    expect(screen.queryByLabelText('aplikacja się pomyliła – nuta 2')).not.toBeInTheDocument();
-    fireEvent.click(within(question).getByRole('button', { name: 'Nie' }));
-    fireEvent.click(screen.getByLabelText('aplikacja się pomyliła – nuta 2'));
-    fireEvent.click(screen.getByLabelText('aplikacja się pomyliła – nuta 5'));
-    fireEvent.click(screen.getByLabelText('aplikacja się pomyliła – nuta 7'));
-    fireEvent.click(screen.getByLabelText('aplikacja się pomyliła – nuta 7'));
-    fireEvent.change(screen.getByLabelText('Komentarz (opcjonalnie)'), {
-      target: { value: '  Nuta 5 była dobra  ' },
-    });
-    // The view was re-graded after the record was sent.
-    fireEvent.click(screen.getByLabelText('Automatyczna korekta opóźnienia'));
-    fireEvent.click(within(question).getByRole('button', { name: 'Wyślij' }));
-    const [feedback] = enqueued('feedback');
-    expect(feedback.body).toEqual({
-      v: 1,
-      deviceId: DEVICE_ID,
-      agrees: false,
-      misjudged: [
-        { refIndex: 1, playedIndex: 1 },
-        { refIndex: 4, playedIndex: 4 },
-      ],
-      comment: 'Nuta 5 była dobra',
-      regraded: true,
-    });
-    expect(screen.getByRole('status')).toHaveTextContent('Dziękujemy!');
+    const statusCells = within(table)
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => row.querySelectorAll('td')[5]);
+    expect(statusCells).toHaveLength(15);
+    for (const cell of statusCells) {
+      expect(cell.textContent).toBe('dobrze');
+      expect(cell.querySelector('span[aria-hidden="true"]')).not.toBeNull();
+    }
   });
 });

@@ -53,6 +53,13 @@ export interface NoteEvent {
   meanClarity: number;
   /** Mean level of the voiced frames in dB, rounded to 0.1. */
   meanLevelDb: number;
+  /**
+   * Pitch spread within the event: the standard deviation of the frame
+   * pitches in cents, rounded to 1. Large when the pitch wobbles or some
+   * frames jump an octave. Optional because events built by hand (tests,
+   * older code) may lack it; `segment` always sets it.
+   */
+  pitchSpreadCents?: number;
 }
 
 interface VoicedFrame {
@@ -109,7 +116,66 @@ function toEvent(note: OpenNote, endMs: number): NoteEvent {
     suspectTwelfth: note.frames.filter((f) => Math.abs(f.midi - midi) === 19).length,
     meanClarity: Math.round(mean(note.frames.map((f) => f.clarity)) * 1000) / 1000,
     meanLevelDb: Math.round(mean(note.frames.map((f) => f.levelDb)) * 10) / 10,
+    pitchSpreadCents: Math.round(standardDeviation(note.frames.map((f) => f.midiFloat * 100))),
   };
+}
+
+function standardDeviation(values: number[]): number {
+  if (values.length === 0) return 0;
+  const m = mean(values);
+  return Math.sqrt(mean(values.map((v) => (v - m) ** 2)));
+}
+
+/** A frame the segmenter treats as voiced: a pitch, confident and loud enough. */
+export function isVoicedFrame(frame: PitchFrame, options: Partial<SegmentOptions> = {}): boolean {
+  const opts: SegmentOptions = { ...DEFAULT_SEGMENT_OPTIONS, ...options };
+  return (
+    frame.hz !== null &&
+    Number.isFinite(frame.hz) &&
+    frame.hz > 0 &&
+    frame.clarity >= opts.minClarity &&
+    frame.levelDb >= opts.minLevelDb
+  );
+}
+
+/** The frames the segmenter analyses: those outside every ignore window (metronome clicks). */
+export function analysedFrames(frames: PitchFrame[], ignoreWindows: SegmentOptions['ignoreWindows']): PitchFrame[] {
+  return frames.filter((frame) => !ignoreWindows.some(([start, end]) => frame.timeMs >= start && frame.timeMs <= end));
+}
+
+/** Frame totals of a whole attempt (sent as the record's `signal`). */
+export interface FrameSignal {
+  frames: number;
+  /** Frames the segmenter treats as voiced. */
+  voicedFrames: number;
+  /** Median detector clarity over all frames, 0..1, rounded to 0.001; null without frames. */
+  medianClarity: number | null;
+}
+
+export function frameSignal(frames: PitchFrame[], options: Partial<SegmentOptions> = {}): FrameSignal {
+  const clarities = frames
+    .map((f) => (Number.isFinite(f.clarity) ? Math.min(1, Math.max(0, f.clarity)) : 0))
+    .sort((a, b) => a - b);
+  const mid = Math.floor(clarities.length / 2);
+  const medianClarity =
+    clarities.length === 0
+      ? null
+      : clarities.length % 2 === 1
+        ? clarities[mid]
+        : (clarities[mid - 1] + clarities[mid]) / 2;
+  return {
+    frames: frames.length,
+    voicedFrames: frames.filter((f) => isVoicedFrame(f, options)).length,
+    medianClarity: medianClarity === null ? null : Math.round(medianClarity * 1000) / 1000,
+  };
+}
+
+/** Mean input level (dB) of the frames in [startMs, endMs), rounded to 0.1; null without frames there. */
+export function windowLevelDb(frames: PitchFrame[], startMs: number, endMs: number): number | null {
+  const levels = frames
+    .filter((f) => f.timeMs >= startMs && f.timeMs < endMs && Number.isFinite(f.levelDb))
+    .map((f) => f.levelDb);
+  return levels.length === 0 ? null : Math.round(mean(levels) * 10) / 10;
 }
 
 export function segment(frames: PitchFrame[], options: Partial<SegmentOptions> = {}): NoteEvent[] {
@@ -143,12 +209,7 @@ export function segment(frames: PitchFrame[], options: Partial<SegmentOptions> =
   for (const frame of sorted) {
     if (inIgnoreWindow(frame.timeMs)) continue;
 
-    const voiced =
-      frame.hz !== null &&
-      Number.isFinite(frame.hz) &&
-      frame.hz > 0 &&
-      frame.clarity >= opts.minClarity &&
-      frame.levelDb >= opts.minLevelDb;
+    const voiced = isVoicedFrame(frame, opts);
 
     if (!voiced) {
       if (note) {

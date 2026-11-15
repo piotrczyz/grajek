@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { midiToHz } from './pitch.ts';
-import { DEFAULT_SEGMENT_OPTIONS, segment, type PitchFrame } from './segment.ts';
+import {
+  analysedFrames,
+  DEFAULT_SEGMENT_OPTIONS,
+  frameSignal,
+  segment,
+  windowLevelDb,
+  type PitchFrame,
+} from './segment.ts';
 
 const STEP = 20;
 
@@ -117,5 +124,47 @@ describe('segment', () => {
   it('ignores frames below the clarity or level gate', () => {
     expect(segment(tone(60, 0, 500, -20, 0.5))).toHaveLength(0);
     expect(segment(tone(60, 0, 500, -60))).toHaveLength(0);
+  });
+});
+
+describe('pitchSpreadCents', () => {
+  it('is 0 for a steady tone', () => {
+    const [event] = segment([...silence(0, 100), ...tone(60, 100, 600), ...silence(600, 800)]);
+    expect(event.pitchSpreadCents).toBe(0);
+  });
+
+  it('is the standard deviation of the frame pitches in cents', () => {
+    // Half the frames 30 cents sharp, half 30 cents flat: deviation 30.
+    const frames = tone(69, 100, 500).map((f, i) => ({ ...f, hz: 440 * 2 ** ((i % 2 === 0 ? 30 : -30) / 1200) }));
+    const [event] = segment([...silence(0, 100), ...frames, ...silence(500, 700)]);
+    expect(event.midi).toBe(69);
+    expect(event.pitchSpreadCents).toBe(30);
+  });
+
+  it('is large when a note wobbles widely', () => {
+    // ±80 cents around A4 (vibrato too wide to be a steady note).
+    const frames = tone(69, 100, 700).map((f, i) => ({ ...f, hz: 440 * 2 ** ((i % 2 === 0 ? 80 : -80) / 1200) }));
+    const [event] = segment([...silence(0, 100), ...frames, ...silence(700, 900)]);
+    expect(event.pitchSpreadCents).toBeGreaterThan(60);
+  });
+});
+
+describe('frame signal helpers', () => {
+  const frames = [...silence(0, 100), ...tone(60, 100, 300), ...silence(300, 400)];
+
+  it('counts all and voiced frames and takes the median clarity', () => {
+    expect(frameSignal(frames)).toEqual({ frames: 20, voicedFrames: 10, medianClarity: 0.585 });
+    expect(frameSignal([])).toEqual({ frames: 0, voicedFrames: 0, medianClarity: null });
+  });
+
+  it('averages the input level over a window, null when no frame falls in it', () => {
+    expect(windowLevelDb(frames, 100, 300)).toBe(-20);
+    expect(windowLevelDb(frames, 0, 200)).toBe(-45);
+    expect(windowLevelDb(frames, 1000, 2000)).toBeNull();
+  });
+
+  it('drops the frames inside the ignore windows', () => {
+    expect(analysedFrames(frames, [[0, 90]]).map((f) => f.timeMs)[0]).toBe(100);
+    expect(analysedFrames(frames, [])).toHaveLength(20);
   });
 });

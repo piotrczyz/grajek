@@ -56,7 +56,8 @@ export const PLAY_AGAIN_BUTTON = 'Zagraj jeszcze raz';
 export const CHANGE_SONG_BUTTON = 'Zmień utwór';
 export const NOTES_TABLE_HEADING = 'Nuta po nucie';
 export const NOTES_TABLE_HINT = 'Dotknij nuty na pięciolinii, żeby zobaczyć jej wiersz.';
-export const NOTE_COLUMNS = ['Nr', 'Wzór', 'Gra', 'Cent', 'Czas', 'Status'] as const;
+/** Short headers: the table must stay readable on a 360 px wide phone. */
+export const NOTE_COLUMNS = ['#', 'Wzór', 'Gra', 'Cent', 'Czas', 'Ocena'] as const;
 export const STATUS = {
   good: 'dobrze',
   late: 'za późno',
@@ -124,17 +125,46 @@ export const MEDIAN_OFFSET = 'Mediana przesunięcia';
 export const APPLIED_CORRECTION = 'Zastosowana korekta';
 export const offsetSamples = (n: number) => `(z ${n} ${plural(n, 'nuty', 'nut', 'nut')})`;
 
-// Anonymous telemetry and accuracy feedback (telemetria-zagraj-i-sprawdz).
+// Anonymous telemetry (telemetria-zagraj-i-sprawdz).
 export const TELEMETRY_NOTICE =
   'Wysyłamy anonimowe dane o dokładności rozpoznawania (bez nagrania), żeby ulepszyć aplikację.';
 export const TELEMETRY_SWITCH_LABEL = 'Wysyłaj anonimowe dane';
-export const FEEDBACK_HEADING = 'Czy ocena się zgadza?';
-export const FEEDBACK_YES = 'Tak';
-export const FEEDBACK_NO = 'Nie';
-export const FEEDBACK_HINT = 'Zaznacz na liście „Nuta po nucie” nuty, które aplikacja oceniła źle.';
-export const MISJUDGED_COLUMN = 'Pomyłka?';
-export const MISJUDGED_LABEL = 'aplikacja się pomyliła';
-export const misjudgedRowLabel = (nr: number) => `${MISJUDGED_LABEL} – nuta ${nr}`;
-export const FEEDBACK_COMMENT_LABEL = 'Komentarz (opcjonalnie)';
-export const FEEDBACK_SEND = 'Wyślij';
-export const FEEDBACK_THANKS = 'Dziękujemy! Odpowiedź pomoże ulepszyć rozpoznawanie.';
+
+// Automatic recognition estimate, diagnostics only (the child never sees it).
+export const ESTIMATE_SHOW = 'Pokaż szacunek rozpoznawania';
+export const ESTIMATE_HIDE = 'Ukryj szacunek rozpoznawania';
+export const ESTIMATE_HEADING = 'Szacunek rozpoznawania (dla zespołu)';
+export const ESTIMATE_ACCURACY = 'Szacowana dokładność rozpoznawania';
+export const ESTIMATE_VERSION = 'Wersja heurystyki';
+export const ESTIMATE_NOTES_HEADING = 'Ocena nut';
+export const ESTIMATE_NOTE_COLUMNS = ['#', 'Wzór', 'Gra', 'Werdykt', 'Powody'] as const;
+export const VERDICT_NAMES: Record<string, string> = {
+  player: 'błąd grającego',
+  recognition: 'błąd rozpoznawania',
+  uncertain: 'niepewne',
+  ok: 'ok',
+};
+export const REASON_NAMES: Record<string, string> = {
+  octaveJump: 'skok o oktawę',
+  twelfthJump: 'skok o duodecymę',
+  shortEvent: 'bardzo krótkie zdarzenie',
+  lowClarity: 'niska pewność',
+  lowLevel: 'niski poziom',
+  splitNote: 'nuta rozbita na kilka',
+  mergedNotes: 'powtórzone nuty zlane',
+  unstablePitch: 'niestabilna wysokość',
+  missingLoud: 'brak nuty przy głośnym sygnale',
+  wrongPitchStable: 'stabilna, pewna inna nuta',
+  rhythmOutlier: 'pojedyncza nuta poza rytmem',
+};
+/** Polish name of a reason code; an unknown code (newer heuristic) is shown as is. */
+export const reasonName = (code: string) => REASON_NAMES[code] ?? code;
+export const SIGNALS_HEADING = 'Sygnały próby';
+export const SIGNAL_UNVOICED = 'Odsetek ramek bez wysokości';
+export const SIGNAL_CLARITY = 'Mediana pewności';
+export const SIGNAL_LATENCY_SPREAD = 'Rozrzut opóźnienia';
+export const SIGNAL_EVENTS_PER_NOTE = 'Zdarzenia na nutę';
+export const SIGNAL_STOPPED = 'Przerwana';
+export const YES = 'tak';
+export const NO = 'nie';
+export const percent = (ratio: number) => `${Math.round(ratio * 100)}%`;

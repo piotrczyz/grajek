@@ -12,8 +12,13 @@ export {
 } from './pitch.ts';
 export { MELODIES, melodyLengthEighths, type Melody, type RefNote } from './melodies.ts';
 export {
+  analysedFrames,
   DEFAULT_SEGMENT_OPTIONS,
+  frameSignal,
+  isVoicedFrame,
   segment,
+  windowLevelDb,
+  type FrameSignal,
   type NoteEvent,
   type PitchFrame,
   type SegmentOptions,

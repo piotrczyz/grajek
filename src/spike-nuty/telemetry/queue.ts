@@ -1,14 +1,13 @@
 // Bounded FIFO queue of telemetry sends in localStorage, so attempts played
 // offline are sent once the connection returns. Every storage failure is
 // swallowed: telemetry must never break the spike screen.
-import { putAttempt, putFeedback } from './api.ts';
+import { putAttempt } from './api.ts';
 
 export const QUEUE_KEY = 'grajek.spikeNuty.queue.v1';
 export const MAX_QUEUE = 20;
-/** A feedback answered 404 (attempt not stored yet) is retried this many times. */
-export const MAX_FEEDBACK_TRIES = 5;
 
-export type QueueKind = 'attempt' | 'feedback';
+/** Only attempt records are sent; the manual feedback path was removed. */
+export type QueueKind = 'attempt';
 
 export interface QueueItem {
   kind: QueueKind;
@@ -20,14 +19,14 @@ export interface QueueItem {
 /** Sends one item; resolves with the HTTP status, rejects on a network error. */
 export type Send = (item: QueueItem) => Promise<number>;
 
-export const sendItem: Send = (item) =>
-  item.kind === 'attempt' ? putAttempt(item.attemptId, item.body) : putFeedback(item.attemptId, item.body);
+export const sendItem: Send = (item) => putAttempt(item.attemptId, item.body);
 
-function isItem(value: unknown): value is QueueItem {
+/** A well-formed stored item of the given kind. */
+function isStored(value: unknown, kind: string): boolean {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
-    (v.kind === 'attempt' || v.kind === 'feedback') &&
+    v.kind === kind &&
     typeof v.attemptId === 'string' &&
     'body' in v &&
     typeof v.tries === 'number' &&
@@ -35,13 +34,24 @@ function isItem(value: unknown): value is QueueItem {
   );
 }
 
-/** The stored queue; a corrupt value is reset to empty. */
+const isItem = (value: unknown): value is QueueItem => isStored(value, 'attempt');
+/** A feedback answer queued by an older build; its endpoint no longer exists. */
+const isLegacyFeedback = (value: unknown) => isStored(value, 'feedback');
+
+/**
+ * The stored queue; a corrupt value is reset to empty. Legacy feedback items
+ * are dropped silently, and the attempts queued beside them are kept.
+ */
 export function readQueue(): QueueItem[] {
   try {
     const raw = localStorage.getItem(QUEUE_KEY);
     if (raw === null) return [];
     const parsed: unknown = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.every(isItem)) return parsed;
+    if (Array.isArray(parsed) && parsed.every((v) => isItem(v) || isLegacyFeedback(v))) {
+      const items = parsed.filter(isItem);
+      if (items.length !== parsed.length) writeQueue(items);
+      return items;
+    }
   } catch {
     // Unreadable or not JSON: fall through and reset.
   }
@@ -87,13 +97,10 @@ function update(item: QueueItem, next: QueueItem | null): void {
 
 type Outcome = 'sent' | 'drop' | 'retry-later';
 
-function outcomeOf(item: QueueItem, status: number): Outcome {
+function outcomeOf(status: number): Outcome {
   if (status >= 200 && status < 300) return 'sent';
   if (status === 429 || status >= 500) return 'retry-later';
-  if (status === 404 && item.kind === 'feedback') {
-    return item.tries + 1 >= MAX_FEEDBACK_TRIES ? 'drop' : 'retry-later';
-  }
-  // 400, 413, 415 and any other client error can never succeed.
+  // 400, 404, 413, 415 and any other client error can never succeed.
   return 'drop';
 }
 
@@ -113,11 +120,7 @@ async function flushOnce(send: Send): Promise<void> {
     } catch {
       return; // Offline or the request failed: keep the item, try again later.
     }
-    const outcome = outcomeOf(item, status);
-    if (outcome === 'retry-later') {
-      if (status === 404) update(item, { ...item, tries: item.tries + 1 });
-      return;
-    }
+    if (outcomeOf(status) === 'retry-later') return;
     update(item, null);
   }
 }

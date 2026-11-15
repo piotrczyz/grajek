@@ -2,8 +2,8 @@
 // Each call returns the HTTP status and throws only on a network error.
 import { apiBase } from '../../push/api.ts';
 
-function attemptUrl(attemptId: string, suffix = ''): string {
-  return `${apiBase()}/spike-nuty/attempts/${encodeURIComponent(attemptId)}${suffix}`;
+function attemptUrl(attemptId: string): string {
+  return `${apiBase()}/spike-nuty/attempts/${encodeURIComponent(attemptId)}`;
 }
 
 async function put(url: string, body: unknown): Promise<number> {
@@ -18,8 +18,4 @@ async function put(url: string, body: unknown): Promise<number> {
 
 export function putAttempt(attemptId: string, body: unknown): Promise<number> {
   return put(attemptUrl(attemptId), body);
-}
-
-export function putFeedback(attemptId: string, body: unknown): Promise<number> {
-  return put(attemptUrl(attemptId, '/feedback'), body);
 }

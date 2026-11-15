@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   enqueue,
   flush,
-  MAX_FEEDBACK_TRIES,
   MAX_QUEUE,
   QUEUE_KEY,
   readQueue,
@@ -13,7 +12,8 @@ import {
 } from './queue.ts';
 
 const attempt = (n: number) => ({ kind: 'attempt' as const, attemptId: `a${n}`, body: { n } });
-const feedback = (n: number) => ({ kind: 'feedback' as const, attemptId: `a${n}`, body: { agrees: true, n } });
+/** A feedback answer as queued by an older build (the manual feedback path is gone). */
+const legacyFeedback = (n: number) => ({ kind: 'feedback', attemptId: `a${n}`, body: { agrees: true, n }, tries: 0 });
 
 /** A send that answers with the given statuses in order (a thrown Error = network failure). */
 function sendWith(...answers: Array<number | Error>) {
@@ -37,11 +37,27 @@ afterEach(() => {
 describe('enqueue', () => {
   it('stores items with zero tries, in order', () => {
     enqueue(attempt(1));
-    enqueue(feedback(1));
+    enqueue(attempt(2));
     expect(readQueue()).toEqual<QueueItem[]>([
       { ...attempt(1), tries: 0 },
-      { ...feedback(1), tries: 0 },
+      { ...attempt(2), tries: 0 },
     ]);
+  });
+
+  it('silently drops legacy feedback items and keeps the attempts queued beside them', async () => {
+    localStorage.setItem(
+      QUEUE_KEY,
+      JSON.stringify([{ ...attempt(1), tries: 0 }, legacyFeedback(1), { ...attempt(2), tries: 0 }]),
+    );
+    expect(ids()).toEqual(['attempt:a1', 'attempt:a2']);
+    expect(JSON.parse(localStorage.getItem(QUEUE_KEY) as string)).toEqual([
+      { ...attempt(1), tries: 0 },
+      { ...attempt(2), tries: 0 },
+    ]);
+    const send = sendWith(204, 204);
+    await flush(send);
+    expect(send.mock.calls.map(([item]) => `${item.kind}:${item.attemptId}`)).toEqual(['attempt:a1', 'attempt:a2']);
+    expect(readQueue()).toEqual([]);
   });
 
   it(`keeps at most ${MAX_QUEUE} items, dropping the oldest`, () => {
@@ -77,19 +93,19 @@ describe('enqueue', () => {
 describe('flush', () => {
   it('sends in FIFO order and removes what was accepted (2xx)', async () => {
     enqueue(attempt(1));
-    enqueue(feedback(1));
     enqueue(attempt(2));
+    enqueue(attempt(3));
     const send = sendWith(204, 204, 200);
     await flush(send);
     expect(send.mock.calls.map(([item]) => `${item.kind}:${item.attemptId}`)).toEqual([
       'attempt:a1',
-      'feedback:a1',
       'attempt:a2',
+      'attempt:a3',
     ]);
     expect(readQueue()).toEqual([]);
   });
 
-  it.each([400, 413, 415])('drops an item answered %i and goes on', async (status) => {
+  it.each([400, 404, 413, 415])('drops an item answered %i and goes on', async (status) => {
     enqueue(attempt(1));
     enqueue(attempt(2));
     const send = sendWith(status, 204);
@@ -112,16 +128,6 @@ describe('flush', () => {
     const send = sendWith(new TypeError('Failed to fetch'));
     await expect(flush(send)).resolves.toBeUndefined();
     expect(ids()).toEqual(['attempt:a1']);
-  });
-
-  it(`drops a feedback answered 404 after ${MAX_FEEDBACK_TRIES} tries`, async () => {
-    enqueue(feedback(1));
-    for (let i = 1; i < MAX_FEEDBACK_TRIES; i += 1) {
-      await flush(sendWith(404));
-      expect(readQueue()).toEqual([{ ...feedback(1), tries: i }]);
-    }
-    await flush(sendWith(404));
-    expect(readQueue()).toEqual([]);
   });
 
   it('runs a single flush at a time', async () => {
@@ -148,7 +154,7 @@ describe('flush', () => {
   it('also sends items enqueued while it runs', async () => {
     enqueue(attempt(1));
     const send = vi.fn(async (item: QueueItem) => {
-      if (item.kind === 'attempt') enqueue(feedback(1));
+      if (item.attemptId === 'a1') enqueue(attempt(2));
       return 204;
     });
     await flush(send);
@@ -175,19 +181,15 @@ describe('startAutoFlush', () => {
 });
 
 describe('sendItem', () => {
-  it('PUTs attempts and feedback as JSON to the spike-nuty routes and returns the status', async () => {
+  it('PUTs attempts as JSON to the spike-nuty attempt route and returns the status', async () => {
     const fetchMock = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
     try {
       await expect(sendItem({ ...attempt(1), tries: 0 })).resolves.toBe(204);
-      await expect(sendItem({ ...feedback(1), tries: 0 })).resolves.toBe(204);
     } finally {
       vi.unstubAllGlobals();
     }
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      '/api/spike-nuty/attempts/a1',
-      '/api/spike-nuty/attempts/a1/feedback',
-    ]);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/api/spike-nuty/attempts/a1']);
     expect(fetchMock.mock.calls[0][1]).toMatchObject({
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

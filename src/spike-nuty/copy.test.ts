@@ -52,8 +52,23 @@ describe('telemetry texts', () => {
       'Wysyłamy anonimowe dane o dokładności rozpoznawania (bez nagrania), żeby ulepszyć aplikację.',
     );
     expect(copy.TELEMETRY_SWITCH_LABEL).toBe('Wysyłaj anonimowe dane');
-    expect(copy.FEEDBACK_HEADING).toBe('Czy ocena się zgadza?');
-    expect([copy.FEEDBACK_YES, copy.FEEDBACK_NO]).toEqual(['Tak', 'Nie']);
-    expect(copy.misjudgedRowLabel(3)).toBe('aplikacja się pomyliła – nuta 3');
+  });
+
+  it('has no manual feedback texts any more', () => {
+    expect(Object.keys(copy).filter((key) => /FEEDBACK|MISJUDGED|misjudged/.test(key))).toEqual([]);
+  });
+});
+
+describe('recognition estimate texts', () => {
+  it('names every verdict and reason code of the heuristic in Polish', async () => {
+    const { REASON_CODES, VERDICTS } = await import('../../functions/src/spike-nuty/recognition-estimate.ts');
+    expect(VERDICTS.map((v) => copy.VERDICT_NAMES[v])).toEqual([
+      'błąd grającego',
+      'błąd rozpoznawania',
+      'niepewne',
+      'ok',
+    ]);
+    for (const code of REASON_CODES) expect(copy.reasonName(code)).not.toBe(code);
+    expect(copy.reasonName('someFutureCode')).toBe('someFutureCode');
   });
 });

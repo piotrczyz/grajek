@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
 // The server's own parser: the record built here must pass it unchanged.
 import { parseAttempt } from '../../../functions/src/spike-nuty/validation.ts';
-import { gradeRecording, MELODIES, type Melody, type NoteEvent } from '../logic/index.ts';
-import { buildAttemptRecord, MAX_EVENTS, readTelemetryEnv, type BuildAttemptInput } from './record.ts';
+import { estimateRecognition, HEURISTIC_VERSION } from '../../../functions/src/spike-nuty/recognition-estimate.ts';
+import { gradeRecording, MELODIES, type Melody, type NoteEvent, type PitchFrame } from '../logic/index.ts';
+import {
+  attemptDetails,
+  buildAttemptRecord,
+  MAX_EVENTS,
+  readTelemetryEnv,
+  type BuildAttemptInput,
+} from './record.ts';
 
 const melody: Melody = MELODIES.find((m) => m.id === 'panie-janie') as Melody;
 const BPM = 60;
@@ -140,6 +147,87 @@ describe('buildAttemptRecord', () => {
   it('has no name, profile or audio field', () => {
     const json = JSON.stringify(buildAttemptRecord(input()));
     expect(json).not.toMatch(/"(name|profile|profileId|audio)"/);
+  });
+});
+
+/** Frames every 20 ms: loud and voiced where the events sound, quiet and unvoiced elsewhere. */
+function framesOf(events: NoteEvent[], endMs: number): PitchFrame[] {
+  const frames: PitchFrame[] = [];
+  for (let t = 0; t < endMs; t += 20) {
+    const sounding = events.some((e) => t >= e.startMs && t < e.startMs + e.durationMs);
+    frames.push(
+      sounding ? { timeMs: t, hz: 440, clarity: 0.96, levelDb: -20 } : { timeMs: t, hz: null, clarity: 0.1, levelDb: -80 },
+    );
+  }
+  return frames;
+}
+
+describe('buildAttemptRecord: raw signals and the recognition estimate', () => {
+  function withFrames(events: NoteEvent[] = played()): BuildAttemptInput {
+    const end = melody.notes.at(-1)!;
+    const frames = framesOf(events, (end.startEighth + end.durationEighths) * EIGHTH);
+    return input({ recording: { events, bpm: BPM, frames } });
+  }
+
+  it('fills the event pitch spread, the note window levels and the attempt signal', () => {
+    const events = played().map((e, i) => ({ ...e, pitchSpreadCents: i === 0 ? 12.4 : 3000 }));
+    const data = withFrames(events);
+    const record = buildAttemptRecord(data);
+    expect(record.events[0].pitchSpreadCents).toBe(12);
+    // Clamped to the server bound.
+    expect(record.events[1].pitchSpreadCents).toBe(2400);
+    // Every reference window is mostly sounding (-20 dB) with the gaps (-80 dB) in between.
+    for (const note of record.notes) {
+      expect(note.windowLevelDb).toBeGreaterThan(-80);
+      expect(note.windowLevelDb).toBeLessThan(-19);
+    }
+    const frames = data.recording.frames!;
+    expect(record.signal).toEqual({
+      frames: frames.length,
+      voicedFrames: frames.filter((f) => f.hz !== null).length,
+      medianClarity: 0.96,
+    });
+  });
+
+  it('stores the estimate with the heuristic version, and the server parser accepts the record', () => {
+    const record = buildAttemptRecord(withFrames());
+    expect(record.estimate?.heuristicVersion).toBe(HEURISTIC_VERSION);
+    expect(record.estimate?.notes).toHaveLength(record.notes.length);
+    expect(record.estimate?.events).toHaveLength(record.events.length);
+    // Note 2 an octave high, note 3 a twelfth high: both suspected recognition errors.
+    expect(record.estimate?.notes[1]).toEqual({ verdict: 'recognition', reasons: ['octaveJump'] });
+    expect(record.estimate?.notes[2]).toEqual({ verdict: 'recognition', reasons: ['twelfthJump'] });
+    expect(record.estimate?.reasons).toMatchObject({ octaveJump: 1, twelfthJump: 1 });
+    const refs = melody.notes.length;
+    expect(record.estimate?.estimatedAccuracy).toBe(Math.round((1 - 2 / refs) * 1000) / 1000);
+    expect(record.estimate?.signals).toMatchObject({ stopped: false });
+    expect(parseAttempt(JSON.parse(JSON.stringify(record)))).toEqual(record);
+  });
+
+  it('builds a record without frames: no signal, no window levels, still an estimate', () => {
+    const record = buildAttemptRecord(input());
+    expect(record).not.toHaveProperty('signal');
+    expect(record.notes[0]).not.toHaveProperty('windowLevelDb');
+    expect(record.estimate?.signals.unvoicedRatio).toBeNull();
+    expect(parseAttempt(JSON.parse(JSON.stringify(record)))).toEqual(record);
+  });
+
+  it('computes the estimate of a recording over 200 events from the full event list', () => {
+    // 250 short low-clarity events: every one is a suspected recognition error.
+    const many = Array.from({ length: 250 }, (_, i) => event(60, i * 100, 80, { meanClarity: 0.5 }));
+    const data = input({ recording: { events: many, bpm: BPM } });
+    const record = buildAttemptRecord(data);
+    expect(record.events).toHaveLength(MAX_EVENTS);
+    expect(record.estimate?.events).toHaveLength(MAX_EVENTS);
+    const counts = record.estimate!.eventCounts;
+    expect(counts.player + counts.recognition + counts.uncertain + counts.ok).toBe(250);
+    // The note verdicts are those of the full lists, not of the capped ones.
+    const full = attemptDetails(data);
+    expect(full.events).toHaveLength(250);
+    expect(record.estimate?.notes).toEqual(
+      estimateRecognition({ notes: full.notes, events: full.events, ended: 'complete' }).notes,
+    );
+    expect(parseAttempt(JSON.parse(JSON.stringify(record)))).toEqual(record);
   });
 });
 
