@@ -6,4 +6,4 @@
 
 **Do zrobienia po scaleniu:** nowe funkcje serwera zaczną działać dopiero po ręcznym wdrożeniu funkcji i ustawień bazy danych przez właściciela (instrukcja jest w README).
 
-**Status:** Jeszcze niegotowe: zmiany po Twoich uwagach są w trakcie wprowadzania.
+**Status:** Gotowe do scalenia; w podglądzie nie ma nic do sprawdzenia ręcznie (zmiana dotyczy tylko serwera).
