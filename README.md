@@ -181,3 +181,50 @@ to the home screen. In Safari the panel shows a hint to add Grajek to the home s
 
 **Before publication:** the app stores an anonymous device id and push subscription
 on a server. Publishing waits for the answer on GDPR (RODO) and parental consent.
+
+## Spike telemetry
+
+The hidden "Zagraj i sprawdź" screen (`?spike=nuty`) sends one anonymous record per
+finished attempt to the same `api` function, so the owner can tell a child's mistakes
+from recognition mistakes across devices.
+
+Endpoints (JSON, `Cache-Control: no-store`):
+
+- `PUT /api/spike-nuty/attempts/{attemptId}` - the attempt record (at most 64 KiB);
+  `attemptId` is a client-generated UUID v4, so a retry of a stored attempt answers
+  204 and changes nothing.
+- `PUT /api/spike-nuty/attempts/{attemptId}/feedback` - the answer to "Czy ocena się
+  zgadza?" (at most 8 KiB); accepted only from the device that sent the attempt, a
+  later answer replaces the earlier one.
+- Each device may write 60 times per hour (attempts and feedback together); then
+  `429` with `Retry-After`.
+
+**What is stored** in Firestore `spikeNutyAttempts/{attemptId}`: the anonymous device
+id, the app build, the user agent (as sent, at most 512 characters), whether the app
+runs installed, the screen settings (melody, instrument, tempo, preparation, toggles),
+the scores and counts, the note-by-note grading, the raw detected notes (pitch,
+timing, clarity, level), the latency figures, whether the attempt ran to the end,
+the feedback, and the server times `receivedAt` and `expireAt`. Every other field of
+the request is dropped. The per-device counter lives in `spikeNutyRateLimits/{deviceId}`.
+
+**What is not stored:** no audio, no profile name or profile data, no IP address, no
+account. Clients cannot read or write either collection (Firestore rules deny all).
+
+**Retention: 180 days.** Every attempt gets `expireAt` = receipt + 180 days, every
+counter `expireAt` = end of its one-hour window + 1 day, and Firestore TTL deletes the
+documents after that time (usually within a day). The TTL policies are declared in
+`firestore.indexes.json` (`fieldOverrides` with `"ttl": true` on `expireAt` for both
+collections) and are deployed with `npx firebase-tools deploy --only firestore:indexes`
+(part of `--only firestore`). If the deploy does not create them, set them in the
+Firebase console (Firestore, TTL) or with:
+
+```sh
+gcloud firestore fields ttls update expireAt --collection-group=spikeNutyAttempts --enable-ttl
+gcloud firestore fields ttls update expireAt --collection-group=spikeNutyRateLimits --enable-ttl
+```
+
+**Going live is a manual owner step.** CI builds and tests the functions but never
+deploys them, so the new routes exist only after the owner runs
+`npx firebase-tools deploy --only functions,firestore`. PR previews call the live
+`api` through the same `/api/**` rewrite, so until that deploy the app's sends fail
+(silently) on previews too.

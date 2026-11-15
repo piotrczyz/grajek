@@ -442,15 +442,15 @@ Rollback = redeploy the previous `api`; stored documents expire by themselves.
 
 ### Phase 2: Repository, rate limit, handler and routing (A1)
 #### Automated
-- [x] 2.1 `pnpm --dir functions test` passes including spike-nuty-handler and api-router tests
-- [x] 2.2 `pnpm --dir functions build` passes
-- [x] 2.3 `pnpm --dir functions typecheck` passes
+- [x] 2.1 `pnpm --dir functions test` passes including spike-nuty-handler and api-router tests — 9dd1570
+- [x] 2.2 `pnpm --dir functions build` passes — 9dd1570
+- [x] 2.3 `pnpm --dir functions typecheck` passes — 9dd1570
 #### Manual
 
 ### Phase 3: Emulator test, TTL policy and docs (A1)
 #### Automated
-- [ ] 3.1 `pnpm --dir functions test:emulators` passes including spike-nuty.emulator tests
-- [ ] 3.2 `pnpm --dir functions test` passes including the TTL fieldOverrides assertion
+- [x] 3.1 `pnpm --dir functions test:emulators` passes including spike-nuty.emulator tests
+- [x] 3.2 `pnpm --dir functions test` passes including the TTL fieldOverrides assertion
 #### Manual
 - [ ] 3.3 After deploy, the Firestore console lists TTL policies on `expireAt` for both collections
 
