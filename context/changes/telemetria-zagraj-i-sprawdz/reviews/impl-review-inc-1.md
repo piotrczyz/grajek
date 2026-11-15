@@ -36,7 +36,7 @@ No `context/architecture/model.c4`: architecture gate not applicable. Not bug mo
 - **Location**: functions/src/spike-nuty/validation.ts:19-21, functions/src/spike-nuty/handler.ts:42
 - **Detail**: The contract accepts up to 400 notes and 200 events, but one note serialises to about 173 B and one event to about 156 B with realistic number widths. 200 events alone are ~31 KB; 200 notes + 200 events are ~66 KB, 400 + 200 ~100 KB. The melodies have about 16 reference notes, so the note list grows past ~200 only through extra (unmatched) events, i.e. on exactly the noisy recordings where recognition failed. Those bodies are answered 413 and, per the client retry rules ("400/413/415 → drop"), are discarded for good. The plan's estimate (20-40 KiB, Performance Notes and brief "Size limits" row) counted events only. This is a flaw in the plan's limits, not in the implementation.
 - **Fix**: Raise `MAX_ATTEMPT_BYTES` to 131072 (128 KiB; well under Firestore's 1 MiB document limit) and add a handler test where a valid body at the caps (400 notes + 200 events, realistic numbers, over 64 KiB) answers 204; update the 64 KiB mention in the 413 test name and in the README if present.
-- **Decision**: FIX — one unambiguous change that loosens, not narrows, the contract; increment 2 does not depend on the byte value.
+- **Decision**: FIXED (6561370) — one unambiguous change that loosens, not narrows, the contract; increment 2 does not depend on the byte value.
 
 ### F2 — Rate limit keyed on a client-chosen device id
 - **Severity**: OBSERVATION
