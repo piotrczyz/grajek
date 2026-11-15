@@ -9,7 +9,7 @@ import {
   TTL_DAYS,
   type SpikeNutyRepository,
 } from '../src/spike-nuty/repository.js';
-import { MAX_ATTEMPT_BYTES, MAX_FEEDBACK_BYTES } from '../src/spike-nuty/validation.js';
+import { MAX_ATTEMPT_BYTES, MAX_EVENTS, MAX_FEEDBACK_BYTES, MAX_NOTES } from '../src/spike-nuty/validation.js';
 import { createFakeFirestore, createResponse, jsonRequest } from './fakes.js';
 import {
   ATTEMPT_ID,
@@ -80,7 +80,38 @@ describe('PUT /spike-nuty/attempts/{id}', () => {
     expect(t.windows.get(DEVICE_ID)?.count).toBe(1);
   });
 
-  it('answers 413 for a body over 64 KiB before parsing it', async () => {
+  it('accepts a valid record at the caps (400 notes, 200 events) that is over 64 KiB', async () => {
+    const notes = Array.from({ length: MAX_NOTES }, (_, i) => ({
+      nr: i + 1,
+      refIndex: i < 16 ? i : null,
+      playedIndex: i,
+      expectedMidi: i < 16 ? 67 : null,
+      playedMidi: 71,
+      centsDiff: -12.345678901234,
+      offsetMs: -123.45678901234,
+      status: i < 16 ? 'wrongPitch' : 'extra',
+      octaveOff: false,
+      twelfthOff: true,
+    }));
+    const events = Array.from({ length: MAX_EVENTS }, (_, i) => ({
+      midi: 71,
+      startMs: 12345.678901234 + i,
+      durationMs: 480.12345678901,
+      meanCents: -12.345678901234,
+      meanClarity: 0.93456789012345,
+      meanLevelDb: -21.345678901234,
+      frames: 40,
+      suspectOctave: 3,
+      suspectTwelfth: 1,
+    }));
+    const body = sampleAttempt({ notes, events });
+    expect(JSON.stringify(body).length).toBeGreaterThan(65536);
+    const res = await t.call('PUT', ATTEMPT_PATH, body);
+    expect(res.statusCode).toBe(204);
+    expect((t.attempts.get(ATTEMPT_ID) as { notes: unknown[] }).notes).toHaveLength(MAX_NOTES);
+  });
+
+  it('answers 413 for a body over 128 KiB before parsing it', async () => {
     const res = await t.call('PUT', ATTEMPT_PATH, { ...sampleAttempt(), pad: 'x'.repeat(MAX_ATTEMPT_BYTES) });
     expect(res.statusCode).toBe(413);
     expect(res.body).toEqual({ error: 'body_too_large' });

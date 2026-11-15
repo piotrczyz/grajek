@@ -18,7 +18,7 @@ import type {
 export const MAX_EVENTS = 200;
 export const MAX_NOTES = 400;
 export const MAX_MISJUDGED = 400;
-export const MAX_ATTEMPT_BYTES = 65536;
+export const MAX_ATTEMPT_BYTES = 131072;
 export const MAX_FEEDBACK_BYTES = 8192;
 export const MAX_COMMENT = 500;
 export const MAX_USER_AGENT = 512;

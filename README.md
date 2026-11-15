@@ -190,7 +190,7 @@ from recognition mistakes across devices.
 
 Endpoints (JSON, `Cache-Control: no-store`):
 
-- `PUT /api/spike-nuty/attempts/{attemptId}` - the attempt record (at most 64 KiB);
+- `PUT /api/spike-nuty/attempts/{attemptId}` - the attempt record (at most 128 KiB);
   `attemptId` is a client-generated UUID v4, so a retry of a stored attempt answers
   204 and changes nothing.
 - `PUT /api/spike-nuty/attempts/{attemptId}/feedback` - the answer to "Czy ocena się
