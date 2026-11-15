@@ -37,7 +37,7 @@ Green checks only prove the old behaviour still builds; none of the feedback poi
 - **Location**: src/spike-nuty/SpikeScreen.tsx:62-70, 107-121, 140, 165-175, 202-203, 265, 327-330, 383-414, 460-515; src/spike-nuty/copy.ts:127-140; src/spike-nuty/telemetry/api.ts:23-25; src/spike-nuty/telemetry/queue.ts:8-11, 24, 30, 93; src/spike-nuty/README.md:78; tests in SpikeScreen.test.tsx, queue.test.ts, copy.test.ts
 - **Detail**: Owner: "Nie trzeba się pytać i poprawiać. To ma dziać się automatycznie." Point 1 asks to remove "Czy ocena się zgadza? Tak/Nie", marking misjudged notes and the comment. All of it is still rendered (`showFeedback`, `sendFeedback`, `misjudging` column). Increment 1 removed the backend feedback route, so today a Tak/Nie answer is queued as `kind: 'feedback'`, answered 404 and dropped after 5 tries: a visible control that does nothing.
 - **Fix**: Delete the feedback UI (heading, Tak/Nie, misjudged checkbox column and its `Misjudging` prop, comment field, `FeedbackStep` state, `sent` bookkeeping only used by feedback), `putFeedback`, the `'feedback'` queue kind and its 404 retry rule, and the feedback copy; keep automatic attempt sending, the anonymous-data notice and the opt-out switch. The queue loader must silently discard legacy `kind: 'feedback'` items already stored in localStorage without resetting the attempts queued beside them. Tests: SpikeScreen shows no "Czy ocena się zgadza?" / Tak / Nie / checkbox after a finished attempt while the notice and switch remain; queue drops a stored legacy feedback item and still sends the attempts. Update `src/spike-nuty/README.md` (line 78 section) to describe the automatic estimate instead.
-- **Decision**: FIX — owner-authorised redirect, point 1.
+- **Decision**: FIXED (288e2d9) — owner-authorised redirect, point 1.
 
 ### F2 — Raw signals and the recognition estimate are not filled in the record
 - **Severity**: CRITICAL
@@ -46,7 +46,7 @@ Green checks only prove the old behaviour still builds; none of the feedback poi
 - **Location**: src/spike-nuty/logic/segment.ts:39-60 (`NoteEvent`), src/spike-nuty/telemetry/record.ts:9, 148, 204 (no `pitchSpreadCents`, `windowLevelDb`, `signal`, `estimate`); contract: functions/src/spike-nuty/recognition-estimate.ts:24, 68-135, 188, functions/src/spike-nuty/validation.ts:159-201, 250-316, README.md "Record contract" (lines 200-240)
 - **Detail**: Point 2 asks for the estimate computed on the client and stored in the record with the heuristic version. No `src/` file references the new optional fields or the shared module; `grep pitchSpread|windowLevel|voicedFrames|estimate src/` is empty.
 - **Fix**: (a) detector/segmenter: per event `pitchSpreadCents` (spread of the frame pitches within the event, cents, 0..2400, as defined in the README contract); per note `windowLevelDb` (mean input dBFS over the note's window, null when no frames); per attempt `signal` = `{frames, voicedFrames, medianClarity}` over all analysed frames. (b) `record.ts`: import `estimateRecognition` and `HEURISTIC_VERSION` by relative path `../../../functions/src/spike-nuty/recognition-estimate.ts` (must pass the client `tsc -b`, eslint and Vite build; the module has zero imports), compute the estimate on the full recording **before** capping events at `MAX_EVENTS` (inc-1 feedback review F7; note-to-event link `events[playedIndex + events.length - notesWithPlayedIndex]`), and store `estimate` with `heuristicVersion`. (c) Tests: record.test asserts the new fields and an `estimate` with `heuristicVersion === HEURISTIC_VERSION`, that the server's real `parseAttempt` accepts the record, and that a recording over 200 events gets its estimate from the full event list; segment tests cover `pitchSpreadCents`.
-- **Decision**: FIX — owner-authorised redirect, point 2.
+- **Decision**: FIXED (288e2d9) — owner-authorised redirect, point 2.
 
 ### F3 — Diagnostics panel shows no heuristic; child view must stay free of it
 - **Severity**: WARNING
@@ -55,7 +55,7 @@ Green checks only prove the old behaviour still builds; none of the feedback poi
 - **Location**: src/spike-nuty/SpikeScreen.tsx (diagnostics section), src/spike-nuty/copy.ts
 - **Detail**: Owner: "Dziecko NIE widzi tych heurystyk (to dla nas). Panel diagnostyczny może je pokazywać." The orchestrator's brief puts showing them in diagnostics in scope.
 - **Fix**: In the existing diagnostics panel only, show in Polish the estimated recognition accuracy, the per-note verdict (błąd grającego / błąd rozpoznawania / niepewne / ok) with its reasons, and the attempt signals (odsetek ramek bez wysokości, mediana pewności, rozrzut opóźnienia, zdarzenia na nutę, przerwana). Test: the strings appear only with diagnostics open and never in the default result view.
-- **Decision**: FIX — owner-authorised redirect, point 2.
+- **Decision**: FIXED (288e2d9) — owner-authorised redirect, point 2.
 
 ### F4 — "Nuta po nucie" table truncates text at 360 px
 - **Severity**: WARNING
@@ -64,7 +64,7 @@ Green checks only prove the old behaviour still builds; none of the feedback poi
 - **Location**: src/spike-nuty/SpikeScreen.tsx:136-180 (`table-fixed text-xs`, fixed `w-6` / `w-[30%]` columns, plus the checkbox column); src/spike-nuty/copy.ts:59-68 (`NOTE_COLUMNS`, `STATUS`)
 - **Detail**: Owner reports "dobrz" instead of "dobrze" at 360 px. Six fixed-layout columns plus the misjudged column (removed by F1) leave the status column too narrow; no e2e spec covers `?spike=nuty`.
 - **Fix**: Make every cell readable at 360 px: wrapping (`break-words`, no fixed layout that clips) and shorter headers, status shown as icon + colour with the full word, or a card per note. Verify with a Playwright spec at a 360x800 viewport (Chromium fake media stream, `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream`) asserting no table cell has `scrollWidth > clientWidth` and the full status word is visible; if a result cannot be produced in e2e, a unit test on the table markup plus a manual-pending criterion.
-- **Decision**: FIX — owner-authorised redirect, point 3.
+- **Decision**: FIXED (03c4608) — owner-authorised redirect, point 3.
 
 ### F5 — Plan text still describes the manual feedback path
 - **Severity**: OBSERVATION
