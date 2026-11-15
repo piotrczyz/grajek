@@ -150,7 +150,8 @@ Prerequisites: everything above, plus a **JDK 21** for the Firestore emulator
 Every emulator script uses the offline demo project `demo-grajek`, which can never
 reach real cloud resources. On the emulator the function records pushes instead of
 sending them (`PUSH_SENDER=log` in `functions/.env.demo-grajek`), and
-`functions/.secret.local` is created from `functions/.secret.local.example` when missing.
+`functions/.secret.local` is created from `functions/.secret.local.example` when missing
+(an existing one keeps its values and only gets the example's keys it lacks).
 With the emulators running, `pnpm dev` proxies `/api` to the Functions emulator;
 the Hosting emulator (port 5000) serves the last `pnpm build`.
 
@@ -228,3 +229,54 @@ deploys them, so the new routes exist only after the owner runs
 `npx firebase-tools deploy --only functions,firestore`. PR previews call the live
 `api` through the same `/api/**` rewrite, so until that deploy the app's sends fail
 (silently) on previews too.
+
+## Owner statistics
+
+Two read-only routes of the same `api` function give the owner the aggregates and the
+raw records of the spike telemetry. Both need the header `X-Admin-Key` with the value
+of the secret `SPIKE_NUTY_ADMIN_KEY` (without it or with a wrong one: `401`; while the
+secret is empty: `503`).
+
+- `GET /api/spike-nuty/stats?from=YYYY-MM-DD&to=YYYY-MM-DD` - attempts and devices,
+  normal end vs Stop, a score histogram, how often players agreed with the grading,
+  the ten most often misjudged expected notes, latency medians per device class
+  (`ios`, `android`, `desktop`, `other`) and the octave / twelfth error rates.
+- `GET /api/spike-nuty/export?from=…&to=…&format=json|csv` - every stored attempt of
+  the range, as JSON or as a CSV download (one row per attempt; the note list, the
+  raw events and the misjudged notes are JSON text in their own columns).
+
+Both days are inclusive (UTC, on `receivedAt`); the default is the last 30 days and the
+range is at most 366 days. One call reads at most 10 000 attempts; `truncated: true`
+(CSV: header `X-Truncated: true`) means there are more, so ask for a shorter range.
+
+```sh
+curl -H "X-Admin-Key: $SPIKE_NUTY_ADMIN_KEY" "https://grajek.web.app/api/spike-nuty/stats"
+curl -H "X-Admin-Key: $SPIKE_NUTY_ADMIN_KEY" \
+  "https://grajek.web.app/api/spike-nuty/export?from=2026-11-01&to=2026-11-30&format=csv" -o attempts.csv
+```
+
+The same through the script (reads the key from `SPIKE_NUTY_ADMIN_KEY`, never prints
+it, writes to stdout; `--help` lists the options):
+
+```sh
+SPIKE_NUTY_ADMIN_KEY=... node functions/scripts/spike-nuty-stats.mjs stats --from 2026-11-01
+SPIKE_NUTY_ADMIN_KEY=... node functions/scripts/spike-nuty-stats.mjs export --format csv > attempts.csv
+```
+
+Against the emulators, add `--base http://127.0.0.1:5001/demo-grajek/europe-central2/api`
+and use the dummy key from `functions/.secret.local`.
+
+**Manual step before the next functions deploy.** `api` now requires the secret
+`SPIKE_NUTY_ADMIN_KEY`; a `firebase deploy --only functions` without it fails. Set it
+once, **before** that deploy, to a long random value and keep the value for yourself:
+
+```sh
+openssl rand -hex 32   # copy the output
+npx firebase-tools functions:secrets:set SPIKE_NUTY_ADMIN_KEY   # paste it
+npx firebase-tools deploy --only functions,firestore
+```
+
+**Rotate the key** the same way: run `functions:secrets:set SPIKE_NUTY_ADMIN_KEY` with
+a new value, then `npx firebase-tools deploy --only functions` so `api` picks up the
+new version; the old key stops working with that deploy. Old secret versions can be
+removed with `npx firebase-tools functions:secrets:prune`.

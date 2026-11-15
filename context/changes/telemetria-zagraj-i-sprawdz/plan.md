@@ -483,13 +483,13 @@ Rollback = redeploy the previous `api`; stored documents expire by themselves.
 
 ### Phase 8: Admin endpoints and secret (A3)
 #### Automated
-- [x] 8.1 `pnpm --dir functions test` passes including spike-nuty-admin-handler tests
-- [x] 8.2 `pnpm --dir functions build && pnpm --dir functions typecheck` pass
+- [x] 8.1 `pnpm --dir functions test` passes including spike-nuty-admin-handler tests — e93f874
+- [x] 8.2 `pnpm --dir functions build && pnpm --dir functions typecheck` pass — e93f874
 #### Manual
 
 ### Phase 9: Emulator test, script and owner docs (A3)
 #### Automated
-- [ ] 9.1 `pnpm --dir functions test:emulators` passes including spike-nuty-stats.emulator tests
-- [ ] 9.2 `node functions/scripts/spike-nuty-stats.mjs --help` exits 0
+- [x] 9.1 `pnpm --dir functions test:emulators` passes including spike-nuty-stats.emulator tests
+- [x] 9.2 `node functions/scripts/spike-nuty-stats.mjs --help` exits 0
 #### Manual
 - [ ] 9.3 After the owner sets the secret and deploys, `curl -H "X-Admin-Key: …" https://grajek.web.app/api/spike-nuty/stats` returns the aggregates
