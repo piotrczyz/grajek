@@ -108,7 +108,7 @@ free of derived fields.
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Backend ingest (A1) | 1-3 | — | no | pending | — |
+| 1 | Backend ingest (A1) | 1-3 | — | no | in-progress | — |
 | 2 | Client telemetry and feedback (A2) | 4-6 | 1 | yes | pending | — |
 | 3 | Owner stats and export (A3) | 7-9 | 1 | yes | pending | — |
 
