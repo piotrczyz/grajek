@@ -416,10 +416,10 @@ Grade the recording and show both staves coloured, with the score.
 
 ### Phase 2: Segmentation, quantization and comparison
 #### Automated
-- [x] 2.1 `pnpm test src/spike-nuty/logic` passes, covering at least: a clean synthetic sequence of steady tones segments into the right number of events with correct starts (±1 frame); a repeated same pitch separated by a level dip gives two events; frames inside an ignore window do not create an event; a 2-frame octave jump inside a note does not split it and is counted in `suspectOctave`; events shorter than `minNoteMs` are dropped
-- [x] 2.2 Quantization tests pass: onsets at 60 and 100 BPM snap to the nearest eighth, durations round with a minimum of 1, count-in events are dropped
-- [x] 2.3 Comparison tests pass: a perfect performance scores 100 with all green; a note one eighth late is yellow; a wrong pitch is red; a missing note is red with `playedIndex` null; an extra note is `extra` and does not lower the score; a note an octave off is red by default and green with `ignoreOctave`
-- [x] 2.4 `pnpm lint` and `pnpm typecheck` pass
+- [x] 2.1 `pnpm test src/spike-nuty/logic` passes, covering at least: a clean synthetic sequence of steady tones segments into the right number of events with correct starts (±1 frame); a repeated same pitch separated by a level dip gives two events; frames inside an ignore window do not create an event; a 2-frame octave jump inside a note does not split it and is counted in `suspectOctave`; events shorter than `minNoteMs` are dropped — e52757d
+- [x] 2.2 Quantization tests pass: onsets at 60 and 100 BPM snap to the nearest eighth, durations round with a minimum of 1, count-in events are dropped — e52757d
+- [x] 2.3 Comparison tests pass: a perfect performance scores 100 with all green; a note one eighth late is yellow; a wrong pitch is red; a missing note is red with `playedIndex` null; an extra note is `extra` and does not lower the score; a note an octave off is red by default and green with `ignoreOctave` — e52757d
+- [x] 2.4 `pnpm lint` and `pnpm typecheck` pass — e52757d
 #### Manual
 
 ### Phase 3: Hidden route, lazy screen shell and README
