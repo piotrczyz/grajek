@@ -108,9 +108,9 @@ free of derived fields.
 ## Increments
 | # | Name | Phases | Depends on | User-visible | Status | PR |
 |---|---|---|---|---|---|---|
-| 1 | Backend ingest (A1) | 1-3 | — | no | done | — |
-| 2 | Client telemetry and feedback (A2) | 4-6 | 1 | yes | done | — |
-| 3 | Owner stats and export (A3) | 7-9 | 1 | yes | done | — |
+| 1 | Backend ingest (A1) | 1-3 | — | no | done | #22 |
+| 2 | Client telemetry and feedback (A2) | 4-6 | 1 | yes | done | #23 |
+| 3 | Owner stats and export (A3) | 7-9 | 1 | yes | done | #24 |
 
 Increments 2 and 3 are each stacked on increment 1 and are file-disjoint from
 each other (2 touches only `src/`, `vite.config.ts`; 3 touches only
