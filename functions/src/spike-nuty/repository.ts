@@ -1,5 +1,5 @@
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
-import type { AttemptFeedback, AttemptRecord, CreateResult, RateLimitResult } from './types.js';
+import type { AttemptRecord, CreateResult, RateLimitResult } from './types.js';
 
 export const ATTEMPTS_COLLECTION = 'spikeNutyAttempts';
 export const RATE_LIMITS_COLLECTION = 'spikeNutyRateLimits';
@@ -16,28 +16,10 @@ export interface SpikeNutyRepository {
    */
   createIfAbsent(id: string, record: AttemptRecord, now: Date): Promise<CreateResult>;
   /**
-   * Replaces the `feedback` map and sets `feedbackAt`; `false` (nothing
-   * written) for an unknown id or a document of another device.
-   */
-  saveFeedback(id: string, deviceId: string, feedback: AttemptFeedback, now: Date): Promise<boolean>;
-  /**
    * Counts one write of the device in a fixed window that starts with its
    * first write; refuses (and counts nothing) once `limit` writes are in.
    */
   hitRateLimit(deviceId: string, now: Date, limit: number, windowMs: number): Promise<RateLimitResult>;
-}
-
-/** The stored `feedback` map: the body without its envelope fields. */
-export function toStoredFeedback(feedback: AttemptFeedback): Record<string, unknown> {
-  const stored: Record<string, unknown> = {
-    agrees: feedback.agrees,
-    misjudged: feedback.misjudged,
-    regraded: feedback.regraded,
-  };
-  if (feedback.comment !== undefined) {
-    stored.comment = feedback.comment;
-  }
-  return stored;
 }
 
 export function expireAtFor(receivedAt: Date): Date {
@@ -70,18 +52,6 @@ export function createFirestoreSpikeNutyRepository(db: Firestore): SpikeNutyRepo
           expireAt: Timestamp.fromDate(expireAtFor(now)),
         });
         return 'created';
-      });
-    },
-
-    async saveFeedback(id, deviceId, feedback, now) {
-      const ref = attempt(id);
-      return db.runTransaction(async (tx) => {
-        const snap = await tx.get(ref);
-        if (!snap.exists || snap.data()?.deviceId !== deviceId) {
-          return false;
-        }
-        tx.update(ref, { feedback: toStoredFeedback(feedback), feedbackAt: Timestamp.fromDate(now) });
-        return true;
       });
     },
 

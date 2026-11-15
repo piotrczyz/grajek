@@ -5,7 +5,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { sampleAttempt, sampleFeedback } from '../test/spike-nuty-fakes.js';
+import { sampleAttempt, sampleFullAttempt } from '../test/spike-nuty-fakes.js';
 
 const PROJECT = 'demo-grajek';
 const FUNCTIONS_HOST = process.env.FUNCTIONS_EMULATOR_HOST ?? '127.0.0.1:5001';
@@ -18,6 +18,9 @@ interface FirestoreValue {
   timestampValue?: string;
   stringValue?: string;
   booleanValue?: boolean;
+  doubleValue?: number;
+  /** Firestore REST sends integers as strings. */
+  integerValue?: string;
   mapValue?: { fields?: Record<string, FirestoreValue> };
   arrayValue?: { values?: FirestoreValue[] };
 }
@@ -35,7 +38,6 @@ function put(path: string, body: unknown) {
 }
 
 const putAttempt = (id: string, body: unknown) => put(`/spike-nuty/attempts/${id}`, body);
-const putFeedback = (id: string, body: unknown) => put(`/spike-nuty/attempts/${id}/feedback`, body);
 
 /** Reads the stored doc straight from the Firestore emulator (owner token bypasses rules). */
 async function storedAttempt(id: string): Promise<FirestoreDoc | null> {
@@ -86,21 +88,35 @@ describe('spike-nuty api on the emulators', () => {
     expect(second?.fields.receivedAt.timestampValue).toBe(first?.fields.receivedAt.timestampValue);
   });
 
-  it('updates the stored attempt with feedback from the same device only', async () => {
+  it('stores the optional signal, estimate, windowLevelDb and pitchSpreadCents fields', async () => {
+    const id = randomUUID();
+    const body = sampleFullAttempt({ deviceId: randomUUID() });
+    expect((await putAttempt(id, body)).status).toBe(204);
+
+    const fields = (await storedAttempt(id))?.fields ?? {};
+    const estimate = fields.estimate?.mapValue?.fields ?? {};
+    const sent = body.estimate as { heuristicVersion: string; notes: unknown[]; events: unknown[] };
+    expect(estimate.heuristicVersion?.stringValue).toBe(sent.heuristicVersion);
+    expect(estimate.estimatedAccuracy?.doubleValue).toBe(0.333);
+    expect(estimate.notes?.arrayValue?.values).toHaveLength(sent.notes.length);
+    expect(estimate.events?.arrayValue?.values).toHaveLength(sent.events.length);
+    expect(estimate.signals?.mapValue?.fields?.stopped?.booleanValue).toBe(false);
+    expect(Number(estimate.reasons?.mapValue?.fields?.missingLoud?.integerValue)).toBe(1);
+    expect(Number(fields.signal?.mapValue?.fields?.voicedFrames?.integerValue)).toBe(410);
+    const note = fields.notes?.arrayValue?.values?.[2]?.mapValue?.fields ?? {};
+    expect(note.windowLevelDb?.doubleValue).toBe(-18.5);
+    const event = fields.events?.arrayValue?.values?.[0]?.mapValue?.fields ?? {};
+    expect(event.pitchSpreadCents?.doubleValue).toBe(14.5);
+  });
+
+  it('answers 404 to the removed feedback path', async () => {
     const id = randomUUID();
     const deviceId = randomUUID();
     await putAttempt(id, sampleAttempt({ deviceId }));
-
-    expect((await putFeedback(id, sampleFeedback({ deviceId: randomUUID() }))).status).toBe(404);
+    const response = await put(`/spike-nuty/attempts/${id}/feedback`, { v: 1, deviceId, agrees: true, misjudged: [], regraded: false });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: 'not_found' });
     expect((await storedAttempt(id))?.fields.feedback).toBeUndefined();
-
-    expect((await putFeedback(id, sampleFeedback({ deviceId }))).status).toBe(204);
-    const doc = await storedAttempt(id);
-    const feedback = doc?.fields.feedback?.mapValue?.fields ?? {};
-    expect(feedback.agrees.booleanValue).toBe(false);
-    expect(feedback.comment.stringValue).toBe('grałam dobrze');
-    expect(feedback.misjudged.arrayValue?.values).toHaveLength(2);
-    expect(doc?.fields.feedbackAt?.timestampValue).toBeDefined();
   });
 
   it('rejects 201 events with 400 and stores nothing', async () => {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { Timestamp } from 'firebase-admin/firestore';
 import type { HttpRequest } from '../src/http.js';
 import { createSpikeNutyHandler, DEFAULT_RATE_LIMIT } from '../src/spike-nuty/handler.js';
+import { MAX_ITEM_REASONS, REASON_CODES } from '../src/spike-nuty/recognition-estimate.js';
 import {
   ATTEMPTS_COLLECTION,
   createFirestoreSpikeNutyRepository,
@@ -9,7 +10,7 @@ import {
   TTL_DAYS,
   type SpikeNutyRepository,
 } from '../src/spike-nuty/repository.js';
-import { MAX_ATTEMPT_BYTES, MAX_EVENTS, MAX_FEEDBACK_BYTES, MAX_NOTES } from '../src/spike-nuty/validation.js';
+import { MAX_ATTEMPT_BYTES, MAX_EVENTS, MAX_NOTES } from '../src/spike-nuty/validation.js';
 import { createFakeFirestore, createResponse, jsonRequest } from './fakes.js';
 import {
   ATTEMPT_ID,
@@ -17,13 +18,12 @@ import {
   DEVICE_ID,
   OTHER_DEVICE_ID,
   sampleAttempt,
-  sampleFeedback,
+  sampleFullAttempt,
 } from './spike-nuty-fakes.js';
 
 const START = new Date('2026-11-15T10:00:00Z');
 const DAY_MS = 24 * 60 * 60 * 1000;
 const ATTEMPT_PATH = `/api/spike-nuty/attempts/${ATTEMPT_ID}`;
-const FEEDBACK_PATH = `${ATTEMPT_PATH}/feedback`;
 
 function makeHandler(repo: SpikeNutyRepository, rateLimit?: { limit: number; windowMs: number }) {
   let clock = START;
@@ -48,6 +48,61 @@ function setup(rateLimit?: { limit: number; windowMs: number }) {
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
+/**
+ * A valid record at every cap: 400 notes, 200 events, every optional field,
+ * an estimate with 6 reasons per item and 32 reason keys, long floats.
+ */
+function worstCaseAttempt() {
+  const reasons: string[] = REASON_CODES.slice(0, MAX_ITEM_REASONS);
+  const verdict = { verdict: 'recognition', reasons };
+  const notes = Array.from({ length: MAX_NOTES }, (_, i) => ({
+    nr: i + 1,
+    refIndex: i < 16 ? i : null,
+    playedIndex: i,
+    expectedMidi: i < 16 ? 67 : null,
+    playedMidi: 71,
+    centsDiff: -12.345678901234,
+    offsetMs: -123.45678901234,
+    status: i < 16 ? 'wrongPitch' : 'extra',
+    octaveOff: false,
+    twelfthOff: true,
+    windowLevelDb: -21.345678901234,
+  }));
+  const events = Array.from({ length: MAX_EVENTS }, (_, i) => ({
+    midi: 71,
+    startMs: 12345.678901234 + i,
+    durationMs: 480.12345678901,
+    meanCents: -12.345678901234,
+    meanClarity: 0.93456789012345,
+    meanLevelDb: -21.345678901234,
+    frames: 40,
+    suspectOctave: 3,
+    suspectTwelfth: 1,
+    pitchSpreadCents: 123.45678901234,
+  }));
+  const counts = { player: 400, recognition: 400, uncertain: 400, ok: 400 };
+  const estimate = {
+    heuristicVersion: 'x'.repeat(32),
+    estimatedAccuracy: 0.123456789012345,
+    noteCounts: counts,
+    eventCounts: counts,
+    reasons: Object.fromEntries(
+      Array.from({ length: 32 }, (_, i) => [`reasonCode${String(i).padStart(22, '0')}`, 400]),
+    ),
+    notes: Array.from({ length: MAX_NOTES }, () => verdict),
+    events: Array.from({ length: MAX_EVENTS }, () => verdict),
+    signals: {
+      unvoicedRatio: 0.123456789012345,
+      medianClarity: 0.923456789012345,
+      latencySpreadMs: 123.45678901234,
+      eventsPerNote: 12.345678901234,
+      stopped: true,
+    },
+  };
+  const signal = { frames: 123456789, voicedFrames: 12345678, medianClarity: 0.923456789012345 };
+  return sampleAttempt({ notes, events, signal, estimate });
+}
+
 describe('PUT /spike-nuty/attempts/{id}', () => {
   let t: ReturnType<typeof setup>;
   beforeEach(() => {
@@ -66,6 +121,14 @@ describe('PUT /spike-nuty/attempts/{id}', () => {
     });
   });
 
+  it('stores the optional signal and estimate fields as sent', async () => {
+    expect((await t.call('PUT', ATTEMPT_PATH, sampleFullAttempt())).statusCode).toBe(204);
+    const { receivedAt, expireAt, ...record } = t.attempts.get(ATTEMPT_ID) ?? {};
+    expect(receivedAt).toEqual(START);
+    expect(expireAt).toEqual(new Date(START.getTime() + TTL_DAYS * DAY_MS));
+    expect(record).toEqual(sampleFullAttempt());
+  });
+
   it('works without the /api prefix and with a trailing slash', async () => {
     expect((await t.call('PUT', `/spike-nuty/attempts/${ATTEMPT_ID}/`, sampleAttempt())).statusCode).toBe(204);
   });
@@ -80,38 +143,19 @@ describe('PUT /spike-nuty/attempts/{id}', () => {
     expect(t.windows.get(DEVICE_ID)?.count).toBe(1);
   });
 
-  it('accepts a valid record at the caps (400 notes, 200 events) that is over 64 KiB', async () => {
-    const notes = Array.from({ length: MAX_NOTES }, (_, i) => ({
-      nr: i + 1,
-      refIndex: i < 16 ? i : null,
-      playedIndex: i,
-      expectedMidi: i < 16 ? 67 : null,
-      playedMidi: 71,
-      centsDiff: -12.345678901234,
-      offsetMs: -123.45678901234,
-      status: i < 16 ? 'wrongPitch' : 'extra',
-      octaveOff: false,
-      twelfthOff: true,
-    }));
-    const events = Array.from({ length: MAX_EVENTS }, (_, i) => ({
-      midi: 71,
-      startMs: 12345.678901234 + i,
-      durationMs: 480.12345678901,
-      meanCents: -12.345678901234,
-      meanClarity: 0.93456789012345,
-      meanLevelDb: -21.345678901234,
-      frames: 40,
-      suspectOctave: 3,
-      suspectTwelfth: 1,
-    }));
-    const body = sampleAttempt({ notes, events });
-    expect(JSON.stringify(body).length).toBeGreaterThan(65536);
+  it('accepts a worst-case record at the caps (every optional field) that is over 128 KiB', async () => {
+    const body = worstCaseAttempt();
+    const size = JSON.stringify(body).length;
+    expect(size).toBeGreaterThan(131072);
+    expect(size).toBeLessThanOrEqual(MAX_ATTEMPT_BYTES);
     const res = await t.call('PUT', ATTEMPT_PATH, body);
     expect(res.statusCode).toBe(204);
-    expect((t.attempts.get(ATTEMPT_ID) as { notes: unknown[] }).notes).toHaveLength(MAX_NOTES);
+    const stored = t.attempts.get(ATTEMPT_ID) as { notes: unknown[]; estimate: { notes: unknown[] } };
+    expect(stored.notes).toHaveLength(MAX_NOTES);
+    expect(stored.estimate.notes).toHaveLength(MAX_NOTES);
   });
 
-  it('answers 413 for a body over 128 KiB before parsing it', async () => {
+  it('answers 413 for a body over 256 KiB before parsing it', async () => {
     const res = await t.call('PUT', ATTEMPT_PATH, { ...sampleAttempt(), pad: 'x'.repeat(MAX_ATTEMPT_BYTES) });
     expect(res.statusCode).toBe(413);
     expect(res.body).toEqual({ error: 'body_too_large' });
@@ -134,6 +178,15 @@ describe('PUT /spike-nuty/attempts/{id}', () => {
     expect(t.calls.hitRateLimit).toBe(0);
   });
 
+  it('answers 400 invalid_attempt for an estimate not aligned with the notes', async () => {
+    const body = sampleFullAttempt();
+    (body.estimate as { notes: unknown[] }).notes.pop();
+    const res = await t.call('PUT', ATTEMPT_PATH, body);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'invalid_attempt' });
+    expect(t.attempts.size).toBe(0);
+  });
+
   it('answers 400 for an attempt id that is not a UUID v4', async () => {
     const res = await t.call('PUT', '/spike-nuty/attempts/not-a-uuid', sampleAttempt());
     expect(res.statusCode).toBe(400);
@@ -152,6 +205,17 @@ describe('PUT /spike-nuty/attempts/{id}', () => {
     expect(res.body).toEqual({ error: 'not_found' });
   });
 
+  it('answers 404 not_found for the removed feedback path and writes nothing', async () => {
+    await t.call('PUT', ATTEMPT_PATH, sampleAttempt());
+    const before = t.attempts.get(ATTEMPT_ID);
+    const feedback = { v: 1, deviceId: DEVICE_ID, agrees: true, misjudged: [], regraded: false };
+    const res = await t.call('PUT', `${ATTEMPT_PATH}/feedback`, feedback);
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toEqual({ error: 'not_found' });
+    expect(t.attempts.get(ATTEMPT_ID)).toEqual(before);
+    expect(t.calls.hitRateLimit).toBe(1);
+  });
+
   it('answers 500 internal and reports the error when the repository fails', async () => {
     const failing = createMemorySpikeNutyRepository();
     failing.repo.createIfAbsent = async () => {
@@ -165,80 +229,15 @@ describe('PUT /spike-nuty/attempts/{id}', () => {
   });
 });
 
-describe('PUT /spike-nuty/attempts/{id}/feedback', () => {
-  let t: ReturnType<typeof setup>;
-  beforeEach(async () => {
-    t = setup();
-    await t.call('PUT', ATTEMPT_PATH, sampleAttempt());
-  });
-
-  it('stores the feedback map and feedbackAt and answers 204', async () => {
-    t.advance(60_000);
-    const res = await t.call('PUT', FEEDBACK_PATH, { ...sampleFeedback(), extra: 1 });
-    expect(res.statusCode).toBe(204);
-    const stored = t.attempts.get(ATTEMPT_ID);
-    expect(stored?.feedback).toEqual({
-      agrees: false,
-      misjudged: sampleFeedback().misjudged,
-      comment: 'grałam dobrze',
-      regraded: false,
-    });
-    expect(stored?.feedbackAt).toEqual(new Date(START.getTime() + 60_000));
-  });
-
-  it('replaces an earlier answer', async () => {
-    await t.call('PUT', FEEDBACK_PATH, sampleFeedback());
-    await t.call('PUT', FEEDBACK_PATH, sampleFeedback({ agrees: true, misjudged: [], comment: undefined }));
-    expect(t.attempts.get(ATTEMPT_ID)?.feedback).toEqual({ agrees: true, misjudged: [], regraded: false });
-  });
-
-  it('answers 404 unknown_attempt for an unknown attempt id', async () => {
-    const res = await t.call('PUT', `/spike-nuty/attempts/${uuid(1)}/feedback`, sampleFeedback());
-    expect(res.statusCode).toBe(404);
-    expect(res.body).toEqual({ error: 'unknown_attempt' });
-  });
-
-  it('answers 404 unknown_attempt for another device and writes nothing', async () => {
-    const before = t.attempts.get(ATTEMPT_ID);
-    const res = await t.call('PUT', FEEDBACK_PATH, sampleFeedback({ deviceId: OTHER_DEVICE_ID }));
-    expect(res.statusCode).toBe(404);
-    expect(res.body).toEqual({ error: 'unknown_attempt' });
-    expect(t.attempts.get(ATTEMPT_ID)).toEqual(before);
-  });
-
-  it('answers 400 invalid_feedback for agrees with misjudged notes', async () => {
-    const res = await t.call('PUT', FEEDBACK_PATH, sampleFeedback({ agrees: true }));
-    expect(res.statusCode).toBe(400);
-    expect(res.body).toEqual({ error: 'invalid_feedback' });
-  });
-
-  it('answers 413 for a body over 8 KiB', async () => {
-    const res = await t.call('PUT', FEEDBACK_PATH, { ...sampleFeedback(), pad: 'x'.repeat(MAX_FEEDBACK_BYTES) });
-    expect(res.statusCode).toBe(413);
-  });
-
-  it('answers 415 for a non-JSON body', async () => {
-    const req = jsonRequest('PUT', FEEDBACK_PATH, sampleFeedback());
-    req.headers['content-type'] = 'application/x-www-form-urlencoded';
-    expect((await t.send(req)).statusCode).toBe(415);
-  });
-
-  it('answers 405 for POST', async () => {
-    const res = await t.call('POST', FEEDBACK_PATH, sampleFeedback());
-    expect(res.statusCode).toBe(405);
-    expect(res.headers.allow).toBe('PUT');
-  });
-});
-
 describe('per-device rate limit', () => {
   it('defaults to 60 writes per hour', () => {
     expect(DEFAULT_RATE_LIMIT).toEqual({ limit: 60, windowMs: 60 * 60 * 1000 });
   });
 
-  it('answers 429 with Retry-After after the limit, counting attempts and feedback together', async () => {
+  it('answers 429 with Retry-After after the limit of accepted attempt writes', async () => {
     const t = setup({ limit: 3, windowMs: 60_000 });
     expect((await t.call('PUT', `/spike-nuty/attempts/${uuid(1)}`, sampleAttempt())).statusCode).toBe(204);
-    expect((await t.call('PUT', `/spike-nuty/attempts/${uuid(1)}/feedback`, sampleFeedback())).statusCode).toBe(204);
+    expect((await t.call('PUT', `/spike-nuty/attempts/${uuid(4)}`, sampleAttempt())).statusCode).toBe(204);
     t.advance(10_000);
     expect((await t.call('PUT', `/spike-nuty/attempts/${uuid(2)}`, sampleAttempt())).statusCode).toBe(204);
 
@@ -247,10 +246,6 @@ describe('per-device rate limit', () => {
     expect(res.body).toEqual({ error: 'rate_limited' });
     expect(res.headers['retry-after']).toBe('50');
     expect(t.attempts.has(uuid(3))).toBe(false);
-
-    const feedback = await t.call('PUT', `/spike-nuty/attempts/${uuid(2)}/feedback`, sampleFeedback());
-    expect(feedback.statusCode).toBe(429);
-    expect(t.attempts.get(uuid(2))?.feedback).toBeUndefined();
   });
 
   it('still answers 204 to a retry of a stored attempt when the limit is reached', async () => {
@@ -296,23 +291,21 @@ describe('Firestore repository (through the handler)', () => {
     expect((expireAt as Timestamp).toDate()).toEqual(new Date(START.getTime() + 180 * DAY_MS));
   });
 
-  it('keeps the first document on a retry and stores feedback only for the same device', async () => {
+  it('writes the optional signal and estimate fields', async () => {
+    const t = firestoreSetup();
+    expect((await t.call('PUT', ATTEMPT_PATH, sampleFullAttempt())).statusCode).toBe(204);
+    const { receivedAt, expireAt, ...record } = t.doc(ATTEMPTS_COLLECTION, ATTEMPT_ID) ?? {};
+    expect(receivedAt).toBeInstanceOf(Timestamp);
+    expect(expireAt).toBeInstanceOf(Timestamp);
+    expect(record).toEqual(sampleFullAttempt());
+  });
+
+  it('keeps the first document on a retry', async () => {
     const t = firestoreSetup();
     await t.call('PUT', ATTEMPT_PATH, sampleAttempt());
     const first = t.doc(ATTEMPTS_COLLECTION, ATTEMPT_ID);
     expect((await t.call('PUT', ATTEMPT_PATH, sampleAttempt({ ended: 'stopped' }))).statusCode).toBe(204);
     expect(t.doc(ATTEMPTS_COLLECTION, ATTEMPT_ID)).toEqual(first);
-
-    expect((await t.call('PUT', FEEDBACK_PATH, sampleFeedback({ deviceId: OTHER_DEVICE_ID }))).statusCode).toBe(404);
-    expect((await t.call('PUT', FEEDBACK_PATH, sampleFeedback())).statusCode).toBe(204);
-    const stored = t.doc(ATTEMPTS_COLLECTION, ATTEMPT_ID) ?? {};
-    expect(stored.feedback).toEqual({
-      agrees: false,
-      misjudged: sampleFeedback().misjudged,
-      comment: 'grałam dobrze',
-      regraded: false,
-    });
-    expect((stored.feedbackAt as Timestamp).toDate()).toEqual(START);
   });
 
   it('keeps the rate-limit counter with a window start and an expireAt one day after the window', async () => {

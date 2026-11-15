@@ -9,8 +9,8 @@
  * One scheduled function `reminders` runs every 5 minutes and sends the due
  * daily reminders, at most one per device per local day.
  *
- * `api` also takes the anonymous attempt records and accuracy feedback of
- * the hidden "Zagraj i sprawdź" spike screen (`/api/spike-nuty/...`,
+ * `api` also takes the anonymous attempt records (with the automatic
+ * recognition estimate) of the hidden "Zagraj i sprawdź" spike screen (`/api/spike-nuty/...`,
  * Firestore `spikeNutyAttempts`, 180-day TTL).
  */
 import { getApps, initializeApp } from 'firebase-admin/app';
