@@ -1,7 +1,7 @@
 /**
  * Owner stats and export of the real `api` function on the Functions
  * emulator, with the Firestore emulator behind it (project `demo-grajek`).
- * Attempts and feedback are seeded through the public PUT routes. Run
+ * Attempts are seeded through the public PUT route. Run
  * through `pnpm test:emulators`, which makes sure `.secret.local` holds the
  * dummy `SPIKE_NUTY_ADMIN_KEY` of `.secret.local.example`.
  */
@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { sampleAttempt, sampleFeedback } from '../test/spike-nuty-fakes.js';
+import { sampleAttempt } from '../test/spike-nuty-fakes.js';
 
 const PROJECT = 'demo-grajek';
 const FUNCTIONS_HOST = process.env.FUNCTIONS_EMULATOR_HOST ?? '127.0.0.1:5001';
@@ -67,23 +67,6 @@ beforeAll(async () => {
     });
     expect((await put(`/spike-nuty/attempts/${id}`, body)).status).toBe(204);
   }
-  // Attempt 0: the app misjudged note refIndex 1 (expected MIDI 64); attempt 2: the grading was right.
-  expect(
-    (
-      await put(
-        `/spike-nuty/attempts/${attempts[0]}/feedback`,
-        sampleFeedback({ deviceId: devices[0], misjudged: [{ refIndex: 1, playedIndex: 1 }] }),
-      )
-    ).status,
-  ).toBe(204);
-  expect(
-    (
-      await put(
-        `/spike-nuty/attempts/${attempts[2]}/feedback`,
-        sampleFeedback({ deviceId: devices[1], agrees: true, misjudged: [], comment: undefined }),
-      )
-    ).status,
-  ).toBe(204);
 });
 
 describe('spike-nuty owner endpoints on the emulators', () => {
@@ -97,8 +80,8 @@ describe('spike-nuty owner endpoints on the emulators', () => {
       attempts: 3,
       devices: 2,
       ended: { complete: 2, stopped: 1 },
-      feedback: { answered: 2, agrees: 1, agreesPercent: 50 },
-      topMisjudged: [{ expectedMidi: 64, name: 'E4', count: 1 }],
+      feedback: { answered: 0, agrees: 0, agreesPercent: null },
+      topMisjudged: [],
       latencyByDeviceClass: { ios: { attempts: 3, medianOutputLatencyMs: 45.2, medianOffsetMs: 10 } },
       octaveErrorRate: 0.5,
       twelfthErrorRate: 0,

@@ -3,11 +3,29 @@
  * Pure: computed at read time from the documents of one date range, so the
  * stored schema carries no derived fields.
  */
-import type { AttemptNote, MisjudgedNote, StoredAttempt } from './types.js';
+import type { AttemptNote, StoredAttempt } from './types.js';
+
+export interface MisjudgedNote {
+  refIndex: number | null;
+  playedIndex: number | null;
+}
+
+/**
+ * A `feedback` map a stored document may still carry from before the manual
+ * feedback endpoint was removed; nothing writes it any more.
+ */
+export interface LegacyFeedback {
+  agrees: boolean;
+  misjudged: MisjudgedNote[];
+  comment?: string;
+  regraded: boolean;
+}
 
 /** One stored attempt with its document id, as the repository lists it. */
 export interface AttemptDoc extends StoredAttempt {
   id: string;
+  feedback?: LegacyFeedback;
+  feedbackAt?: Date;
 }
 
 export type DeviceClass = 'ios' | 'android' | 'desktop' | 'other';

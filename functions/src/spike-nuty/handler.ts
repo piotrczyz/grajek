@@ -1,9 +1,9 @@
 import { bodySize, error, isJson, noContent, type HttpRequest, type HttpResponse } from '../http.js';
 import type { SpikeNutyRepository } from './repository.js';
-import { MAX_ATTEMPT_BYTES, MAX_FEEDBACK_BYTES, parseAttempt, parseAttemptId, parseFeedback } from './validation.js';
+import { MAX_ATTEMPT_BYTES, parseAttempt, parseAttemptId } from './validation.js';
 
 export interface RateLimitOptions {
-  /** Accepted writes (attempts + feedback) per device and window. */
+  /** Accepted attempt writes per device and window. */
   limit: number;
   windowMs: number;
 }
@@ -18,11 +18,8 @@ export interface SpikeNutyHandlerDeps {
 
 export const DEFAULT_RATE_LIMIT: RateLimitOptions = { limit: 60, windowMs: 60 * 60 * 1000 };
 
-/**
- * `/spike-nuty/attempts/{id}` or `/spike-nuty/attempts/{id}/feedback`, with
- * or without the `/api` prefix.
- */
-const ROUTE = /^(?:\/api)?\/spike-nuty\/attempts\/([^/]+)(\/feedback)?\/?$/;
+/** `/spike-nuty/attempts/{id}`, with or without the `/api` prefix. */
+const ROUTE = /^(?:\/api)?\/spike-nuty\/attempts\/([^/]+)\/?$/;
 
 export function createSpikeNutyHandler(deps: SpikeNutyHandlerDeps) {
   const { repo, now } = deps;
@@ -62,28 +59,6 @@ export function createSpikeNutyHandler(deps: SpikeNutyHandlerDeps) {
     return noContent(res);
   }
 
-  async function putFeedback(req: HttpRequest, res: HttpResponse, id: string) {
-    if (bodySize(req) > MAX_FEEDBACK_BYTES) {
-      return error(res, 413, 'body_too_large');
-    }
-    if (!isJson(req)) {
-      return error(res, 415, 'unsupported_media_type');
-    }
-    const feedback = parseFeedback(req.body);
-    if (!feedback) {
-      return error(res, 400, 'invalid_feedback');
-    }
-    const at = now();
-    if (!(await admit(res, feedback.deviceId, at))) {
-      return;
-    }
-    const stored = await repo.saveFeedback(id, feedback.deviceId, feedback, at);
-    if (!stored) {
-      return error(res, 404, 'unknown_attempt');
-    }
-    return noContent(res);
-  }
-
   return async function handle(req: HttpRequest, res: HttpResponse): Promise<void> {
     res.set('Cache-Control', 'no-store');
     const match = ROUTE.exec(req.path);
@@ -99,7 +74,7 @@ export function createSpikeNutyHandler(deps: SpikeNutyHandlerDeps) {
       return error(res, 400, 'invalid_attempt_id');
     }
     try {
-      return match[2] ? await putFeedback(req, res, id) : await putAttempt(req, res, id);
+      return await putAttempt(req, res, id);
     } catch (err) {
       deps.onError?.(err);
       return error(res, 500, 'internal');

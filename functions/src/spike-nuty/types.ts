@@ -1,8 +1,9 @@
 /**
  * Record contract v1 of the "Zagraj i sprawdź" spike telemetry
- * (`PUT /api/spike-nuty/attempts/{attemptId}` and `.../feedback`).
+ * (`PUT /api/spike-nuty/attempts/{attemptId}`).
  * Field names and limits are shared with the client record builder.
  */
+import type { RecognitionEstimate } from './recognition-estimate.js';
 
 export type Instrument = 'clarinet-bb' | 'c';
 
@@ -48,6 +49,8 @@ export interface AttemptNote {
   status: NoteStatus;
   octaveOff: boolean;
   twelfthOff: boolean;
+  /** Mean input level (dBFS) during the note's window; optional, null when unknown. */
+  windowLevelDb?: number | null;
 }
 
 /** One raw detected event (sounding pitch, before the latency shift). */
@@ -61,6 +64,15 @@ export interface AttemptEvent {
   frames: number;
   suspectOctave: number;
   suspectTwelfth: number;
+  /** Spread of the frame pitches within the event, cents; optional. */
+  pitchSpreadCents?: number;
+}
+
+/** Frame totals of the whole attempt (optional). */
+export interface AttemptSignal {
+  frames: number;
+  voicedFrames: number;
+  medianClarity: number | null;
 }
 
 export interface AttemptTiming {
@@ -90,28 +102,15 @@ export interface AttemptRecord {
   events: AttemptEvent[];
   timing: AttemptTiming;
   ended: AttemptEnd;
-}
-
-export interface MisjudgedNote {
-  refIndex: number | null;
-  playedIndex: number | null;
-}
-
-export interface AttemptFeedback {
-  v: 1;
-  deviceId: string;
-  agrees: boolean;
-  misjudged: MisjudgedNote[];
-  comment?: string;
-  regraded: boolean;
+  signal?: AttemptSignal;
+  /** Client-computed recognition estimate (`recognition-estimate.ts`); owner-only. */
+  estimate?: RecognitionEstimate;
 }
 
 /** What `spikeNutyAttempts/{attemptId}` holds. */
 export interface StoredAttempt extends AttemptRecord {
   receivedAt: Date;
   expireAt: Date;
-  feedback?: Omit<AttemptFeedback, 'v' | 'deviceId'>;
-  feedbackAt?: Date;
 }
 
 export type CreateResult = 'created' | 'exists';

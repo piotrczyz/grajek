@@ -25,7 +25,7 @@ function setup() {
 describe('createApiHandler', () => {
   it.each([
     '/spike-nuty/attempts/x',
-    '/api/spike-nuty/attempts/x/feedback',
+    '/api/spike-nuty/attempts/x/',
     '/spike-nuty',
     '/api/spike-nuty/',
     '/api/spike-nuty/statsx',

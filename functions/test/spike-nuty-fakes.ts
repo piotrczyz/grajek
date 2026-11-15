@@ -1,9 +1,5 @@
-import {
-  expireAtFor,
-  retryAfterSec,
-  toStoredFeedback,
-  type SpikeNutyRepository,
-} from '../src/spike-nuty/repository.js';
+import { estimateRecognition, type EstimateInput } from '../src/spike-nuty/recognition-estimate.js';
+import { expireAtFor, retryAfterSec, type SpikeNutyRepository } from '../src/spike-nuty/repository.js';
 import type { AttemptDoc } from '../src/spike-nuty/stats.js';
 
 export interface FakeRateWindow {
@@ -20,7 +16,6 @@ export function createMemorySpikeNutyRepository() {
   const windows = new Map<string, FakeRateWindow>();
   const calls = {
     createIfAbsent: 0,
-    saveFeedback: 0,
     hitRateLimit: 0,
     listAttempts: [] as Array<{ from: Date; to: Date; limit: number }>,
   };
@@ -36,15 +31,6 @@ export function createMemorySpikeNutyRepository() {
       }
       attempts.set(id, { ...structuredClone(record), receivedAt: now, expireAt: expireAtFor(now) });
       return 'created';
-    },
-    async saveFeedback(id, deviceId, feedback, now) {
-      calls.saveFeedback += 1;
-      const current = attempts.get(id);
-      if (!current || current.deviceId !== deviceId) {
-        return false;
-      }
-      attempts.set(id, { ...current, feedback: toStoredFeedback(feedback), feedbackAt: now });
-      return true;
     },
     async hitRateLimit(deviceId, now, limit, windowMs) {
       calls.hitRateLimit += 1;
@@ -72,7 +58,7 @@ export function createMemorySpikeNutyRepository() {
   return { repo, attempts, windows, calls };
 }
 
-export const DEVICE_ID ='3f2b8c1e-9d4a-4f6b-8a2e-1c5d7e9f0a1b';
+export const DEVICE_ID = '3f2b8c1e-9d4a-4f6b-8a2e-1c5d7e9f0a1b';
 export const OTHER_DEVICE_ID = '7a1c2e3f-4b5d-4e6f-9a0b-1c2d3e4f5a6b';
 export const ATTEMPT_ID = 'c0ffee00-1234-4abc-8def-0123456789ab';
 
@@ -161,18 +147,19 @@ export function sampleAttempt(overrides: Record<string, unknown> = {}): Record<s
   };
 }
 
-/** A valid v1 feedback body. */
-export function sampleFeedback(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
-    v: 1,
-    deviceId: DEVICE_ID,
-    agrees: false,
-    misjudged: [
-      { refIndex: 1, playedIndex: 1 },
-      { refIndex: null, playedIndex: 3 },
-    ],
-    comment: '  grałam dobrze  ',
-    regraded: false,
-    ...overrides,
-  };
+/**
+ * A valid v1 attempt body with every optional field: note `windowLevelDb`,
+ * event `pitchSpreadCents`, `signal` and the `estimate` the heuristic
+ * computes from it.
+ */
+export function sampleFullAttempt(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  const base = sampleAttempt();
+  const notes = (base.notes as Record<string, unknown>[]).map((note, i) => ({
+    ...note,
+    windowLevelDb: i === 2 ? -18.5 : null,
+  }));
+  const events = (base.events as Record<string, unknown>[]).map((event) => ({ ...event, pitchSpreadCents: 14.5 }));
+  const signal = { frames: 500, voicedFrames: 410, medianClarity: 0.91 };
+  const body = { ...base, notes, events, signal };
+  return { ...body, estimate: estimateRecognition(body as unknown as EstimateInput), ...overrides };
 }
