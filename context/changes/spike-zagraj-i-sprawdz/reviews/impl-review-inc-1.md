@@ -2,7 +2,7 @@
 # Implementation Review: Spike "Zagraj i sprawdź"
 
 **Plan**: context/changes/spike-zagraj-i-sprawdz/plan.md   **Scope**: increment 1 (phases 1-2)   **Date**: 2026-11-15
-**Round**: 1   **Verdict**: APPROVED   **Findings**: 3
+**Round**: 1   **Verdict**: APPROVED   **Findings**: 5
 
 ## Verdicts
 | Dimension | Verdict |
@@ -24,7 +24,9 @@ Contracts were spot-checked against the plan: the three melodies match note for 
 formulas match (`compare.ts:120-121`), with n=0 guarded. The barrel re-exports every
 public symbol. Imports use `.ts` suffixes and `import type`, and the tests use
 `describe`/`it`, consistent with `src/practice/`. There is no `context/architecture/`,
-so the architecture gate does not apply.
+so the architecture gate does not apply. The plan-drift evidence
+(sonnet subagent) found no missing items, and every listed test case exists and asserts
+the stated behaviour.
 
 ## Success criteria (run locally)
 | Criterion | Command | Result |
@@ -68,6 +70,31 @@ Phases 1-2 have no Manual rows.
   per note. That is negligible for recordings a few seconds long.
 - **Fix**: cache the median if long takes are ever needed.
 - **Decision**: ACCEPT. The cost is negligible at spike scale.
+
+### F4: Segmentation splits a note on longer glitches and on low-level dropouts
+- **Severity**: OBSERVATION
+- **Impact**: MEDIUM
+- **Dimension**: Safety & Quality
+- **Location**: src/spike-nuty/logic/segment.ts:166-167, :190-202
+- **Detail**: Two cases split one note into two. An off-pitch glitch held at least `stableMs`
+  (3 frames or more) splits the note, and the second half then becomes an `extra` note in
+  `compare`. A one-frame dropout at a very low level followed by the same pitch counts as a
+  re-attack. Both behaviours fit the plan wording, which names "2-frame" octave jumps and a
+  level re-attack, but real clarinet glitches may run longer.
+- **Fix**: tune `stableMs` and `reattackDb` from the device diagnostics, and add tests that
+  pin the chosen behaviour if the feature goes ahead.
+- **Decision**: ACCEPT. This matches the brief's open risk that the segmentation defaults
+  are first guesses, to be tuned on the device through the diagnostics panel.
+
+### F5: Cents are rounded to integers
+- **Severity**: OBSERVATION
+- **Impact**: LOW
+- **Dimension**: Plan Adherence
+- **Location**: src/spike-nuty/logic/pitch.ts:30
+- **Detail**: `hzToNote` rounds the cents, while the plan says "remainder ×100". The
+  diagnostics only need integer cents, and the 452 Hz test asserts about +46.
+- **Fix**: none needed.
+- **Decision**: ACCEPT. Integer cents are adequate for the diagnostics.
 
 ## Notes
 The design point is noted, not flagged: the onset tolerance is 0 eighths, so a
