@@ -6,14 +6,14 @@ import { createAudioContext, MicError, openMic, type Mic, type MicErrorKind } fr
 import { createPitchTracker, type PitchTracker } from './audio/pitchTracker.ts';
 import * as copy from './copy.ts';
 import { DiagnosticsPanel } from './DiagnosticsPanel.tsx';
-import { Staff } from './Staff.tsx';
-import { GRADE_COLOURS } from './staffModel.ts';
+import { Staff, type StaffSelection } from './Staff.tsx';
+import { gradeColour, referenceBars, toAlignedBars } from './staffModel.ts';
+import { noteRows, refIndexAt, summarize, type NoteRow } from './results.ts';
 import {
-  compare,
   eighthMs,
+  gradeRecording,
   MELODIES,
   melodyLengthEighths,
-  quantize,
   segment,
   soundingToWritten,
   type Instrument,
@@ -22,6 +22,7 @@ import {
 } from './logic/index.ts';
 
 const INSTRUMENTS: Instrument[] = ['clarinet-bb', 'c'];
+const PREP_OPTIONS = [3, 5, 10];
 const BEATS_PER_BAR = 4;
 /** Every audible click opens a window this long that the segmenter skips. */
 const CLICK_IGNORE_MS = 80;
@@ -56,31 +57,126 @@ const MIC_MESSAGES: Record<MicErrorKind, string> = {
   other: copy.MIC_OTHER,
 };
 
+const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
+
+/** The large cue a child can read from a music stand: prep seconds, count-in beats, "Graj!". */
+function Cue({ prepLeft, beat }: { prepLeft: number | null; beat: Beat | null }) {
+  let label: string;
+  let big: string;
+  let small = ' ';
+  if (prepLeft !== null && prepLeft > 0) {
+    label = copy.GET_READY;
+    big = String(prepLeft);
+  } else if (beat === null || beat.isCountIn) {
+    label = copy.COUNT_IN;
+    big = beat === null ? ' ' : String(beat.beat);
+  } else {
+    label = ' ';
+    big = copy.PLAY_NOW;
+    small = copy.barLabel(beat.bar);
+  }
+  return (
+    <div aria-live="polite" className="flex flex-col items-center py-2 text-center">
+      <p className="text-2xl font-bold">{label}</p>
+      <p className="text-7xl font-bold tabular-nums">{big}</p>
+      <p className="text-sm text-slate-600">{small}</p>
+    </div>
+  );
+}
+
+function NotesTable({ rows, selected }: { rows: NoteRow[]; selected: StaffSelection | null }) {
+  const rowRefs = useRef(new Map<number, HTMLTableRowElement>());
+  const isSelected = (row: NoteRow) =>
+    selected !== null &&
+    ((selected.refIndex !== null && row.refIndex === selected.refIndex) ||
+      (selected.playedIndex !== null && row.playedIndex === selected.playedIndex));
+  const selectedNr = rows.find(isSelected)?.nr ?? null;
+
+  useEffect(() => {
+    if (selectedNr === null) return;
+    rowRefs.current.get(selectedNr)?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  }, [selectedNr]);
+
+  return (
+    <table className="w-full table-fixed text-xs">
+      <thead>
+        <tr className="text-left text-slate-600">
+          {copy.NOTE_COLUMNS.map((column, i) => (
+            <th key={column} className={i === 0 ? 'w-6' : i === 4 ? 'w-[30%]' : undefined}>
+              {column}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr
+            key={row.nr}
+            ref={(el) => {
+              if (el) rowRefs.current.set(row.nr, el);
+              else rowRefs.current.delete(row.nr);
+            }}
+            className={`border-t align-top ${row.nr === selectedNr ? 'bg-blue-100' : ''}`}
+          >
+            <td>{row.nr}</td>
+            <td>{row.expected}</td>
+            <td>{row.played}</td>
+            <td>{row.centsDiff === null ? copy.NONE : signed(Math.round(row.centsDiff))}</td>
+            <td>{row.timing}</td>
+            <td className="font-semibold" style={{ color: gradeColour(row.grade) }}>
+              {row.status}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export default function SpikeScreen() {
   const [melodyId, setMelodyId] = useState(MELODIES[0].id);
   const [instrument, setInstrument] = useState<Instrument>('clarinet-bb');
   const [bpm, setBpm] = useState(60);
+  const [prepSec, setPrepSec] = useState(5);
   const [ignoreOctave, setIgnoreOctave] = useState(false);
   const [visualOnly, setVisualOnly] = useState(false);
+  const [autoLatency, setAutoLatency] = useState(true);
   const [phase, setPhase] = useState<Phase>('idle');
   const [micError, setMicError] = useState<MicErrorKind | null>(null);
+  const [prepLeft, setPrepLeft] = useState<number | null>(null);
   const [beat, setBeat] = useState<Beat | null>(null);
   const [live, setLive] = useState<PitchFrame | null>(null);
   const [recording, setRecording] = useState<Recording | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [selected, setSelected] = useState<StaffSelection | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
 
   const melody = MELODIES.find((m) => m.id === melodyId) ?? MELODIES[0];
   const busy = phase === 'starting' || phase === 'recording';
 
-  // Sounding -> written by the instrument, quantized at the recorded tempo,
-  // graded against the selected melody.
-  const result = useMemo(() => {
+  // Sounding -> written by the instrument, graded at the recorded tempo with
+  // the optional onset correction.
+  const graded = useMemo(() => {
     if (!recording) return null;
     const written = recording.events.map((e) => ({ ...e, midi: soundingToWritten(e.midi, instrument) }));
-    return compare(melody, quantize(written, recording.bpm), { ignoreOctave });
-  }, [recording, instrument, melody, ignoreOctave]);
+    return gradeRecording(melody, written, recording.bpm, { ignoreOctave, autoLatency });
+  }, [recording, instrument, melody, ignoreOctave, autoLatency]);
+  const result = graded?.result ?? null;
+
+  // The reference note the child should be on right now.
+  const currentRef =
+    phase === 'recording' && beat !== null && !beat.isCountIn
+      ? refIndexAt(melody, ((beat.bar - 1) * BEATS_PER_BAR + (beat.beat - 1)) * 2)
+      : null;
+  const bars = useMemo(
+    () => (result ? toAlignedBars(result, melodyLengthEighths(melody)) : referenceBars(melody, currentRef)),
+    [result, melody, currentRef],
+  );
+  const rows = useMemo(
+    () => (result && recording ? noteRows(result, recording.bpm) : []),
+    [result, recording],
+  );
 
   /** Tears the session down; returns what the recording captured. */
   const teardown = () => {
@@ -101,17 +197,25 @@ export default function SpikeScreen() {
   const stop = (recordedBpm: number) => {
     const captured = teardown();
     setBeat(null);
+    setPrepLeft(null);
     if (!captured) return;
     const ignoreWindows = captured.clicks.map((t): [number, number] => [t, t + CLICK_IGNORE_MS]);
-    setRecording({ events: segment(captured.frames, { ignoreWindows }), bpm: recordedBpm });
+    // Nothing played during the prep time or the count-in is graded.
+    const earliestMs = -eighthMs(recordedBpm) / 2;
+    const frames = captured.frames.filter((frame) => frame.timeMs >= earliestMs);
+    setRecording({ events: segment(frames, { ignoreWindows }), bpm: recordedBpm });
     setPhase('done');
   };
 
   const start = async () => {
     if (sessionRef.current) return;
+    const leadInSec = prepSec;
     setMicError(null);
     setRecording(null);
+    setSelected(null);
     setLive(null);
+    setBeat(null);
+    setPrepLeft(null);
     setPhase('starting');
     // Both calls happen synchronously inside the tap: iOS Safari needs it.
     const ctx = ctxRef.current ?? createAudioContext();
@@ -141,17 +245,30 @@ export default function SpikeScreen() {
     });
     metronome.onBeat((bar, beatInBar, isCountIn) => setBeat({ bar, beat: beatInBar, isCountIn }));
     session.metronome = metronome;
-    const downbeatSec = metronome.start();
+    const downbeatSec = metronome.start(leadInSec);
+    // The tracker runs from now on, so the live reading works during the prep time.
     const tracker = createPitchTracker(ctx, session.mic.source, downbeatSec);
     session.tracker = tracker;
     setLatencyMs(tracker.latencyMs);
     session.live = setInterval(() => setLive(tracker.latest()), LIVE_REFRESH_MS);
+
+    // Prep countdown, one second per step; Stop clears the pending steps.
+    setPrepLeft(leadInSec);
+    for (let elapsed = 1; elapsed <= leadInSec; elapsed += 1) {
+      session.timers.push(setTimeout(() => setPrepLeft(leadInSec - elapsed), elapsed * 1000));
+    }
 
     // Auto-stop one bar after the melody ends.
     const recordMs = (melodyLengthEighths(melody) + 2 * BEATS_PER_BAR) * eighthMs(bpm);
     const untilDownbeatMs = Math.max(0, (downbeatSec - ctx.currentTime) * 1000);
     session.timers.push(setTimeout(() => stop(bpm), untilDownbeatMs + recordMs));
     setPhase('recording');
+  };
+
+  const changeSong = () => {
+    setRecording(null);
+    setSelected(null);
+    setPhase('idle');
   };
 
   // Stop the microphone and the metronome when the screen goes away.
@@ -161,6 +278,8 @@ export default function SpikeScreen() {
     },
     [],
   );
+
+  const resultView = phase === 'done' && result !== null && recording !== null;
 
   return (
     // White page: the app's brand background would hide the black staff.
@@ -173,163 +292,197 @@ export default function SpikeScreen() {
       }}
     >
       <h1 className="text-2xl font-bold">{copy.TITLE}</h1>
-      <p className="text-sm text-slate-600">{copy.INTRO}</p>
 
-      <section className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold">{copy.MELODY_LABEL}</span>
-          <select
-            className="rounded border px-2 py-2"
-            value={melodyId}
-            disabled={busy}
-            onChange={(e) => setMelodyId(e.target.value)}
-          >
-            {MELODIES.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.title}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold">{copy.INSTRUMENT_LABEL}</span>
-          <select
-            className="rounded border px-2 py-2"
-            value={instrument}
-            disabled={busy}
-            onChange={(e) => setInstrument(e.target.value as Instrument)}
-          >
-            {INSTRUMENTS.map((id) => (
-              <option key={id} value={id}>
-                {copy.INSTRUMENT_NAMES[id]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold">{copy.tempoLabel(bpm)}</span>
-          <input
-            type="range"
-            min={60}
-            max={100}
-            step={1}
-            value={bpm}
-            disabled={busy}
-            onChange={(e) => setBpm(Number(e.target.value))}
-          />
-        </label>
-
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={ignoreOctave}
-            onChange={(e) => setIgnoreOctave(e.target.checked)}
-          />
-          {copy.IGNORE_OCTAVE_LABEL}
-        </label>
-
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={visualOnly}
-            disabled={busy}
-            onChange={(e) => setVisualOnly(e.target.checked)}
-          />
-          {copy.VISUAL_METRONOME_LABEL}
-        </label>
-
-        {busy ? (
-          <button
-            type="button"
-            className="rounded bg-red-700 px-4 py-3 font-bold text-white"
-            onClick={() => stop(bpm)}
-          >
-            {copy.STOP_BUTTON}
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="rounded bg-blue-900 px-4 py-3 font-bold text-white"
-            onClick={() => void start()}
-          >
-            {copy.START_BUTTON}
-          </button>
-        )}
-
-        {phase === 'starting' && <p>{copy.STARTING}</p>}
-        {phase === 'recording' && (
-          <div aria-live="polite" className="flex items-center gap-3">
-            <span
-              className={`inline-block h-6 w-6 rounded-full ${
-                beat?.beat === 1 ? 'bg-red-600' : beat ? 'bg-blue-600' : 'bg-slate-300'
-              }`}
-            />
-            <span className="font-semibold">
-              {beat === null
-                ? copy.RECORDING
-                : beat.isCountIn
-                  ? copy.countInLabel(beat.beat)
-                  : copy.beatLabel(beat.bar, beat.beat)}
-            </span>
-          </div>
-        )}
-        {phase === 'error' && micError !== null && (
-          <div role="alert" className="flex flex-col gap-2 rounded border border-red-300 bg-red-50 p-3">
-            <p>{MIC_MESSAGES[micError]}</p>
-            <button
-              type="button"
-              className="self-start rounded border px-3 py-2"
-              onClick={() => void start()}
-            >
-              {copy.RETRY_BUTTON}
-            </button>
-          </div>
-        )}
-      </section>
-
-      <section aria-label={copy.STAFF_HEADING}>
-        <h2 className="font-semibold">{copy.STAFF_HEADING}</h2>
-        {result ? (
-          <>
-            <p className="text-xs text-slate-600">{copy.STAVES_HINT}</p>
-            <Staff reference={result.reference} played={result.played} />
-          </>
-        ) : (
-          <p className="text-sm text-slate-600">{copy.STAFF_EMPTY}</p>
-        )}
-      </section>
-
-      <section aria-label={copy.SCORE_HEADING}>
-        <h2 className="font-semibold">{copy.SCORE_HEADING}</h2>
-        {result ? (
-          <>
-            <p className="text-2xl font-bold">{copy.scoreLabel(result.scorePercent)}</p>
-            <p className="text-sm">{copy.pitchLabel(result.pitchPercent)}</p>
-            <ul className="mt-2 text-sm">
+      {resultView ? (
+        <>
+          <section aria-label={copy.SCORE_HEADING} className="flex flex-col gap-2">
+            <h2 className="font-semibold">{copy.SCORE_HEADING}</h2>
+            <p className="text-4xl font-bold">{copy.scoreLabel(result.scorePercent)}</p>
+            <p className="text-lg">{copy.summaryText(summarize(result))}</p>
+            <p className="text-xs text-slate-600">{copy.pitchLabel(result.pitchPercent)}</p>
+            <ul className="grid grid-cols-2 gap-x-3 text-sm">
               {copy.LEGEND.map(([grade, text]) => (
                 <li key={grade} className="flex items-center gap-2">
                   <span
-                    className="inline-block h-3 w-3 rounded-full"
-                    style={{ backgroundColor: GRADE_COLOURS[grade] }}
+                    className="inline-block h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: gradeColour(grade) }}
                   />
                   {text}
                 </li>
               ))}
             </ul>
-          </>
-        ) : (
-          <p className="text-sm text-slate-600">{copy.SCORE_EMPTY}</p>
-        )}
-      </section>
+          </section>
 
-      <section aria-label={copy.DIAGNOSTICS_HEADING}>
+          <section aria-label={copy.STAFF_HEADING}>
+            <h2 className="font-semibold">{copy.STAFF_HEADING}</h2>
+            <Staff bars={bars} onSelect={setSelected} />
+          </section>
+
+          <section aria-label={copy.NOTES_TABLE_HEADING}>
+            <h2 className="font-semibold">{copy.NOTES_TABLE_HEADING}</h2>
+            <p className="text-xs text-slate-600">{copy.NOTES_TABLE_HINT}</p>
+            <NotesTable rows={rows} selected={selected} />
+          </section>
+
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              className="rounded bg-blue-900 px-4 py-3 font-bold text-white"
+              onClick={() => void start()}
+            >
+              {copy.PLAY_AGAIN_BUTTON}
+            </button>
+            <button type="button" className="rounded border px-4 py-3 font-bold" onClick={changeSong}>
+              {copy.CHANGE_SONG_BUTTON}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-slate-600">{copy.INTRO}</p>
+
+          <section className="flex flex-col gap-3">
+            {!busy && (
+              <>
+                <label className="flex flex-col gap-1">
+                  <span className="font-semibold">{copy.MELODY_LABEL}</span>
+                  <select
+                    className="rounded border px-2 py-2"
+                    value={melodyId}
+                    onChange={(e) => setMelodyId(e.target.value)}
+                  >
+                    {MELODIES.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className="font-semibold">{copy.INSTRUMENT_LABEL}</span>
+                  <select
+                    className="rounded border px-2 py-2"
+                    value={instrument}
+                    onChange={(e) => setInstrument(e.target.value as Instrument)}
+                  >
+                    {INSTRUMENTS.map((id) => (
+                      <option key={id} value={id}>
+                        {copy.INSTRUMENT_NAMES[id]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className="font-semibold">{copy.tempoLabel(bpm)}</span>
+                  <input
+                    type="range"
+                    min={60}
+                    max={100}
+                    step={1}
+                    value={bpm}
+                    onChange={(e) => setBpm(Number(e.target.value))}
+                  />
+                </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className="font-semibold">{copy.PREP_LABEL}</span>
+                  <select
+                    className="rounded border px-2 py-2"
+                    value={prepSec}
+                    onChange={(e) => setPrepSec(Number(e.target.value))}
+                  >
+                    {PREP_OPTIONS.map((sec) => (
+                      <option key={sec} value={sec}>
+                        {copy.prepOption(sec)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={ignoreOctave}
+                    onChange={(e) => setIgnoreOctave(e.target.checked)}
+                  />
+                  {copy.IGNORE_OCTAVE_LABEL}
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={visualOnly}
+                    onChange={(e) => setVisualOnly(e.target.checked)}
+                  />
+                  {copy.VISUAL_METRONOME_LABEL}
+                </label>
+              </>
+            )}
+
+            {phase === 'starting' && <p>{copy.STARTING}</p>}
+            {phase === 'recording' && <Cue prepLeft={prepLeft} beat={beat} />}
+
+            {busy ? (
+              <button
+                type="button"
+                className="rounded bg-red-700 px-4 py-3 font-bold text-white"
+                onClick={() => stop(bpm)}
+              >
+                {copy.STOP_BUTTON}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="rounded bg-blue-900 px-4 py-3 font-bold text-white"
+                onClick={() => void start()}
+              >
+                {copy.START_BUTTON}
+              </button>
+            )}
+
+            {phase === 'error' && micError !== null && (
+              <div role="alert" className="flex flex-col gap-2 rounded border border-red-300 bg-red-50 p-3">
+                <p>{MIC_MESSAGES[micError]}</p>
+                <button
+                  type="button"
+                  className="self-start rounded border px-3 py-2"
+                  onClick={() => void start()}
+                >
+                  {copy.RETRY_BUTTON}
+                </button>
+              </div>
+            )}
+          </section>
+
+          <section aria-label={copy.STAFF_HEADING}>
+            <h2 className="font-semibold">{copy.STAFF_HEADING}</h2>
+            <Staff bars={bars} />
+          </section>
+        </>
+      )}
+
+      <section aria-label={copy.DIAGNOSTICS_HEADING} className="flex flex-col gap-2">
         <h2 className="font-semibold">{copy.DIAGNOSTICS_HEADING}</h2>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={autoLatency}
+            onChange={(e) => setAutoLatency(e.target.checked)}
+          />
+          {copy.AUTO_LATENCY_LABEL}
+        </label>
         {phase === 'idle' ? (
           <p className="text-sm text-slate-600">{copy.DIAGNOSTICS_EMPTY}</p>
         ) : (
-          <DiagnosticsPanel live={live} instrument={instrument} events={recording?.events ?? null} latencyMs={latencyMs} />
+          <DiagnosticsPanel
+            live={live}
+            instrument={instrument}
+            events={recording?.events ?? null}
+            latencyMs={latencyMs}
+            timing={graded}
+          />
         )}
       </section>
     </main>

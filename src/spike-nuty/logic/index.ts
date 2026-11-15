@@ -26,3 +26,12 @@ export {
   type CompareResult,
   type NoteGrade,
 } from './compare.ts';
+export {
+  gradeRecording,
+  MAX_CORRECTION_MS,
+  median,
+  MIN_CORRECTION_SAMPLES,
+  onsetOffsets,
+  type GradedRecording,
+  type GradeOptions,
+} from './timing.ts';

@@ -15,8 +15,11 @@ export interface MetronomeOptions {
 export type BeatListener = (bar: number, beat: number, isCountIn: boolean) => void;
 
 export interface Metronome {
-  /** Starts the count-in; returns the downbeat time after it, in ctx seconds. */
-  start(): number;
+  /**
+   * Starts the count-in after an optional lead-in (seconds of silence to get
+   * ready); returns the downbeat time after the count-in, in ctx seconds.
+   */
+  start(leadInSec?: number): number;
   stop(): void;
   /** Audible click times in ms relative to the downbeat. */
   clickTimesMs(): number[];
@@ -25,8 +28,19 @@ export interface Metronome {
 
 const LOOKAHEAD_SEC = 0.12;
 const TICK_MS = 25;
-const START_DELAY_SEC = 0.15;
+export const START_DELAY_SEC = 0.15;
 const CLICK_SEC = 0.015;
+
+/** First count-in click and the downbeat after the count-in, in ctx seconds. */
+export function startTimes(
+  nowSec: number,
+  bpm: number,
+  beatsPerBar: number,
+  leadInSec = 0,
+): { firstBeatSec: number; downbeatSec: number } {
+  const firstBeatSec = nowSec + START_DELAY_SEC + Math.max(0, leadInSec);
+  return { firstBeatSec, downbeatSec: firstBeatSec + beatsPerBar * (60 / bpm) };
+}
 
 function noiseBuffer(ctx: BaseAudioContext): AudioBuffer {
   const length = Math.ceil(ctx.sampleRate * CLICK_SEC);
@@ -86,9 +100,8 @@ export function createMetronome(ctx: AudioContext, options: MetronomeOptions): M
   };
 
   return {
-    start() {
-      firstBeatSec = ctx.currentTime + START_DELAY_SEC;
-      downbeatSec = firstBeatSec + options.beatsPerBar * beatSec;
+    start(leadInSec = 0) {
+      ({ firstBeatSec, downbeatSec } = startTimes(ctx.currentTime, options.bpm, options.beatsPerBar, leadInSec));
       nextBeat = 0;
       clicks.length = 0;
       schedule();

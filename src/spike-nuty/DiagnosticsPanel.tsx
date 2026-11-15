@@ -15,6 +15,8 @@ interface DiagnosticsPanelProps {
   instrument: Instrument;
   events: NoteEvent[] | null;
   latencyMs: number | null;
+  /** Onset offsets of the graded recording, before correction; null before a result. */
+  timing: { meanMs: number | null; medianMs: number | null; correctionMs: number; samples: number } | null;
 }
 
 const dash = '–';
@@ -41,7 +43,9 @@ function LiveReading({ live, instrument }: { live: PitchFrame | null; instrument
   );
 }
 
-export function DiagnosticsPanel({ live, instrument, events, latencyMs }: DiagnosticsPanelProps) {
+const offset = (ms: number | null) => (ms === null ? dash : copy.signedMs(ms));
+
+export function DiagnosticsPanel({ live, instrument, events, latencyMs, timing }: DiagnosticsPanelProps) {
   return (
     <div className="flex flex-col gap-3">
       <div>
@@ -51,6 +55,18 @@ export function DiagnosticsPanel({ live, instrument, events, latencyMs }: Diagno
           <p className="font-mono text-xs text-slate-600">
             {copy.LATENCY}: {latencyMs.toFixed(0)} ms
           </p>
+        )}
+        {timing !== null && (
+          <dl className="mt-1 grid grid-cols-2 gap-x-4 font-mono text-xs">
+            <dt className="text-slate-600">{copy.MEAN_OFFSET}</dt>
+            <dd>
+              {offset(timing.meanMs)} {copy.offsetSamples(timing.samples)}
+            </dd>
+            <dt className="text-slate-600">{copy.MEDIAN_OFFSET}</dt>
+            <dd>{offset(timing.medianMs)}</dd>
+            <dt className="text-slate-600">{copy.APPLIED_CORRECTION}</dt>
+            <dd>{offset(timing.correctionMs)}</dd>
+          </dl>
         )}
       </div>
       {events !== null && (
