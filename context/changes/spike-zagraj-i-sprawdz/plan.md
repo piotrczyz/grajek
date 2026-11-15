@@ -432,18 +432,18 @@ Grade the recording and show both staves coloured, with the score.
 
 ### Phase 4: Metronome, microphone and live pitch
 #### Automated
-- [x] 4.1 `pnpm test` passes, including: `openMic` maps `NotAllowedError` to `denied` and a missing `navigator.mediaDevices` to `unavailable`; SpikeScreen shows the Polish permission-denied message when the mic is denied (audio modules mocked)
-- [x] 4.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass
+- [x] 4.1 `pnpm test` passes, including: `openMic` maps `NotAllowedError` to `denied` and a missing `navigator.mediaDevices` to `unavailable`; SpikeScreen shows the Polish permission-denied message when the mic is denied (audio modules mocked) — 17e454a
+- [x] 4.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass — 17e454a
 #### Manual
 - [ ] 4.3 On an iPhone (Safari, standalone PWA from the home screen) the count-in clicks are heard, the beat marker moves, the diagnostics show a steady note name and cents while a clarinet holds a note, and metronome clicks do not appear as events
 - [ ] 4.4 Denying the microphone shows the Polish message
 
 ### Phase 5: Staff, grading and score
 #### Automated
-- [ ] 5.1 `pnpm test` passes, including `staffModel` cases (keys for E3, F#3, G4; durations for 1, 2, 3, 4, 6, 8 eighths; colours per grade) and a SpikeScreen test that feeds synthetic events and shows the score text
-- [ ] 5.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass
-- [ ] 5.3 `pnpm test:e2e` passes (existing suite unchanged)
-- [ ] 5.4 After `pnpm build`, the entry script referenced by `dist/index.html` contains neither `Zagraj i sprawdź` nor `Bravura`
+- [x] 5.1 `pnpm test` passes, including `staffModel` cases (keys for E3, F#3, G4; durations for 1, 2, 3, 4, 6, 8 eighths; colours per grade) and a SpikeScreen test that feeds synthetic events and shows the score text
+- [x] 5.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass
+- [x] 5.3 `pnpm test:e2e` passes (existing suite unchanged)
+- [x] 5.4 After `pnpm build`, the entry script referenced by `dist/index.html` contains neither `Zagraj i sprawdź` nor `Bravura`
 #### Manual
 - [ ] 5.5 On an iPhone, playing "Panie Janie" correctly at 60 BPM gives mostly green notes and a high score; a deliberately wrong note turns red, a late note yellow
 - [ ] 5.6 Diagnostics panel lets the team judge octave/twelfth errors on the low E3-A3 exercise

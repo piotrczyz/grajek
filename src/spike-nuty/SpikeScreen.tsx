@@ -1,16 +1,21 @@
 // Hidden spike screen "Zagraj i sprawdź" (?spike=nuty). Loaded lazily from
 // main.tsx, so nothing here ends up in the main entry chunk.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createMetronome, type Metronome } from './audio/metronome.ts';
 import { createAudioContext, MicError, openMic, type Mic, type MicErrorKind } from './audio/mic.ts';
 import { createPitchTracker, type PitchTracker } from './audio/pitchTracker.ts';
 import * as copy from './copy.ts';
 import { DiagnosticsPanel } from './DiagnosticsPanel.tsx';
+import { Staff } from './Staff.tsx';
+import { GRADE_COLOURS } from './staffModel.ts';
 import {
+  compare,
   eighthMs,
   MELODIES,
   melodyLengthEighths,
+  quantize,
   segment,
+  soundingToWritten,
   type Instrument,
   type NoteEvent,
   type PitchFrame,
@@ -39,6 +44,12 @@ interface Session {
   live: ReturnType<typeof setInterval> | null;
 }
 
+interface Recording {
+  events: NoteEvent[];
+  /** The tempo the recording was made at (the slider may move afterwards). */
+  bpm: number;
+}
+
 const MIC_MESSAGES: Record<MicErrorKind, string> = {
   denied: copy.MIC_DENIED,
   unavailable: copy.MIC_UNAVAILABLE,
@@ -55,13 +66,21 @@ export default function SpikeScreen() {
   const [micError, setMicError] = useState<MicErrorKind | null>(null);
   const [beat, setBeat] = useState<Beat | null>(null);
   const [live, setLive] = useState<PitchFrame | null>(null);
-  const [events, setEvents] = useState<NoteEvent[] | null>(null);
+  const [recording, setRecording] = useState<Recording | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
 
   const melody = MELODIES.find((m) => m.id === melodyId) ?? MELODIES[0];
   const busy = phase === 'starting' || phase === 'recording';
+
+  // Sounding -> written by the instrument, quantized at the recorded tempo,
+  // graded against the selected melody.
+  const result = useMemo(() => {
+    if (!recording) return null;
+    const written = recording.events.map((e) => ({ ...e, midi: soundingToWritten(e.midi, instrument) }));
+    return compare(melody, quantize(written, recording.bpm), { ignoreOctave });
+  }, [recording, instrument, melody, ignoreOctave]);
 
   /** Tears the session down; returns what the recording captured. */
   const teardown = () => {
@@ -79,19 +98,19 @@ export default function SpikeScreen() {
     return { frames, clicks };
   };
 
-  const stop = () => {
+  const stop = (recordedBpm: number) => {
     const captured = teardown();
     setBeat(null);
     if (!captured) return;
     const ignoreWindows = captured.clicks.map((t): [number, number] => [t, t + CLICK_IGNORE_MS]);
-    setEvents(segment(captured.frames, { ignoreWindows }));
+    setRecording({ events: segment(captured.frames, { ignoreWindows }), bpm: recordedBpm });
     setPhase('done');
   };
 
   const start = async () => {
     if (sessionRef.current) return;
     setMicError(null);
-    setEvents(null);
+    setRecording(null);
     setLive(null);
     setPhase('starting');
     // Both calls happen synchronously inside the tap: iOS Safari needs it.
@@ -131,7 +150,7 @@ export default function SpikeScreen() {
     // Auto-stop one bar after the melody ends.
     const recordMs = (melodyLengthEighths(melody) + 2 * BEATS_PER_BAR) * eighthMs(bpm);
     const untilDownbeatMs = Math.max(0, (downbeatSec - ctx.currentTime) * 1000);
-    session.timers.push(setTimeout(stop, untilDownbeatMs + recordMs));
+    session.timers.push(setTimeout(() => stop(bpm), untilDownbeatMs + recordMs));
     setPhase('recording');
   };
 
@@ -144,8 +163,10 @@ export default function SpikeScreen() {
   );
 
   return (
+    // White page: the app's brand background would hide the black staff.
+    <div className="h-full overflow-y-auto bg-white text-slate-900">
     <main
-      className="mx-auto flex h-full max-w-xl flex-col gap-4 overflow-y-auto px-4 text-left"
+      className="mx-auto flex max-w-xl flex-col gap-4 px-4 text-left"
       style={{
         paddingTop: 'max(1rem, env(safe-area-inset-top))',
         paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
@@ -223,7 +244,7 @@ export default function SpikeScreen() {
           <button
             type="button"
             className="rounded bg-red-700 px-4 py-3 font-bold text-white"
-            onClick={stop}
+            onClick={() => stop(bpm)}
           >
             {copy.STOP_BUTTON}
           </button>
@@ -270,12 +291,37 @@ export default function SpikeScreen() {
 
       <section aria-label={copy.STAFF_HEADING}>
         <h2 className="font-semibold">{copy.STAFF_HEADING}</h2>
-        <p className="text-sm text-slate-600">{copy.STAFF_EMPTY}</p>
+        {result ? (
+          <>
+            <p className="text-xs text-slate-600">{copy.STAVES_HINT}</p>
+            <Staff reference={result.reference} played={result.played} />
+          </>
+        ) : (
+          <p className="text-sm text-slate-600">{copy.STAFF_EMPTY}</p>
+        )}
       </section>
 
       <section aria-label={copy.SCORE_HEADING}>
         <h2 className="font-semibold">{copy.SCORE_HEADING}</h2>
-        <p className="text-sm text-slate-600">{copy.SCORE_EMPTY}</p>
+        {result ? (
+          <>
+            <p className="text-2xl font-bold">{copy.scoreLabel(result.scorePercent)}</p>
+            <p className="text-sm">{copy.pitchLabel(result.pitchPercent)}</p>
+            <ul className="mt-2 text-sm">
+              {copy.LEGEND.map(([grade, text]) => (
+                <li key={grade} className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-3 w-3 rounded-full"
+                    style={{ backgroundColor: GRADE_COLOURS[grade] }}
+                  />
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="text-sm text-slate-600">{copy.SCORE_EMPTY}</p>
+        )}
       </section>
 
       <section aria-label={copy.DIAGNOSTICS_HEADING}>
@@ -283,9 +329,10 @@ export default function SpikeScreen() {
         {phase === 'idle' ? (
           <p className="text-sm text-slate-600">{copy.DIAGNOSTICS_EMPTY}</p>
         ) : (
-          <DiagnosticsPanel live={live} instrument={instrument} events={events} latencyMs={latencyMs} />
+          <DiagnosticsPanel live={live} instrument={instrument} events={recording?.events ?? null} latencyMs={latencyMs} />
         )}
       </section>
     </main>
+    </div>
   );
 }

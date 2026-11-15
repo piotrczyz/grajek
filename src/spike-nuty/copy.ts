@@ -42,3 +42,13 @@ export const LATENCY = 'Korekta opóźnienia';
 export const EVENTS_HEADING = 'Wykryte zdarzenia';
 export const EVENTS_EMPTY = 'Nie wykryto żadnych nut.';
 export const EVENT_COLUMNS = ['Nuta (zapis)', 'Start ms', 'Długość ms', 'Oktawa?', 'Duodecyma?'] as const;
+
+// Results (phase 5).
+export const STAVES_HINT = 'Górna pięciolinia: wzór, dolna: zagrane (w zapisie dla wybranego instrumentu).';
+export const scoreLabel = (percent: number) => `Wynik: ${percent}%`;
+export const pitchLabel = (percent: number) => `Same wysokości dźwięków: ${percent}%`;
+export const LEGEND: Array<[colour: 'green' | 'yellow' | 'red', text: string]> = [
+  ['green', 'zielona – dobra nuta i dobry rytm'],
+  ['yellow', 'żółta – dobra nuta, zły rytm'],
+  ['red', 'czerwona – zła nuta, brak nuty albo nuta dodatkowa'],
+];
