@@ -123,3 +123,18 @@ export const MEAN_OFFSET = 'Średnie przesunięcie';
 export const MEDIAN_OFFSET = 'Mediana przesunięcia';
 export const APPLIED_CORRECTION = 'Zastosowana korekta';
 export const offsetSamples = (n: number) => `(z ${n} ${plural(n, 'nuty', 'nut', 'nut')})`;
+
+// Anonymous telemetry and accuracy feedback (telemetria-zagraj-i-sprawdz).
+export const TELEMETRY_NOTICE =
+  'Wysyłamy anonimowe dane o dokładności rozpoznawania (bez nagrania), żeby ulepszyć aplikację.';
+export const TELEMETRY_SWITCH_LABEL = 'Wysyłaj anonimowe dane';
+export const FEEDBACK_HEADING = 'Czy ocena się zgadza?';
+export const FEEDBACK_YES = 'Tak';
+export const FEEDBACK_NO = 'Nie';
+export const FEEDBACK_HINT = 'Zaznacz na liście „Nuta po nucie” nuty, które aplikacja oceniła źle.';
+export const MISJUDGED_COLUMN = 'Pomyłka?';
+export const MISJUDGED_LABEL = 'aplikacja się pomyliła';
+export const misjudgedRowLabel = (nr: number) => `${MISJUDGED_LABEL} – nuta ${nr}`;
+export const FEEDBACK_COMMENT_LABEL = 'Komentarz (opcjonalnie)';
+export const FEEDBACK_SEND = 'Wyślij';
+export const FEEDBACK_THANKS = 'Dziękujemy! Odpowiedź pomoże ulepszyć rozpoznawanie.';

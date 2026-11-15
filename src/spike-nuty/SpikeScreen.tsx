@@ -1,6 +1,7 @@
 // Hidden spike screen "Zagraj i sprawdź" (?spike=nuty). Loaded lazily from
 // main.tsx, so nothing here ends up in the main entry chunk.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { getOrCreateDeviceId } from '../push/device-id.ts';
 import { createMetronome, type Metronome } from './audio/metronome.ts';
 import { createAudioContext, MicError, openMic, type Mic, type MicErrorKind } from './audio/mic.ts';
 import { createPitchTracker, type PitchTracker } from './audio/pitchTracker.ts';
@@ -20,6 +21,9 @@ import {
   type NoteEvent,
   type PitchFrame,
 } from './logic/index.ts';
+import { enqueue, flush, startAutoFlush } from './telemetry/queue.ts';
+import { buildAttemptRecord, readTelemetryEnv, type AttemptEnd } from './telemetry/record.ts';
+import { isTelemetryEnabled, setTelemetryEnabled } from './telemetry/settings.ts';
 
 const INSTRUMENTS: Instrument[] = ['clarinet-bb', 'c'];
 const PREP_OPTIONS = [3, 5, 10];
@@ -49,7 +53,23 @@ interface Recording {
   events: NoteEvent[];
   /** The tempo the recording was made at (the slider may move afterwards). */
   bpm: number;
+  /** Client-generated id of the telemetry record for this attempt. */
+  attemptId: string;
+  /** Whether the auto-stop timer ('complete') or the Stop button ('stopped') ended it. */
+  ended: AttemptEnd;
 }
+
+/** The telemetry record sent for a recording, as needed by its feedback. */
+interface SentAttempt {
+  attemptId: string;
+  deviceId: string;
+  /** `autoLatency` in the sent record; a different value now means the view was re-graded. */
+  autoLatency: boolean;
+}
+
+type FeedbackStep = 'ask' | 'no' | 'sent';
+
+const MAX_COMMENT = 500;
 
 const MIC_MESSAGES: Record<MicErrorKind, string> = {
   denied: copy.MIC_DENIED,
@@ -84,7 +104,22 @@ function Cue({ prepLeft, beat }: { prepLeft: number | null; beat: Beat | null })
   );
 }
 
-function NotesTable({ rows, selected }: { rows: NoteRow[]; selected: StaffSelection | null }) {
+interface Misjudging {
+  /** Row numbers marked "aplikacja się pomyliła". */
+  marked: number[];
+  onToggle: (nr: number) => void;
+}
+
+function NotesTable({
+  rows,
+  selected,
+  misjudging,
+}: {
+  rows: NoteRow[];
+  selected: StaffSelection | null;
+  /** When set, every row gets a "aplikacja się pomyliła" toggle. */
+  misjudging?: Misjudging;
+}) {
   const rowRefs = useRef(new Map<number, HTMLTableRowElement>());
   const isSelected = (row: NoteRow) =>
     selected !== null &&
@@ -106,6 +141,7 @@ function NotesTable({ rows, selected }: { rows: NoteRow[]; selected: StaffSelect
               {column}
             </th>
           ))}
+          {misjudging && <th className="w-14">{copy.MISJUDGED_COLUMN}</th>}
         </tr>
       </thead>
       <tbody>
@@ -126,6 +162,16 @@ function NotesTable({ rows, selected }: { rows: NoteRow[]; selected: StaffSelect
             <td className="font-semibold" style={{ color: gradeColour(row.grade) }}>
               {row.status}
             </td>
+            {misjudging && (
+              <td>
+                <input
+                  type="checkbox"
+                  aria-label={copy.misjudgedRowLabel(row.nr)}
+                  checked={misjudging.marked.includes(row.nr)}
+                  onChange={() => misjudging.onToggle(row.nr)}
+                />
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
@@ -151,6 +197,13 @@ export default function SpikeScreen() {
   const [selected, setSelected] = useState<StaffSelection | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
+  const [telemetryOn, setTelemetryOn] = useState(isTelemetryEnabled);
+  const [sent, setSent] = useState<SentAttempt | null>(null);
+  const [feedbackStep, setFeedbackStep] = useState<FeedbackStep>('ask');
+  const [misjudged, setMisjudged] = useState<number[]>([]);
+  const [comment, setComment] = useState('');
+  /** Attempts already considered for sending: each one is sent at most once. */
+  const seenAttemptsRef = useRef(new Set<string>());
 
   const melody = MELODIES.find((m) => m.id === melodyId) ?? MELODIES[0];
   const busy = phase === 'starting' || phase === 'recording';
@@ -194,7 +247,7 @@ export default function SpikeScreen() {
     return { frames, clicks };
   };
 
-  const stop = (recordedBpm: number) => {
+  const stop = (recordedBpm: number, ended: AttemptEnd) => {
     const captured = teardown();
     setBeat(null);
     setPrepLeft(null);
@@ -203,7 +256,13 @@ export default function SpikeScreen() {
     // Nothing played during the prep time or the count-in is graded.
     const earliestMs = -eighthMs(recordedBpm) / 2;
     const frames = captured.frames.filter((frame) => frame.timeMs >= earliestMs);
-    setRecording({ events: segment(frames, { ignoreWindows }), bpm: recordedBpm });
+    setRecording({
+      events: segment(frames, { ignoreWindows }),
+      bpm: recordedBpm,
+      attemptId: crypto.randomUUID(),
+      ended,
+    });
+    resetFeedback();
     setPhase('done');
   };
 
@@ -261,8 +320,14 @@ export default function SpikeScreen() {
     // Auto-stop one bar after the melody ends.
     const recordMs = (melodyLengthEighths(melody) + 2 * BEATS_PER_BAR) * eighthMs(bpm);
     const untilDownbeatMs = Math.max(0, (downbeatSec - ctx.currentTime) * 1000);
-    session.timers.push(setTimeout(() => stop(bpm), untilDownbeatMs + recordMs));
+    session.timers.push(setTimeout(() => stop(bpm, 'complete'), untilDownbeatMs + recordMs));
     setPhase('recording');
+  };
+
+  const resetFeedback = () => {
+    setFeedbackStep('ask');
+    setMisjudged([]);
+    setComment('');
   };
 
   const changeSong = () => {
@@ -280,6 +345,75 @@ export default function SpikeScreen() {
   );
 
   const resultView = phase === 'done' && result !== null && recording !== null;
+
+  // Telemetry: send what is still queued, and again whenever the connection returns.
+  useEffect(() => {
+    const stopAutoFlush = startAutoFlush();
+    if (isTelemetryEnabled()) void flush();
+    return stopAutoFlush;
+  }, []);
+
+  // One record per finished attempt, built from the grading shown when the
+  // result first appears. Never awaited by the UI; failures stay silent.
+  useEffect(() => {
+    if (phase !== 'done' || recording === null || graded === null) return;
+    if (seenAttemptsRef.current.has(recording.attemptId)) return;
+    seenAttemptsRef.current.add(recording.attemptId);
+    if (!telemetryOn) return;
+    const { attemptId } = recording;
+    const input = {
+      now: Date.now(),
+      settings: { melodyId: melody.id, instrument, bpm: recording.bpm, prepSec, ignoreOctave, visualOnly, autoLatency },
+      recording,
+      graded,
+      latencyMs,
+      ended: recording.ended,
+      env: readTelemetryEnv(),
+    };
+    getOrCreateDeviceId()
+      .then((deviceId) => {
+        if (!isTelemetryEnabled()) return;
+        enqueue({ kind: 'attempt', attemptId, body: buildAttemptRecord({ ...input, deviceId }) });
+        setSent({ attemptId, deviceId, autoLatency: input.settings.autoLatency });
+        void flush();
+      })
+      .catch(() => undefined);
+  }, [phase, recording, graded, telemetryOn, melody, instrument, prepSec, ignoreOctave, visualOnly, autoLatency, latencyMs]);
+
+  const showFeedback = resultView && telemetryOn && sent !== null && sent.attemptId === recording.attemptId;
+
+  const toggleMisjudged = (nr: number) =>
+    setMisjudged((marked) => (marked.includes(nr) ? marked.filter((n) => n !== nr) : [...marked, nr]));
+
+  const sendFeedback = (agrees: boolean) => {
+    if (sent === null || !isTelemetryEnabled()) return;
+    const trimmed = agrees ? '' : comment.trim().slice(0, MAX_COMMENT);
+    enqueue({
+      kind: 'feedback',
+      attemptId: sent.attemptId,
+      body: {
+        v: 1,
+        deviceId: sent.deviceId,
+        agrees,
+        misjudged: agrees
+          ? []
+          : rows
+              .filter((row) => misjudged.includes(row.nr))
+              .map((row) => ({ refIndex: row.refIndex, playedIndex: row.playedIndex })),
+        ...(trimmed ? { comment: trimmed } : {}),
+        regraded: autoLatency !== sent.autoLatency,
+      },
+    });
+    setFeedbackStep('sent');
+    void flush();
+  };
+
+  const changeTelemetry = (on: boolean) => {
+    setTelemetryEnabled(on);
+    setTelemetryOn(on);
+    // Switching off drops the queued record, so no feedback can follow it.
+    if (!on) setSent(null);
+  };
 
   return (
     // White page: the app's brand background would hide the black staff.
@@ -321,8 +455,65 @@ export default function SpikeScreen() {
           <section aria-label={copy.NOTES_TABLE_HEADING}>
             <h2 className="font-semibold">{copy.NOTES_TABLE_HEADING}</h2>
             <p className="text-xs text-slate-600">{copy.NOTES_TABLE_HINT}</p>
-            <NotesTable rows={rows} selected={selected} />
+            <NotesTable
+              rows={rows}
+              selected={selected}
+              misjudging={
+                showFeedback && feedbackStep === 'no' ? { marked: misjudged, onToggle: toggleMisjudged } : undefined
+              }
+            />
           </section>
+
+          {showFeedback && (
+            <section aria-label={copy.FEEDBACK_HEADING} className="flex flex-col gap-2 rounded border p-3">
+              <h2 className="font-semibold">{copy.FEEDBACK_HEADING}</h2>
+              {feedbackStep === 'sent' ? (
+                <p role="status">{copy.FEEDBACK_THANKS}</p>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="rounded border px-4 py-2 font-bold"
+                      onClick={() => sendFeedback(true)}
+                    >
+                      {copy.FEEDBACK_YES}
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={feedbackStep === 'no'}
+                      className={`rounded border px-4 py-2 font-bold ${feedbackStep === 'no' ? 'bg-slate-200' : ''}`}
+                      onClick={() => setFeedbackStep('no')}
+                    >
+                      {copy.FEEDBACK_NO}
+                    </button>
+                  </div>
+                  {feedbackStep === 'no' && (
+                    <>
+                      <p className="text-xs text-slate-600">{copy.FEEDBACK_HINT}</p>
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>{copy.FEEDBACK_COMMENT_LABEL}</span>
+                        <textarea
+                          className="rounded border px-2 py-1"
+                          rows={3}
+                          maxLength={MAX_COMMENT}
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="self-start rounded bg-blue-900 px-4 py-2 font-bold text-white"
+                        onClick={() => sendFeedback(false)}
+                      >
+                        {copy.FEEDBACK_SEND}
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+            </section>
+          )}
 
           <div className="flex flex-col gap-2">
             <button
@@ -428,7 +619,7 @@ export default function SpikeScreen() {
               <button
                 type="button"
                 className="rounded bg-red-700 px-4 py-3 font-bold text-white"
-                onClick={() => stop(bpm)}
+                onClick={() => stop(bpm, 'stopped')}
               >
                 {copy.STOP_BUTTON}
               </button>
@@ -484,6 +675,14 @@ export default function SpikeScreen() {
             timing={graded}
           />
         )}
+      </section>
+
+      <section className="flex flex-col gap-1 text-sm text-slate-600">
+        <p>{copy.TELEMETRY_NOTICE}</p>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={telemetryOn} onChange={(e) => changeTelemetry(e.target.checked)} />
+          {copy.TELEMETRY_SWITCH_LABEL}
+        </label>
       </section>
     </main>
     </div>

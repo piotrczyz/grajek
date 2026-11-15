@@ -47,6 +47,45 @@ Instrument domyślny to Klarnet B♭: nuty na pięciolinii są w zapisie
 klarnetowym (wykryta wysokość brzmiąca + 2 półtony). „Instrument w C” wyłącza
 transpozycję.
 
+## Anonimowe dane o dokładności
+
+Po każdym nagraniu, które dojdzie do ekranu wyniku, aplikacja wysyła w tle
+jeden anonimowy rekord (`PUT /api/spike-nuty/attempts/{id}`). Ekran nie czeka
+na wysyłkę; bez sieci rekord czeka w kolejce w `localStorage`
+(`grajek.spikeNuty.queue.v1`, najwyżej 20 pozycji) i idzie po powrocie
+połączenia albo przy następnym otwarciu ekranu.
+
+Co jest w rekordzie:
+
+- anonimowy identyfikator urządzenia (ten sam co przy powiadomieniach) i
+  losowy identyfikator próby;
+- wersja aplikacji (skrót commita), user agent przeglądarki, czy aplikacja
+  działa jako PWA, platforma i „mobile”, jeśli przeglądarka je podaje;
+- ustawienia: utwór, instrument, tempo, czas na przygotowanie, ignorowanie
+  oktawy, wizualny metronom, automatyczna korekta;
+- wynik, wysokości, liczniki (dobrze, za późno, …) i lista nuta po nucie
+  (oczekiwana i zagrana nuta jako numery MIDI, centy, przesunięcie, status,
+  błąd oktawy/duodecymy);
+- surowe wykryte zdarzenia (najwyżej 200: wysokość brzmiąca, start, długość,
+  centy, średnia pewność i poziom, liczba ramek) przed korektą opóźnienia;
+- opóźnienie wyjścia audio, mediana i średnia przesunięcia, zastosowana korekta;
+- czy nagranie skończyło się samo (`complete`), czy przyciskiem Stop
+  (`stopped`).
+
+Nie wysyłamy nagrania dźwięku, imienia ani żadnych danych profilu. Serwer
+kasuje rekordy po 180 dniach.
+
+Pod wynikiem jest pytanie „Czy ocena się zgadza?”. „Tak” wysyła zgodę; „Nie”
+pokazuje przy każdym wierszu listy „Nuta po nucie” pole „aplikacja się
+pomyliła” i opcjonalny komentarz (do 500 znaków), a „Wyślij” dopisuje
+odpowiedź do tego samego rekordu. Jeśli po wysłaniu rekordu przełączono
+„Automatyczną korektę opóźnienia”, odpowiedź ma znacznik `regraded`.
+
+**Jak wyłączyć:** odznacz „Wysyłaj anonimowe dane” na dole ekranu. Wybór
+zostaje na tym urządzeniu (`localStorage`, klucz
+`grajek.spikeNuty.telemetry` = `off`); wyłączenie czyści kolejkę i ukrywa
+pytanie o ocenę.
+
 ## Werdykt
 
 _Do uzupełnienia po teście na iPhonie: czy rozpoznawanie wysokości i rytmu jest

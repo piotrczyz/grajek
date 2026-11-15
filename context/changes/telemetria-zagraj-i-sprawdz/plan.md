@@ -462,16 +462,16 @@ Rollback = redeploy the previous `api`; stored documents expire by themselves.
 
 ### Phase 5: Offline queue, transport and opt-out (A2)
 #### Automated
-- [x] 5.1 `pnpm test` passes including telemetry/queue and telemetry/settings tests (FIFO order, cap 20, drop on 400, keep on 5xx/429/network error, feedback 404 dropped after 5 tries, single concurrent flush)
-- [x] 5.2 `pnpm lint` passes
+- [x] 5.1 `pnpm test` passes including telemetry/queue and telemetry/settings tests (FIFO order, cap 20, drop on 400, keep on 5xx/429/network error, feedback 404 dropped after 5 tries, single concurrent flush) — 778f320
+- [x] 5.2 `pnpm lint` passes — 778f320
 #### Manual
 
 ### Phase 6: Screen wiring, feedback UI and notice (A2)
 #### Automated
-- [ ] 6.1 `pnpm test` passes including the SpikeScreen telemetry tests
-- [ ] 6.2 `pnpm lint && pnpm typecheck` pass
-- [ ] 6.3 `pnpm build` passes
-- [ ] 6.4 `pnpm test:e2e` passes (no backend in e2e; sending fails silently)
+- [x] 6.1 `pnpm test` passes including the SpikeScreen telemetry tests
+- [x] 6.2 `pnpm lint && pnpm typecheck` pass
+- [x] 6.3 `pnpm build` passes
+- [x] 6.4 `pnpm test:e2e` passes (no backend in e2e; sending fails silently)
 #### Manual
 - [ ] 6.5 On a phone (preview with `?spike=nuty`, after functions are deployed), a finished attempt appears in `spikeNutyAttempts` and a Nie with marked notes updates it
 - [ ] 6.6 Airplane mode: an attempt played offline is stored after the connection returns

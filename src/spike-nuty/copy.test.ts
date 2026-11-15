@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import * as copy from './copy.ts';
 import { plural, signedMs, summaryText } from './copy.ts';
 
 describe('plural', () => {
@@ -42,5 +43,17 @@ describe('summaryText', () => {
       summaryText({ ...zero, total: 15, good: 3, early: 1, rhythm: 2, wrongPitch: 5, missing: 2, extra: 3 }),
     ).toBe('3 z 15 nut dobrze, 1 za wcześnie, 2 złe długości, 5 złych nut, 2 brakujące, 3 dodatkowe');
     expect(summaryText({ ...zero, total: 1, good: 1 })).toBe('1 z 1 nuty dobrze');
+  });
+});
+
+describe('telemetry texts', () => {
+  it('uses the agreed Polish wording', () => {
+    expect(copy.TELEMETRY_NOTICE).toBe(
+      'Wysyłamy anonimowe dane o dokładności rozpoznawania (bez nagrania), żeby ulepszyć aplikację.',
+    );
+    expect(copy.TELEMETRY_SWITCH_LABEL).toBe('Wysyłaj anonimowe dane');
+    expect(copy.FEEDBACK_HEADING).toBe('Czy ocena się zgadza?');
+    expect([copy.FEEDBACK_YES, copy.FEEDBACK_NO]).toEqual(['Tak', 'Nie']);
+    expect(copy.misjudgedRowLabel(3)).toBe('aplikacja się pomyliła – nuta 3');
   });
 });
