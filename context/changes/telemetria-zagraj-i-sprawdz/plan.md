@@ -110,7 +110,7 @@ free of derived fields.
 |---|---|---|---|---|---|---|
 | 1 | Backend ingest (A1) | 1-3 | — | no | done | — |
 | 2 | Client telemetry and feedback (A2) | 4-6 | 1 | yes | pending | — |
-| 3 | Owner stats and export (A3) | 7-9 | 1 | yes | in-progress | — |
+| 3 | Owner stats and export (A3) | 7-9 | 1 | yes | done | — |
 
 Increments 2 and 3 are each stacked on increment 1 and are file-disjoint from
 each other (2 touches only `src/`, `vite.config.ts`; 3 touches only
