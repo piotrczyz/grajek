@@ -4,4 +4,4 @@
 
 **Do zrobienia po scaleniu:** nowe funkcje serwera zaczną działać dopiero po ręcznym wdrożeniu funkcji i ustawień bazy danych przez właściciela (instrukcja jest w README). Po wdrożeniu warto sprawdzić w konsoli Firebase, że automatyczne usuwanie starych danych jest włączone.
 
-**Status:** Jeszcze niegotowe: poprawiamy limit rozmiaru jednej próby, żeby bardzo długie lub „zaszumione” nagrania nie były odrzucane.
+**Status:** Gotowe do scalenia; w podglądzie nie ma nic do sprawdzenia ręcznie (zmiana dotyczy tylko serwera).

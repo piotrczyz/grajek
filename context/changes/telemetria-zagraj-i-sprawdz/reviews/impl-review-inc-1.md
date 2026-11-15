@@ -2,7 +2,7 @@
 # Implementation Review: Telemetry and accuracy feedback for "Zagraj i sprawdź" (increment 1, Backend ingest)
 
 **Plan**: context/changes/telemetria-zagraj-i-sprawdz/plan.md   **Scope**: increment 1 (phases 1-3)   **Date**: 2026-11-15
-**Round**: 1   **Verdict**: NEEDS_ATTENTION   **Findings**: 6
+**Round**: 2   **Verdict**: APPROVED   **Findings**: 6
 
 Diff: `git diff main...HEAD` (increment 1 has no dependency; base = `main`). 18 files, all named in phases 1-3 except the rs-implement bookkeeping in `change.md` / `plan.md`. No out-of-plan files.
 
@@ -11,7 +11,7 @@ Diff: `git diff main...HEAD` (increment 1 has no dependency; base = `main`). 18 
 |---|---|
 | Plan Adherence | PASS |
 | Scope Discipline | PASS |
-| Safety & Quality | WARNING |
+| Safety & Quality | PASS |
 | Architecture | PASS |
 | Pattern Consistency | PASS |
 | Success Criteria | PASS |
@@ -36,7 +36,7 @@ No `context/architecture/model.c4`: architecture gate not applicable. Not bug mo
 - **Location**: functions/src/spike-nuty/validation.ts:19-21, functions/src/spike-nuty/handler.ts:42
 - **Detail**: The contract accepts up to 400 notes and 200 events, but one note serialises to about 173 B and one event to about 156 B with realistic number widths. 200 events alone are ~31 KB; 200 notes + 200 events are ~66 KB, 400 + 200 ~100 KB. The melodies have about 16 reference notes, so the note list grows past ~200 only through extra (unmatched) events, i.e. on exactly the noisy recordings where recognition failed. Those bodies are answered 413 and, per the client retry rules ("400/413/415 → drop"), are discarded for good. The plan's estimate (20-40 KiB, Performance Notes and brief "Size limits" row) counted events only. This is a flaw in the plan's limits, not in the implementation.
 - **Fix**: Raise `MAX_ATTEMPT_BYTES` to 131072 (128 KiB; well under Firestore's 1 MiB document limit) and add a handler test where a valid body at the caps (400 notes + 200 events, realistic numbers, over 64 KiB) answers 204; update the 64 KiB mention in the 413 test name and in the README if present.
-- **Decision**: FIXED (6561370) — one unambiguous change that loosens, not narrows, the contract; increment 2 does not depend on the byte value.
+- **Decision**: FIXED (6561370) — verified r2; one unambiguous change that loosens, not narrows, the contract; increment 2 does not depend on the byte value.
 
 ### F2 — Rate limit keyed on a client-chosen device id
 - **Severity**: OBSERVATION
@@ -88,3 +88,6 @@ No `context/architecture/model.c4`: architecture gate not applicable. Not bug mo
 - Router regex `^(?:/api)?/spike-nuty(?:/|$)` is anchored; `/spike-nutyx` still goes to devices.
 - TTL fields are Firestore `Timestamp`s (`Timestamp.fromDate(...)`), as TTL requires.
 - Cosmetic, not a finding: `functions/test/spike-nuty-fakes.ts:61` `DEVICE_ID ='…'` spacing; `firestore.rules` header comment names only `devices/{id}`.
+
+## Round 2
+Re-review of fix commit `6561370` (evidence in `reviews/fix-r1.md`). F1 verified: `MAX_ATTEMPT_BYTES` = 131072 (`functions/src/spike-nuty/validation.ts:21`); the new handler test builds a valid body at the caps (400 notes, 200 events), asserts it is over 65536 bytes and answers 204 with 400 stored notes, so it fails on the old cap (red-first recorded in `fix-r1.md`: 413 vs 204); 413 test renamed; README says 128 KiB. Re-run here: `pnpm --dir functions typecheck` exit 0, `pnpm --dir functions build` exit 0, `vitest run` 190/190 (baseline 189 + the new test). Emulator suite not re-run (the fix touches no repository code). The fix stayed inside increment-owned files; no ACCEPT finding was touched. Note for later increments: `plan.md` Critical Implementation Details still says "body at most 64 KiB" (the implementer may not edit the plan body); the code and README (128 KiB) are authoritative, and the client never depends on the byte value.
