@@ -440,10 +440,10 @@ Grade the recording and show both staves coloured, with the score.
 
 ### Phase 5: Staff, grading and score
 #### Automated
-- [x] 5.1 `pnpm test` passes, including `staffModel` cases (keys for E3, F#3, G4; durations for 1, 2, 3, 4, 6, 8 eighths; colours per grade) and a SpikeScreen test that feeds synthetic events and shows the score text
-- [x] 5.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass
-- [x] 5.3 `pnpm test:e2e` passes (existing suite unchanged)
-- [x] 5.4 After `pnpm build`, the entry script referenced by `dist/index.html` contains neither `Zagraj i sprawdź` nor `Bravura`
+- [x] 5.1 `pnpm test` passes, including `staffModel` cases (keys for E3, F#3, G4; durations for 1, 2, 3, 4, 6, 8 eighths; colours per grade) and a SpikeScreen test that feeds synthetic events and shows the score text — 6ca5332
+- [x] 5.2 `pnpm lint`, `pnpm typecheck` and `pnpm build` pass — 6ca5332
+- [x] 5.3 `pnpm test:e2e` passes (existing suite unchanged) — 6ca5332
+- [x] 5.4 After `pnpm build`, the entry script referenced by `dist/index.html` contains neither `Zagraj i sprawdź` nor `Bravura` — 6ca5332
 #### Manual
 - [ ] 5.5 On an iPhone, playing "Panie Janie" correctly at 60 BPM gives mostly green notes and a high score; a deliberately wrong note turns red, a late note yellow
 - [ ] 5.6 Diagnostics panel lets the team judge octave/twelfth errors on the low E3-A3 exercise
